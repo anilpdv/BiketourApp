@@ -2,11 +2,12 @@ import React, { memo } from 'react';
 import { ShapeSource, CircleLayer, SymbolLayer } from '@rnmapbox/maps';
 import type { FeatureCollection, Point } from 'geojson';
 import { colors } from '../../../shared/design/tokens';
+import type { ShapeSourcePressEvent } from './RouteLayer';
 
 export interface POILayerProps {
   visible: boolean;
   poiGeoJSON: FeatureCollection<Point>;
-  onPOIPress: (event: any) => void;
+  onPOIPress: (event: ShapeSourcePressEvent) => void;
 }
 
 /**

@@ -1,7 +1,9 @@
 import { Coordinate, CalculatedRoute, Waypoint, RouteInstruction } from '../types';
+import { httpGet, ApiError } from '../../../shared/api';
+import { API_CONFIG } from '../../../shared/config';
 
-// OSRM demo server - using driving profile (bike profile not available on demo server)
-const OSRM_API = 'https://router.project-osrm.org/route/v1';
+// OSRM API base URL from centralized config
+const OSRM_API = API_CONFIG.routing.baseUrl;
 
 // Routing profile - using 'driving' and 'foot' which are supported by OSRM demo server
 type RoutingProfile = 'driving' | 'foot';
@@ -78,17 +80,9 @@ export async function calculateRoute(
   const url = `${OSRM_API}/${profile}/${coords}?${params}`;
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-      },
+    const data = await httpGet<OSRMResponse>(url, {
+      timeout: API_CONFIG.routing.timeout,
     });
-
-    if (!response.ok) {
-      throw new Error(`OSRM API error: ${response.status}`);
-    }
-
-    const data: OSRMResponse = await response.json();
 
     if (data.code !== 'Ok') {
       throw new Error(`OSRM routing failed: ${data.code}`);
@@ -165,16 +159,13 @@ export async function snapToRoad(
   profile: RoutingProfile = 'driving'
 ): Promise<Coordinate> {
   // Use /nearest/v1/ endpoint instead of /route/v1/
+  // Note: OSRM nearest uses same base domain but different path
   const url = `https://router.project-osrm.org/nearest/v1/${profile}/${point.longitude},${point.latitude}?number=1`;
 
   try {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      return point; // Return original if snap fails
-    }
-
-    const data: OSRMNearestResponse = await response.json();
+    const data = await httpGet<OSRMNearestResponse>(url, {
+      timeout: API_CONFIG.routing.timeout,
+    });
 
     if (data.code !== 'Ok' || !data.waypoints || data.waypoints.length === 0) {
       return point;

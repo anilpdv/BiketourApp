@@ -5,6 +5,7 @@ import {
   EuroVeloRoutesList,
   MyRoutesList,
 } from '../../src/features/routing';
+import { ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing, typography, borderRadius } from '../../src/shared/design/tokens';
 
 type TabType = 'eurovelo' | 'myroutes';
@@ -14,6 +15,7 @@ export default function RoutesScreen() {
   const { routes: savedRoutes } = useSavedRoutesStore();
 
   return (
+    <ErrorBoundary>
     <View style={styles.container}>
       {/* Tab bar */}
       <View style={styles.tabBar}>
@@ -49,6 +51,7 @@ export default function RoutesScreen() {
         )}
       </ScrollView>
     </View>
+    </ErrorBoundary>
   );
 }
 

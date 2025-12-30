@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
+import { StatsHeader, ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/shared/design/tokens';
 
 type Mood = 'amazing' | 'good' | 'okay' | 'tired' | 'challenging';
@@ -35,28 +36,16 @@ export default function JournalScreen() {
     },
   ]);
 
-  const stats = {
-    totalEntries: entries.length,
-    totalPhotos: entries.reduce((sum, e) => sum + e.photoCount, 0),
-    totalKm: entries.reduce((sum, e) => sum + e.distanceKm, 0),
-  };
+  const stats = useMemo(() => [
+    { value: entries.length, label: 'entries' },
+    { value: entries.reduce((sum, e) => sum + e.photoCount, 0), label: 'photos' },
+    { value: entries.reduce((sum, e) => sum + e.distanceKm, 0), label: 'km' },
+  ], [entries]);
 
   return (
+    <ErrorBoundary>
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalEntries}</Text>
-          <Text style={styles.statLabel}>entries</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalPhotos}</Text>
-          <Text style={styles.statLabel}>photos</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalKm}</Text>
-          <Text style={styles.statLabel}>km</Text>
-        </View>
-      </View>
+      <StatsHeader stats={stats} backgroundColor={JOURNAL_ACCENT} />
 
       <ScrollView style={styles.entriesList}>
         <Text style={styles.entriesTitle}>Recent Entries</Text>
@@ -94,6 +83,7 @@ export default function JournalScreen() {
         </TouchableOpacity>
       </Link>
     </View>
+    </ErrorBoundary>
   );
 }
 
@@ -104,25 +94,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutral[50],
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: spacing.xl,
-    backgroundColor: JOURNAL_ACCENT,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: typography.fontSizes['3xl'],
-    fontWeight: typography.fontWeights.bold,
-    color: colors.neutral[0],
-  },
-  statLabel: {
-    fontSize: typography.fontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: spacing.xs,
   },
   entriesList: {
     flex: 1,

@@ -1,6 +1,9 @@
 import * as SQLite from 'expo-sqlite';
 import { DB_NAME, SCHEMA_VERSION, ALL_TABLES, ALL_INDEXES, CREATE_TABLES, CREATE_INDEXES } from './schema';
 
+// Type alias for SQLite parameter values
+type SqliteParams = (string | number | null | boolean | Uint8Array)[];
+
 class DatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
@@ -125,7 +128,7 @@ class DatabaseService {
   /**
    * Execute a query that returns rows
    */
-  async query<T>(sql: string, params: any[] = []): Promise<T[]> {
+  async query<T>(sql: string, params: SqliteParams = []): Promise<T[]> {
     const db = await this.getDatabase();
     return db.getAllAsync<T>(sql, params);
   }
@@ -133,7 +136,7 @@ class DatabaseService {
   /**
    * Execute a query that returns a single row
    */
-  async queryFirst<T>(sql: string, params: any[] = []): Promise<T | null> {
+  async queryFirst<T>(sql: string, params: SqliteParams = []): Promise<T | null> {
     const db = await this.getDatabase();
     return db.getFirstAsync<T>(sql, params);
   }
@@ -141,7 +144,7 @@ class DatabaseService {
   /**
    * Execute an insert/update/delete statement
    */
-  async execute(sql: string, params: any[] = []): Promise<SQLite.SQLiteRunResult> {
+  async execute(sql: string, params: SqliteParams = []): Promise<SQLite.SQLiteRunResult> {
     const db = await this.getDatabase();
     return db.runAsync(sql, params);
   }

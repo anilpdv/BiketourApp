@@ -1,12 +1,22 @@
 import { offlineManager } from '@rnmapbox/maps';
 import { DEFAULT_MAP_STYLE } from '../../../shared/config/mapbox.config';
 
+// Type for metadata stored with offline regions
+type OfflineMetadata = Record<string, unknown>;
+
+// Type for Mapbox offline pack from callbacks
+interface MapboxOfflinePack {
+  name: string;
+  bounds: [[number, number], [number, number]];
+  metadata?: OfflineMetadata;
+}
+
 export interface OfflineRegion {
   name: string;
   bounds: [[number, number], [number, number]]; // [SW, NE] as [lng, lat]
   minZoom: number;
   maxZoom: number;
-  metadata?: Record<string, any>;
+  metadata?: OfflineMetadata;
 }
 
 export interface OfflinePackStatus {
@@ -24,11 +34,11 @@ export interface OfflinePackStatus {
 export interface OfflinePack {
   name: string;
   bounds: string; // Mapbox returns bounds as string
-  metadata: Record<string, any>;
+  metadata: OfflineMetadata;
   status?: OfflinePackStatus;
 }
 
-export type DownloadProgressCallback = (pack: any, status: OfflinePackStatus) => void;
+export type DownloadProgressCallback = (pack: MapboxOfflinePack, status: OfflinePackStatus) => void;
 
 /**
  * Download an offline region for use without internet connection
@@ -37,9 +47,10 @@ export async function downloadOfflineRegion(
   region: OfflineRegion,
   onProgress?: DownloadProgressCallback
 ): Promise<void> {
-  const progressListener = (pack: any, status: any) => {
+  // Type assertion needed as Mapbox SDK types are incomplete
+  const progressListener = (pack: unknown, status: unknown) => {
     if (onProgress) {
-      onProgress(pack, status as OfflinePackStatus);
+      onProgress(pack as MapboxOfflinePack, status as OfflinePackStatus);
     }
   };
 

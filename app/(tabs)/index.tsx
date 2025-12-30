@@ -4,7 +4,7 @@ import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, Sym
 import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
 import { POIDetailSheet, POIDetailSheetRef, POIFilterBar } from '../../src/features/pois';
-import { LoadingSpinner, ErrorMessage } from '../../src/shared/components';
+import { LoadingSpinner, ErrorMessage, ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing } from '../../src/shared/design/tokens';
 
 // Map feature hooks
@@ -123,6 +123,7 @@ export default function MapScreen() {
   const loadedRouteIds = routes.map(r => r.euroVeloId);
 
   return (
+    <ErrorBoundary>
     <View style={styles.container}>
       <MapView
         style={styles.map}
@@ -323,6 +324,7 @@ export default function MapScreen() {
         userLocation={location ? { latitude: location.coords.latitude, longitude: location.coords.longitude } : null}
       />
     </View>
+    </ErrorBoundary>
   );
 }
 

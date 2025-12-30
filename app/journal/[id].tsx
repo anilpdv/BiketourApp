@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { StatsHeader } from '../../src/shared/components';
 
 export default function JournalEntryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,6 +35,11 @@ Average speed: 18.7 km/h`,
     challenging: '😤',
   };
 
+  const stats = useMemo(() => [
+    { value: entry.distanceKm, label: 'km' },
+    { value: entry.photoCount, label: 'photos' },
+  ], [entry]);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -43,16 +49,7 @@ Average speed: 18.7 km/h`,
 
       <Text style={styles.title}>{entry.title}</Text>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{entry.distanceKm}</Text>
-          <Text style={styles.statLabel}>km</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{entry.photoCount}</Text>
-          <Text style={styles.statLabel}>photos</Text>
-        </View>
-      </View>
+      <StatsHeader stats={stats} backgroundColor="#7E57C2" variant="compact" />
 
       <View style={styles.contentSection}>
         <Text style={styles.content}>{entry.content}</Text>
@@ -92,15 +89,6 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: '#fff',
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-    backgroundColor: '#7E57C2',
-  },
-  statItem: { alignItems: 'center' },
-  statValue: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-  statLabel: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
   contentSection: {
     backgroundColor: '#fff',
     margin: 16,

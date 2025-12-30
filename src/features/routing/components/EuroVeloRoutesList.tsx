@@ -1,27 +1,49 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, ListRenderItem } from 'react-native';
 import { ROUTE_CONFIGS } from '../../routes/services/routeLoader.service';
+import { EuroVeloRoute } from '../../routes/types';
 import { RouteCard } from './RouteCard';
 import { colors, spacing, typography } from '../../../shared/design/tokens';
 
-export function EuroVeloRoutesList() {
+const ListHeader = memo(function ListHeader() {
   return (
     <View>
       <Text style={styles.title}>EuroVelo Routes</Text>
       <Text style={styles.subtitle}>
         {ROUTE_CONFIGS.length} routes available
       </Text>
-
-      {ROUTE_CONFIGS.map((route) => (
-        <RouteCard key={route.id} route={route} />
-      ))}
-
-      <Text style={styles.moreText}>
-        More routes coming soon - all 17 EuroVelo routes planned
-      </Text>
     </View>
   );
-}
+});
+
+const ListFooter = memo(function ListFooter() {
+  return (
+    <Text style={styles.moreText}>
+      More routes coming soon - all 17 EuroVelo routes planned
+    </Text>
+  );
+});
+
+export const EuroVeloRoutesList = memo(function EuroVeloRoutesList() {
+  const renderItem: ListRenderItem<EuroVeloRoute> = useCallback(
+    ({ item }) => <RouteCard route={item} />,
+    []
+  );
+
+  const keyExtractor = useCallback((item: EuroVeloRoute) => item.id, []);
+
+  return (
+    <FlatList
+      data={ROUTE_CONFIGS}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      ListHeaderComponent={ListHeader}
+      ListFooterComponent={ListFooter}
+      scrollEnabled={false}
+      removeClippedSubviews
+    />
+  );
+});
 
 const styles = StyleSheet.create({
   title: {

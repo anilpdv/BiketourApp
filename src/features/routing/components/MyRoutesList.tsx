@@ -47,8 +47,9 @@ export function MyRoutesList() {
       if (route) {
         Alert.alert('Import Successful', `"${route.name}" has been imported.`);
       }
-    } catch (err: any) {
-      Alert.alert('Import Failed', err.message || 'Failed to import the route.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to import the route.';
+      Alert.alert('Import Failed', message);
     }
   }, [importRoute]);
 

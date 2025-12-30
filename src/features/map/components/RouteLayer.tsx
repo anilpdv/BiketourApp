@@ -1,11 +1,18 @@
 import React, { memo } from 'react';
 import { ShapeSource, LineLayer } from '@rnmapbox/maps';
-import type { FeatureCollection, LineString } from 'geojson';
+import type { FeatureCollection, LineString, GeoJsonProperties, Feature } from 'geojson';
+
+// Type for Mapbox ShapeSource press event
+export interface ShapeSourcePressEvent {
+  features: Feature[];
+  coordinates: { latitude: number; longitude: number };
+  point: { x: number; y: number };
+}
 
 export interface RouteLayerProps {
   routeGeoJSON: FeatureCollection<LineString>;
   selectedRouteId: number | null;
-  onRoutePress: (event: any) => void;
+  onRoutePress: (event: ShapeSourcePressEvent) => void;
 }
 
 /**

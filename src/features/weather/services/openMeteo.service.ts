@@ -6,9 +6,46 @@ import {
   CyclingScore,
   WeatherIconInfo,
 } from '../types';
+import { httpGet } from '../../../shared/api';
+import { API_CONFIG } from '../../../shared/config';
 
-// Open-Meteo API (free, no key required)
-const OPEN_METEO_API = 'https://api.open-meteo.com/v1/forecast';
+// Open-Meteo API response types
+interface OpenMeteoCurrentResponse {
+  temperature_2m: number;
+  apparent_temperature: number;
+  relative_humidity_2m: number;
+  precipitation: number;
+  weather_code: number;
+  wind_speed_10m: number;
+  wind_direction_10m: number;
+  wind_gusts_10m: number;
+  is_day: number;
+}
+
+interface OpenMeteoDailyResponse {
+  time: string[];
+  weather_code: number[];
+  temperature_2m_max: number[];
+  temperature_2m_min: number[];
+  apparent_temperature_max: number[];
+  apparent_temperature_min: number[];
+  precipitation_sum: number[];
+  precipitation_probability_max: number[];
+  wind_speed_10m_max: number[];
+  wind_gusts_10m_max: number[];
+  wind_direction_10m_dominant: number[];
+  sunrise: string[];
+  sunset: string[];
+  uv_index_max: number[];
+}
+
+interface OpenMeteoResponse {
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  current: OpenMeteoCurrentResponse;
+  daily: OpenMeteoDailyResponse;
+}
 
 // Fetch weather for a location
 export async function fetchWeather(
@@ -48,19 +85,17 @@ export async function fetchWeather(
     forecast_days: '7',
   });
 
-  const response = await fetch(`${OPEN_METEO_API}?${params}`);
+  const url = `${API_CONFIG.weather.baseUrl}?${params}`;
+  const data = await httpGet<OpenMeteoResponse>(url, {
+    timeout: API_CONFIG.weather.timeout,
+  });
 
-  if (!response.ok) {
-    throw new Error(`Weather API error: ${response.status}`);
-  }
-
-  const data = await response.json();
   return parseWeatherResponse(data, latitude, longitude);
 }
 
 // Parse API response
 function parseWeatherResponse(
-  data: any,
+  data: OpenMeteoResponse,
   latitude: number,
   longitude: number
 ): WeatherForecast {
@@ -77,7 +112,7 @@ function parseWeatherResponse(
   };
 
   const daily: DailyForecast[] = data.daily.time.map(
-    (date: string, i: number) => {
+    (date, i) => {
       const forecast: DailyForecast = {
         date,
         tempMax: data.daily.temperature_2m_max[i],
@@ -94,7 +129,7 @@ function parseWeatherResponse(
         sunset: data.daily.sunset[i],
         uvIndexMax: data.daily.uv_index_max[i],
         cyclingScore: calculateCyclingScore(
-          data.daily.weather_code[i],
+          data.daily.weather_code[i] as WeatherCode,
           data.daily.temperature_2m_max[i],
           data.daily.wind_speed_10m_max[i],
           data.daily.precipitation_sum[i]

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../shared/design/tokens';
@@ -14,7 +14,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 const DIFFICULTY_COLORS = {
   easy: colors.secondary[500],
   moderate: colors.status.warning,
-  hard: colors.status.error,
+  difficult: colors.status.error,
 };
 
 export interface RouteConfig {
@@ -23,7 +23,7 @@ export interface RouteConfig {
   name: string;
   description: string;
   distance: number;
-  difficulty: 'easy' | 'moderate' | 'hard';
+  difficulty: 'easy' | 'moderate' | 'difficult';
   color: string;
   countries: string[];
   highlights: string[];
@@ -33,7 +33,7 @@ interface RouteCardProps {
   route: RouteConfig;
 }
 
-export function RouteCard({ route }: RouteCardProps) {
+export const RouteCard = memo(function RouteCard({ route }: RouteCardProps) {
   const flags = route.countries.map((c) => COUNTRY_FLAGS[c] || c).join('');
   const difficultyColor = DIFFICULTY_COLORS[route.difficulty];
 
@@ -61,7 +61,7 @@ export function RouteCard({ route }: RouteCardProps) {
       </TouchableOpacity>
     </Link>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

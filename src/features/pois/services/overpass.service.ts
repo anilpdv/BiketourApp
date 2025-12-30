@@ -7,14 +7,11 @@ import {
   OverpassElement,
 } from '../types';
 import { poiRepository } from './poi.repository';
+import { createRateLimiter, calculateHaversineDistance } from '../../../shared/utils';
+import { API_CONFIG } from '../../../shared/config';
 
-// Overpass API endpoint
-const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
-
-// Rate limiting: max 1 request per 2 seconds
-let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 2000;
-const REQUEST_TIMEOUT = 30000;
+// Rate limiter for Overpass API
+const rateLimiter = createRateLimiter(API_CONFIG.pois.rateLimit);
 
 // Request deduplication: track pending requests to avoid duplicate API calls
 const pendingRequests = new Map<string, Promise<POI[]>>();
@@ -113,14 +110,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
 
 // Wait for rate limit
 async function waitForRateLimit(): Promise<void> {
-  const now = Date.now();
-  const timeSinceLastRequest = now - lastRequestTime;
-  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-    await new Promise((resolve) =>
-      setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest)
-    );
-  }
-  lastRequestTime = Date.now();
+  await rateLimiter.waitForRateLimit();
 }
 
 // Build Overpass query for a bounding box and category
@@ -251,13 +241,13 @@ export async function fetchPOIs(
 
   try {
     const response = await fetchWithTimeout(
-      OVERPASS_ENDPOINT,
+      API_CONFIG.pois.baseUrl,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `data=${encodeURIComponent(query)}`,
       },
-      REQUEST_TIMEOUT
+      API_CONFIG.pois.timeout
     );
 
     if (response.ok) {
@@ -269,13 +259,13 @@ export async function fetchPOIs(
     if (response.status === 429 || response.status >= 500) {
       await sleep(2000);
       const retry = await fetchWithTimeout(
-        OVERPASS_ENDPOINT,
+        API_CONFIG.pois.baseUrl,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: `data=${encodeURIComponent(query)}`,
         },
-        REQUEST_TIMEOUT
+        API_CONFIG.pois.timeout
       );
       if (retry.ok) {
         const data: OverpassResponse = await retry.json();
@@ -325,25 +315,8 @@ export async function fetchPOIsAlongRoute(
   return fetchPOIs(bbox, categories);
 }
 
-// Calculate distance between two points (Haversine)
-export function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371; // Earth's radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+// Re-export calculateHaversineDistance as calculateDistance for backwards compatibility
+export { calculateHaversineDistance as calculateDistance } from '../../../shared/utils';
 
 // Add distance from user to POIs
 export function addDistanceFromUser(
@@ -353,7 +326,7 @@ export function addDistanceFromUser(
 ): POI[] {
   return pois.map((poi) => ({
     ...poi,
-    distanceFromUser: calculateDistance(
+    distanceFromUser: calculateHaversineDistance(
       userLat,
       userLon,
       poi.latitude,

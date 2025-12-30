@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { EmptyState } from '../../src/shared/components';
+import { EmptyState, StatsHeader, ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing, typography, borderRadius, shadows } from '../../src/shared/design/tokens';
 
 type Plan = {
@@ -21,31 +21,28 @@ export default function PlannerScreen() {
   const [dailyTarget, setDailyTarget] = useState(80);
   const [plans] = useState<Plan[]>([]);
 
-  const totalPlanned = plans.reduce((sum, p) => sum + p.targetKm, 0);
-  const totalCompleted = plans
-    .filter((p) => p.status === 'completed')
-    .reduce((sum, p) => sum + (p.actualKm || 0), 0);
+  const stats = useMemo(() => {
+    const totalPlanned = plans.reduce((sum, p) => sum + p.targetKm, 0);
+    const totalCompleted = plans
+      .filter((p) => p.status === 'completed')
+      .reduce((sum, p) => sum + (p.actualKm || 0), 0);
+    const daysCompleted = plans.filter(p => p.status === 'completed').length;
+
+    return [
+      { value: totalCompleted, label: 'km cycled' },
+      { value: totalPlanned, label: 'km planned' },
+      { value: daysCompleted, label: 'days done' },
+    ];
+  }, [plans]);
 
   const getStatusColor = (status: Plan['status']) => {
     return STATUS_COLORS[status] || colors.primary[500];
   };
 
   return (
+    <ErrorBoundary>
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{totalCompleted}</Text>
-          <Text style={styles.statLabel}>km cycled</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{totalPlanned}</Text>
-          <Text style={styles.statLabel}>km planned</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{plans.filter(p => p.status === 'completed').length}</Text>
-          <Text style={styles.statLabel}>days done</Text>
-        </View>
-      </View>
+      <StatsHeader stats={stats} backgroundColor={colors.primary[500]} style={styles.header} />
 
       <View style={styles.targetSection}>
         <Text style={styles.sectionTitle}>Daily Target</Text>
@@ -109,6 +106,7 @@ export default function PlannerScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </ErrorBoundary>
   );
 }
 
@@ -118,23 +116,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[50],
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
     padding: spacing.lg,
-    backgroundColor: colors.primary[500],
-  },
-  statCard: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: typography.fontSizes['3xl'],
-    fontWeight: typography.fontWeights.bold,
-    color: colors.neutral[0],
-  },
-  statLabel: {
-    fontSize: typography.fontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: spacing.xs,
   },
   targetSection: {
     backgroundColor: colors.neutral[0],
