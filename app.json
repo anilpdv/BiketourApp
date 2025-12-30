@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "BikeTour Europe",
+    "slug": "biketour-europe",
+    "version": "1.0.0",
+    "scheme": "biketour",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2196F3"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.biketoureurope.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "BikeTour Europe needs your location to show your position on the map and help you navigate along EuroVelo routes.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "BikeTour Europe needs your location to track your cycling progress even when the app is in the background.",
+        "NSPhotoLibraryUsageDescription": "BikeTour Europe needs access to your photos to add images to your trip journal."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2196F3"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.biketoureurope.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "BikeTour Europe needs your location to track your cycling progress."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow BikeTour Europe to access your photos for your trip journal."
+        }
+      ],
+      "@rnmapbox/maps"
+    ]
+  }
+}

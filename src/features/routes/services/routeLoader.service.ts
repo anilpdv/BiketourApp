@@ -1,0 +1,268 @@
+import { File } from 'expo-file-system/next';
+import { parseGPX, gpxToRoute } from './gpxParser.service';
+import { routeCacheRepository, computeGPXHash } from './routeCache.repository';
+import { ParsedRoute, EuroVeloRoute, RouteVariant } from '../types';
+
+// @ts-ignore - expo-asset types
+const { Asset } = require('expo-asset');
+
+// All EuroVelo routes available
+const EUROVELO_ROUTE_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 19];
+
+// Routes that have developed versions
+const ROUTES_WITH_DEVELOPED = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 19];
+
+// Color palette for routes - each route has full (light) and developed (bold) colors
+const ROUTE_COLORS: Record<number, { full: string; developed: string }> = {
+  1:  { full: '#90CAF9', developed: '#1565C0' },  // Blue
+  2:  { full: '#A5D6A7', developed: '#2E7D32' },  // Green
+  3:  { full: '#FFCC80', developed: '#EF6C00' },  // Orange
+  4:  { full: '#CE93D8', developed: '#7B1FA2' },  // Purple
+  5:  { full: '#80DEEA', developed: '#00838F' },  // Cyan
+  6:  { full: '#EF9A9A', developed: '#C62828' },  // Red
+  7:  { full: '#FFF59D', developed: '#F9A825' },  // Yellow
+  8:  { full: '#BCAAA4', developed: '#5D4037' },  // Brown
+  9:  { full: '#B0BEC5', developed: '#455A64' },  // Blue Grey
+  10: { full: '#F48FB1', developed: '#AD1457' },  // Pink
+  11: { full: '#81C784', developed: '#388E3C' },  // Light Green
+  12: { full: '#4FC3F7', developed: '#0277BD' },  // Light Blue
+  13: { full: '#FFB74D', developed: '#E65100' },  // Deep Orange
+  14: { full: '#9FA8DA', developed: '#303F9F' },  // Indigo
+  15: { full: '#80CBC4', developed: '#00695C' },  // Teal
+  17: { full: '#E6EE9C', developed: '#9E9D24' },  // Lime
+  19: { full: '#FFAB91', developed: '#D84315' },  // Deep Orange
+};
+
+// Route names
+const ROUTE_NAMES: Record<number, string> = {
+  1:  'Atlantic Coast Route',
+  2:  'Capitals Route',
+  3:  'Pilgrims Route',
+  4:  'Central Europe Route',
+  5:  'Via Romea Francigena',
+  6:  'Atlantic - Black Sea',
+  7:  'Sun Route',
+  8:  'Mediterranean Route',
+  9:  'Baltic - Adriatic',
+  10: 'Baltic Sea Cycle Route',
+  11: 'East Europe Route',
+  12: 'North Sea Cycle Route',
+  13: 'Iron Curtain Trail',
+  14: 'Waters of Central Europe',
+  15: 'Rhine Cycle Route',
+  17: 'Rhone Cycle Route',
+  19: 'Meuse Cycle Route',
+};
+
+// GPX file imports - we import them as assets
+const GPX_ASSETS: Record<string, any> = {
+  '1': require('../../../../assets/euroveloRoutes/1.gpx'),
+  '2': require('../../../../assets/euroveloRoutes/2.gpx'),
+  '2-developed': require('../../../../assets/euroveloRoutes/2-developed.gpx'),
+  '3': require('../../../../assets/euroveloRoutes/3.gpx'),
+  '3-developed': require('../../../../assets/euroveloRoutes/3-developed.gpx'),
+  '4': require('../../../../assets/euroveloRoutes/4.gpx'),
+  '4-developed': require('../../../../assets/euroveloRoutes/4-developed.gpx'),
+  '5': require('../../../../assets/euroveloRoutes/5.gpx'),
+  '5-developed': require('../../../../assets/euroveloRoutes/5-developed.gpx'),
+  '6': require('../../../../assets/euroveloRoutes/6.gpx'),
+  '6-developed': require('../../../../assets/euroveloRoutes/6-developed.gpx'),
+  '7': require('../../../../assets/euroveloRoutes/7.gpx'),
+  '7-developed': require('../../../../assets/euroveloRoutes/7-developed.gpx'),
+  '8': require('../../../../assets/euroveloRoutes/8.gpx'),
+  '8-developed': require('../../../../assets/euroveloRoutes/8-developed.gpx'),
+  '9': require('../../../../assets/euroveloRoutes/9.gpx'),
+  '9-developed': require('../../../../assets/euroveloRoutes/9-developed.gpx'),
+  '10': require('../../../../assets/euroveloRoutes/10.gpx'),
+  '10-developed': require('../../../../assets/euroveloRoutes/10-developed.gpx'),
+  '11': require('../../../../assets/euroveloRoutes/11.gpx'),
+  '11-developed': require('../../../../assets/euroveloRoutes/11-developed.gpx'),
+  '12': require('../../../../assets/euroveloRoutes/12.gpx'),
+  '12-developed': require('../../../../assets/euroveloRoutes/12-developed.gpx'),
+  '13': require('../../../../assets/euroveloRoutes/13.gpx'),
+  '13-developed': require('../../../../assets/euroveloRoutes/13-developed.gpx'),
+  '14': require('../../../../assets/euroveloRoutes/14.gpx'),
+  '14-developed': require('../../../../assets/euroveloRoutes/14-developed.gpx'),
+  '15': require('../../../../assets/euroveloRoutes/15.gpx'),
+  '15-developed': require('../../../../assets/euroveloRoutes/15-developed.gpx'),
+  '17': require('../../../../assets/euroveloRoutes/17.gpx'),
+  '17-developed': require('../../../../assets/euroveloRoutes/17-developed.gpx'),
+  '19': require('../../../../assets/euroveloRoutes/19.gpx'),
+  '19-developed': require('../../../../assets/euroveloRoutes/19-developed.gpx'),
+};
+
+// Load a single GPX file content using new Expo SDK 54 File API
+async function loadGPXContent(fileKey: string): Promise<string | null> {
+  try {
+    const asset = Asset.fromModule(GPX_ASSETS[fileKey]);
+    await asset.downloadAsync();
+
+    if (asset.localUri) {
+      const file = new File(asset.localUri);
+      const content = await file.text();
+      return content;
+    }
+    return null;
+  } catch (error) {
+    console.warn(`Failed to load GPX for ${fileKey}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Load and parse a single route with caching support
+ * First checks SQLite cache, falls back to parsing GPX if needed
+ */
+export async function loadRoute(
+  euroVeloId: number,
+  variant: RouteVariant
+): Promise<ParsedRoute | null> {
+  const fileKey = variant === 'developed' ? `${euroVeloId}-developed` : `${euroVeloId}`;
+  const routeId = `ev${euroVeloId}-${variant}`;
+
+  if (!GPX_ASSETS[fileKey]) {
+    return null;
+  }
+
+  // Load GPX content to compute hash for cache validation
+  const gpxContent = await loadGPXContent(fileKey);
+  if (!gpxContent) {
+    return null;
+  }
+
+  const gpxHash = computeGPXHash(gpxContent);
+  const colors = ROUTE_COLORS[euroVeloId];
+  const color = variant === 'developed' ? colors.developed : colors.full;
+
+  try {
+    // Check if we have a valid cached version
+    const isCached = await routeCacheRepository.isCached(routeId, gpxHash);
+
+    if (isCached) {
+      // Return from cache
+      const cachedRoute = await routeCacheRepository.getCachedRoute(routeId);
+      if (cachedRoute) {
+        // Add color (not stored in cache)
+        return {
+          ...cachedRoute,
+          color,
+          name: `EV${euroVeloId} - ${ROUTE_NAMES[euroVeloId]}${variant === 'developed' ? ' (Developed)' : ''}`,
+        };
+      }
+    }
+
+    // Parse GPX and cache the result
+    const gpxData = parseGPX(gpxContent);
+    const route = gpxToRoute(gpxData, routeId);
+
+    const parsedRoute: ParsedRoute = {
+      ...route,
+      euroVeloId,
+      variant,
+      name: `EV${euroVeloId} - ${ROUTE_NAMES[euroVeloId]}${variant === 'developed' ? ' (Developed)' : ''}`,
+      color,
+    };
+
+    // Cache the parsed route (async, don't block return)
+    routeCacheRepository.cacheRoute(parsedRoute, gpxHash).catch((error) => {
+      console.warn(`Failed to cache route ${routeId}:`, error);
+    });
+
+    return parsedRoute;
+  } catch (error) {
+    console.error(`Failed to parse GPX for EV${euroVeloId} ${variant}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Load route from cache only (for faster initial loads)
+ * Returns null if not cached
+ */
+export async function loadRouteFromCache(
+  euroVeloId: number,
+  variant: RouteVariant
+): Promise<ParsedRoute | null> {
+  const routeId = `ev${euroVeloId}-${variant}`;
+  const colors = ROUTE_COLORS[euroVeloId];
+  const color = variant === 'developed' ? colors.developed : colors.full;
+
+  try {
+    const cachedRoute = await routeCacheRepository.getCachedRoute(routeId);
+    if (cachedRoute) {
+      return {
+        ...cachedRoute,
+        color,
+        name: `EV${euroVeloId} - ${ROUTE_NAMES[euroVeloId]}${variant === 'developed' ? ' (Developed)' : ''}`,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.warn(`Failed to load cached route ${routeId}:`, error);
+    return null;
+  }
+}
+
+// Load all available routes
+export async function loadAllRoutes(): Promise<ParsedRoute[]> {
+  const routes: ParsedRoute[] = [];
+
+  for (const euroVeloId of EUROVELO_ROUTE_IDS) {
+    // Load full route
+    const fullRoute = await loadRoute(euroVeloId, 'full');
+    if (fullRoute) {
+      routes.push(fullRoute);
+    }
+
+    // Load developed route if available
+    if (ROUTES_WITH_DEVELOPED.includes(euroVeloId)) {
+      const developedRoute = await loadRoute(euroVeloId, 'developed');
+      if (developedRoute) {
+        routes.push(developedRoute);
+      }
+    }
+  }
+
+  return routes;
+}
+
+// Get color for a route
+export function getRouteColor(euroVeloId: number, variant: RouteVariant): string {
+  const colors = ROUTE_COLORS[euroVeloId];
+  return variant === 'developed' ? colors.developed : colors.full;
+}
+
+// Get route name
+export function getRouteName(euroVeloId: number): string {
+  return ROUTE_NAMES[euroVeloId] || `EuroVelo ${euroVeloId}`;
+}
+
+// Check if route has developed version
+export function hasDevelopedVersion(euroVeloId: number): boolean {
+  return ROUTES_WITH_DEVELOPED.includes(euroVeloId);
+}
+
+// Get list of available route IDs
+export function getAvailableRouteIds(): number[] {
+  return EUROVELO_ROUTE_IDS;
+}
+
+// Legacy exports for compatibility
+export const ROUTE_CONFIGS: EuroVeloRoute[] = EUROVELO_ROUTE_IDS.map((id) => ({
+  id: `ev${id}`,
+  euroVeloId: id,
+  name: ROUTE_NAMES[id],
+  description: '',
+  distance: 0,
+  countries: [],
+  color: ROUTE_COLORS[id].developed,
+  difficulty: 'moderate' as const,
+  surface: [],
+  highlights: [],
+  bestSeason: [],
+  enabled: true,
+}));
+
+export function getRouteConfig(routeId: string): EuroVeloRoute | undefined {
+  return ROUTE_CONFIGS.find((r) => r.id === routeId);
+}

@@ -1,0 +1,120 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-01",
+  "routes": [
+    {
+      "id": "ev1",
+      "euroVeloId": 1,
+      "name": "Atlantic Coast Route",
+      "description": "North Cape (NO) to Sagres (PT)",
+      "distance": 11150,
+      "distanceUnit": "km",
+      "countries": ["NO", "UK", "IE", "FR", "ES", "PT"],
+      "color": "#1565C0",
+      "gpxFile": "gpx/ev1.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Norwegian Fjords",
+        "Irish Wild Atlantic Way",
+        "French Atlantic Coast",
+        "Portuguese Algarve"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev6",
+      "euroVeloId": 6,
+      "name": "Atlantic - Black Sea",
+      "description": "Nantes (FR) to Constanța (RO)",
+      "distance": 4450,
+      "distanceUnit": "km",
+      "countries": ["FR", "CH", "DE", "AT", "SK", "HU", "RS", "BG", "RO"],
+      "color": "#00838F",
+      "gpxFile": "gpx/ev6.gpx",
+      "difficulty": "easy",
+      "surface": ["asphalt"],
+      "highlights": [
+        "Loire Valley Castles",
+        "Swiss Alps Views",
+        "Danube River Path",
+        "Budapest",
+        "Black Sea Coast"
+      ],
+      "bestSeason": ["april", "may", "june", "september", "october"],
+      "enabled": true
+    },
+    {
+      "id": "ev15",
+      "euroVeloId": 15,
+      "name": "Rhine Cycle Route",
+      "description": "Andermatt (CH) to Rotterdam (NL)",
+      "distance": 1500,
+      "distanceUnit": "km",
+      "countries": ["CH", "DE", "FR", "NL"],
+      "color": "#8E24AA",
+      "gpxFile": "gpx/ev15.gpx",
+      "difficulty": "easy",
+      "surface": ["asphalt"],
+      "highlights": [
+        "Swiss Alps Start",
+        "Rhine Falls",
+        "German Castles",
+        "Dutch Windmills"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    }
+  ],
+  "poiCategories": [
+    {
+      "id": "campsite",
+      "name": "Campsites",
+      "icon": "⛺",
+      "color": "#4CAF50",
+      "osmQuery": "tourism=camp_site",
+      "enabled": true
+    },
+    {
+      "id": "drinking_water",
+      "name": "Drinking Water",
+      "icon": "💧",
+      "color": "#2196F3",
+      "osmQuery": "amenity=drinking_water",
+      "enabled": true
+    },
+    {
+      "id": "bike_shop",
+      "name": "Bike Shops",
+      "icon": "🚲",
+      "color": "#FF9800",
+      "osmQuery": "shop=bicycle",
+      "enabled": true
+    },
+    {
+      "id": "bike_repair",
+      "name": "Repair Stations",
+      "icon": "🔧",
+      "color": "#9C27B0",
+      "osmQuery": "amenity=bicycle_repair_station",
+      "enabled": true
+    },
+    {
+      "id": "supermarket",
+      "name": "Supermarkets",
+      "icon": "🛒",
+      "color": "#795548",
+      "osmQuery": "shop=supermarket",
+      "enabled": false
+    },
+    {
+      "id": "restaurant",
+      "name": "Restaurants",
+      "icon": "🍽️",
+      "color": "#E91E63",
+      "osmQuery": "amenity=restaurant",
+      "enabled": false
+    }
+  ]
+}

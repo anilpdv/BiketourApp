@@ -1,0 +1,429 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-01",
+  "routes": [
+    {
+      "id": "ev1",
+      "euroVeloId": 1,
+      "name": "Atlantic Coast Route",
+      "description": "North Cape (NO) to Sagres (PT)",
+      "distance": 11150,
+      "distanceUnit": "km",
+      "countries": ["NO", "UK", "IE", "FR", "ES", "PT"],
+      "color": "#1565C0",
+      "gpxFile": "gpx/ev1.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Norwegian Fjords",
+        "Irish Wild Atlantic Way",
+        "French Atlantic Coast",
+        "Portuguese Algarve"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev2",
+      "euroVeloId": 2,
+      "name": "Capitals Route",
+      "description": "Galway (IE) to Moscow (RU)",
+      "distance": 5500,
+      "distanceUnit": "km",
+      "countries": ["IE", "UK", "NL", "DE", "PL", "BY", "RU"],
+      "color": "#2E7D32",
+      "gpxFile": "gpx/ev2.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Dublin",
+        "London",
+        "Berlin",
+        "Warsaw",
+        "Minsk"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev3",
+      "euroVeloId": 3,
+      "name": "Pilgrims Route",
+      "description": "Trondheim (NO) to Santiago de Compostela (ES)",
+      "distance": 5400,
+      "distanceUnit": "km",
+      "countries": ["NO", "SE", "DK", "DE", "BE", "FR", "ES"],
+      "color": "#EF6C00",
+      "gpxFile": "gpx/ev3.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Trondheim Cathedral",
+        "Hamburg",
+        "Cologne Cathedral",
+        "Paris",
+        "Santiago de Compostela"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev4",
+      "euroVeloId": 4,
+      "name": "Central Europe Route",
+      "description": "Roscoff (FR) to Kyiv (UA)",
+      "distance": 4000,
+      "distanceUnit": "km",
+      "countries": ["FR", "BE", "DE", "CZ", "PL", "UA"],
+      "color": "#7B1FA2",
+      "gpxFile": "gpx/ev4.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Brittany Coast",
+        "Brussels",
+        "Prague",
+        "Krakow",
+        "Lviv"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev5",
+      "euroVeloId": 5,
+      "name": "Via Romea Francigena",
+      "description": "London (UK) to Rome (IT) and Brindisi (IT)",
+      "distance": 3900,
+      "distanceUnit": "km",
+      "countries": ["UK", "FR", "CH", "IT"],
+      "color": "#00838F",
+      "gpxFile": "gpx/ev5.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Canterbury Cathedral",
+        "Reims",
+        "Swiss Alps",
+        "Rome",
+        "Apulia"
+      ],
+      "bestSeason": ["april", "may", "june", "september", "october"],
+      "enabled": true
+    },
+    {
+      "id": "ev6",
+      "euroVeloId": 6,
+      "name": "Atlantic - Black Sea",
+      "description": "Nantes (FR) to Constanța (RO)",
+      "distance": 4450,
+      "distanceUnit": "km",
+      "countries": ["FR", "CH", "DE", "AT", "SK", "HU", "RS", "BG", "RO"],
+      "color": "#C62828",
+      "gpxFile": "gpx/ev6.gpx",
+      "difficulty": "easy",
+      "surface": ["asphalt"],
+      "highlights": [
+        "Loire Valley Castles",
+        "Swiss Alps Views",
+        "Danube River Path",
+        "Budapest",
+        "Black Sea Coast"
+      ],
+      "bestSeason": ["april", "may", "june", "september", "october"],
+      "enabled": true
+    },
+    {
+      "id": "ev7",
+      "euroVeloId": 7,
+      "name": "Sun Route",
+      "description": "North Cape (NO) to Malta",
+      "distance": 7700,
+      "distanceUnit": "km",
+      "countries": ["NO", "SE", "DK", "DE", "CZ", "AT", "IT", "MT"],
+      "color": "#F9A825",
+      "gpxFile": "gpx/ev7.gpx",
+      "difficulty": "difficult",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "North Cape",
+        "Copenhagen",
+        "Prague",
+        "Vienna",
+        "Italian Dolomites",
+        "Sicily"
+      ],
+      "bestSeason": ["june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev8",
+      "euroVeloId": 8,
+      "name": "Mediterranean Route",
+      "description": "Cádiz (ES) to Athens (GR) and Cyprus",
+      "distance": 7500,
+      "distanceUnit": "km",
+      "countries": ["ES", "FR", "MC", "IT", "SI", "HR", "ME", "AL", "GR", "CY"],
+      "color": "#5D4037",
+      "gpxFile": "gpx/ev8.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Costa del Sol",
+        "French Riviera",
+        "Cinque Terre",
+        "Croatian Coast",
+        "Greek Islands"
+      ],
+      "bestSeason": ["april", "may", "september", "october"],
+      "enabled": true
+    },
+    {
+      "id": "ev9",
+      "euroVeloId": 9,
+      "name": "Baltic - Adriatic",
+      "description": "Gdańsk (PL) to Pula (HR)",
+      "distance": 2050,
+      "distanceUnit": "km",
+      "countries": ["PL", "CZ", "AT", "SI", "HR"],
+      "color": "#455A64",
+      "gpxFile": "gpx/ev9.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Gdańsk Old Town",
+        "Brno",
+        "Vienna",
+        "Ljubljana",
+        "Plitvice Lakes"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev10",
+      "euroVeloId": 10,
+      "name": "Baltic Sea Cycle Route",
+      "description": "Around the Baltic Sea",
+      "distance": 9000,
+      "distanceUnit": "km",
+      "countries": ["DE", "DK", "SE", "FI", "RU", "EE", "LV", "LT", "PL"],
+      "color": "#AD1457",
+      "gpxFile": "gpx/ev10.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Copenhagen",
+        "Stockholm",
+        "Helsinki",
+        "Tallinn",
+        "Riga",
+        "Vilnius"
+      ],
+      "bestSeason": ["june", "july", "august"],
+      "enabled": true
+    },
+    {
+      "id": "ev11",
+      "euroVeloId": 11,
+      "name": "East Europe Route",
+      "description": "North Cape (NO) to Athens (GR)",
+      "distance": 6550,
+      "distanceUnit": "km",
+      "countries": ["NO", "FI", "EE", "LV", "LT", "PL", "SK", "HU", "RS", "MK", "GR"],
+      "color": "#388E3C",
+      "gpxFile": "gpx/ev11.gpx",
+      "difficulty": "difficult",
+      "surface": ["asphalt", "gravel", "unpaved"],
+      "highlights": [
+        "Finnish Lakes",
+        "Baltic States",
+        "Tatra Mountains",
+        "Budapest",
+        "Belgrade",
+        "Athens"
+      ],
+      "bestSeason": ["june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev12",
+      "euroVeloId": 12,
+      "name": "North Sea Cycle Route",
+      "description": "Around the North Sea",
+      "distance": 7050,
+      "distanceUnit": "km",
+      "countries": ["NO", "SE", "DK", "DE", "NL", "BE", "UK"],
+      "color": "#0277BD",
+      "gpxFile": "gpx/ev12.gpx",
+      "difficulty": "easy",
+      "surface": ["asphalt"],
+      "highlights": [
+        "Norwegian Fjords",
+        "Danish Coast",
+        "German Wadden Sea",
+        "Dutch Windmills",
+        "Scottish Highlands"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev13",
+      "euroVeloId": 13,
+      "name": "Iron Curtain Trail",
+      "description": "Barents Sea (NO) to Black Sea (BG)",
+      "distance": 10400,
+      "distanceUnit": "km",
+      "countries": ["NO", "FI", "EE", "LV", "LT", "PL", "DE", "CZ", "AT", "SK", "HU", "RS", "RO", "BG", "GR", "TR", "MK"],
+      "color": "#E65100",
+      "gpxFile": "gpx/ev13.gpx",
+      "difficulty": "difficult",
+      "surface": ["asphalt", "gravel", "unpaved"],
+      "highlights": [
+        "Former Iron Curtain Border",
+        "Berlin Wall Memorial",
+        "Checkpoint Charlie",
+        "Cold War History",
+        "Diverse Landscapes"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev14",
+      "euroVeloId": 14,
+      "name": "Waters of Central Europe",
+      "description": "Zell am See (AT) to Gdańsk (PL)",
+      "distance": 1130,
+      "distanceUnit": "km",
+      "countries": ["AT", "CZ", "PL"],
+      "color": "#303F9F",
+      "gpxFile": "gpx/ev14.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt", "gravel"],
+      "highlights": [
+        "Austrian Alps",
+        "Bohemian Forests",
+        "Vistula River",
+        "Gdańsk Old Town"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev15",
+      "euroVeloId": 15,
+      "name": "Rhine Cycle Route",
+      "description": "Andermatt (CH) to Rotterdam (NL)",
+      "distance": 1500,
+      "distanceUnit": "km",
+      "countries": ["CH", "DE", "FR", "NL"],
+      "color": "#00695C",
+      "gpxFile": "gpx/ev15.gpx",
+      "difficulty": "easy",
+      "surface": ["asphalt"],
+      "highlights": [
+        "Swiss Alps Start",
+        "Rhine Falls",
+        "German Castles",
+        "Dutch Windmills"
+      ],
+      "bestSeason": ["may", "june", "july", "august", "september"],
+      "enabled": true
+    },
+    {
+      "id": "ev17",
+      "euroVeloId": 17,
+      "name": "Rhone Cycle Route",
+      "description": "Andermatt (CH) to Mediterranean (FR)",
+      "distance": 1115,
+      "distanceUnit": "km",
+      "countries": ["CH", "FR"],
+      "color": "#9E9D24",
+      "gpxFile": "gpx/ev17.gpx",
+      "difficulty": "moderate",
+      "surface": ["asphalt"],
+      "highlights": [
+        "Swiss Alps",
+        "Lake Geneva",
+        "Lyon",
+        "Provence",
+        "Camargue"
+      ],
+      "bestSeason": ["april", "may", "june", "september", "october"],
+      "enabled": true
+    },
+    {
+      "id": "ev19",
+      "euroVeloId": 19,
+      "name": "Meuse Cycle Route",
+      "description": "Langres (FR) to Rotterdam (NL)",
+      "distance": 1050,
+      "distanceUnit": "km",
+      "countries": ["FR", "BE", "NL"],
+      "color": "#D84315",
+      "gpxFile": "gpx/ev19.gpx",
+      "difficulty": "easy",
+      "surface": ["asphalt"],
+      "highlights": [
+        "Champagne Region",
+        "Belgian Ardennes",
+        "Maastricht",
+        "Dutch Delta"
+      ],
+      "bestSeason": ["april", "may", "june", "july", "august", "september"],
+      "enabled": true
+    }
+  ],
+  "poiCategories": [
+    {
+      "id": "campsite",
+      "name": "Campsites",
+      "icon": "⛺",
+      "color": "#4CAF50",
+      "osmQuery": "tourism=camp_site",
+      "enabled": true
+    },
+    {
+      "id": "drinking_water",
+      "name": "Drinking Water",
+      "icon": "💧",
+      "color": "#2196F3",
+      "osmQuery": "amenity=drinking_water",
+      "enabled": true
+    },
+    {
+      "id": "bike_shop",
+      "name": "Bike Shops",
+      "icon": "🚲",
+      "color": "#FF9800",
+      "osmQuery": "shop=bicycle",
+      "enabled": true
+    },
+    {
+      "id": "bike_repair",
+      "name": "Repair Stations",
+      "icon": "🔧",
+      "color": "#9C27B0",
+      "osmQuery": "amenity=bicycle_repair_station",
+      "enabled": true
+    },
+    {
+      "id": "supermarket",
+      "name": "Supermarkets",
+      "icon": "🛒",
+      "color": "#795548",
+      "osmQuery": "shop=supermarket",
+      "enabled": false
+    },
+    {
+      "id": "restaurant",
+      "name": "Restaurants",
+      "icon": "🍽️",
+      "color": "#E91E63",
+      "osmQuery": "amenity=restaurant",
+      "enabled": false
+    }
+  ]
+}
