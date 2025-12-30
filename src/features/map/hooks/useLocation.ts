@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
+import { logger } from '../../../shared/utils';
 
 export interface UseLocationReturn {
   location: Location.LocationObject | null;
@@ -30,7 +31,7 @@ export function useLocation(): UseLocationReturn {
       const currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation);
     } catch (error) {
-      console.error('Failed to get location:', error);
+      logger.error('ui', 'Failed to get location', error);
       setErrorMsg('Failed to get current location');
     } finally {
       setIsLoading(false);

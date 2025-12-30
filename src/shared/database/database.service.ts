@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { DB_NAME, SCHEMA_VERSION, ALL_TABLES, ALL_INDEXES, CREATE_TABLES, CREATE_INDEXES } from './schema';
+import { logger } from '../utils';
 
 // Type alias for SQLite parameter values
 type SqliteParams = (string | number | null | boolean | Uint8Array)[];
@@ -72,9 +73,9 @@ class DatabaseService {
       }
 
       this.initialized = true;
-      console.log('Database initialized successfully');
+      logger.info('database', 'Database initialized successfully');
     } catch (error) {
-      console.error('Database initialization error:', error);
+      logger.error('database', 'Database initialization failed', error);
       throw error;
     }
   }
@@ -83,7 +84,7 @@ class DatabaseService {
    * Run database migrations
    */
   private async runMigrations(fromVersion: number, toVersion: number): Promise<void> {
-    console.log(`Migrating database from v${fromVersion} to v${toVersion}`);
+    logger.info('database', `Migrating database from v${fromVersion} to v${toVersion}`);
 
     if (!this.db) {
       throw new Error('Database not opened');
@@ -91,7 +92,7 @@ class DatabaseService {
 
     // Migration from v1 to v2: Add POI tables
     if (fromVersion < 2) {
-      console.log('Running migration v1 -> v2: Adding POI tables');
+      logger.info('database', 'Running migration v1 -> v2: Adding POI tables');
 
       // Create POI tables
       await this.db.execAsync(CREATE_TABLES.pois);
@@ -107,7 +108,7 @@ class DatabaseService {
 
     // Migration from v2 to v3: Add EuroVelo route cache tables
     if (fromVersion < 3) {
-      console.log('Running migration v2 -> v3: Adding EuroVelo cache tables');
+      logger.info('database', 'Running migration v2 -> v3: Adding EuroVelo cache tables');
 
       // Create EuroVelo cache tables
       await this.db.execAsync(CREATE_TABLES.euroveloCacheRoutes);
@@ -116,6 +117,24 @@ class DatabaseService {
       // Create EuroVelo cache indexes
       await this.db.execAsync(CREATE_INDEXES.euroveloCacheRouteId);
       await this.db.execAsync(CREATE_INDEXES.euroveloCacheSegmentOrder);
+    }
+
+    // Migration from v3 to v4: Add weather cache table
+    if (fromVersion < 4) {
+      logger.info('database', 'Running migration v3 -> v4: Adding weather cache table');
+
+      // Create weather cache table and index
+      await this.db.execAsync(CREATE_TABLES.weatherCache);
+      await this.db.execAsync(CREATE_INDEXES.weatherCacheExpiry);
+    }
+
+    // Migration from v4 to v5: Add elevation cache table
+    if (fromVersion < 5) {
+      logger.info('database', 'Running migration v4 -> v5: Adding elevation cache table');
+
+      // Create elevation cache table and index
+      await this.db.execAsync(CREATE_TABLES.elevationCache);
+      await this.db.execAsync(CREATE_INDEXES.elevationCacheExpiry);
     }
 
     // Update version after migrations

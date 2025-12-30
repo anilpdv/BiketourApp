@@ -1,22 +1,10 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { PointAnnotation } from '@rnmapbox/maps';
-import { POI, POICategory } from '../types';
-import { getCategoryConfig } from '../services/overpass.service';
-
-// Category icon mapping (using emoji for simplicity, could be replaced with vector icons)
-const CATEGORY_ICONS: Record<POICategory, string> = {
-  campsite: '⛺',
-  drinking_water: '💧',
-  bike_shop: '🚲',
-  bike_repair: '🔧',
-  hotel: '🏨',
-  hostel: '🛏️',
-  guest_house: '🏠',
-  shelter: '🏕️',
-  supermarket: '🛒',
-  restaurant: '🍽️',
-};
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { POI } from '../types';
+import { getCategoryIcon } from '../config/poiIcons';
+import { colors } from '../../../shared/design/tokens';
 
 interface POIMarkerProps {
   poi: POI;
@@ -25,9 +13,7 @@ interface POIMarkerProps {
 }
 
 function POIMarkerComponent({ poi, onPress, isSelected = false }: POIMarkerProps) {
-  const config = getCategoryConfig(poi.category);
-  const icon = CATEGORY_ICONS[poi.category] || '📍';
-  const color = config?.color || '#666';
+  const iconConfig = getCategoryIcon(poi.category);
 
   return (
     <PointAnnotation
@@ -37,8 +23,12 @@ function POIMarkerComponent({ poi, onPress, isSelected = false }: POIMarkerProps
       anchor={{ x: 0.5, y: 0.5 }}
     >
       <View style={[styles.markerContainer, isSelected && styles.markerSelected]}>
-        <View style={[styles.markerBackground, { backgroundColor: color }]}>
-          <Text style={styles.markerIcon}>{icon}</Text>
+        <View style={[styles.markerBackground, { backgroundColor: iconConfig.color }]}>
+          <MaterialCommunityIcons
+            name={iconConfig.vectorIcon}
+            size={18}
+            color={colors.neutral[0]}
+          />
         </View>
         {poi.name && isSelected && (
           <View style={styles.labelContainer}>
@@ -79,13 +69,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 4,
     borderWidth: 2,
-    borderColor: '#fff',
-  },
-  markerIcon: {
-    fontSize: 18,
+    borderColor: colors.neutral[0],
   },
   labelContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.neutral[0],
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -100,7 +87,7 @@ const styles = StyleSheet.create({
   labelText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[800],
     textAlign: 'center',
   },
 });

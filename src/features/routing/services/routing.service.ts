@@ -1,6 +1,7 @@
 import { Coordinate, CalculatedRoute, Waypoint, RouteInstruction } from '../types';
 import { httpGet, ApiError } from '../../../shared/api';
 import { API_CONFIG } from '../../../shared/config';
+import { logger } from '../../../shared/utils';
 
 // OSRM API base URL from centralized config
 const OSRM_API = API_CONFIG.routing.baseUrl;
@@ -136,7 +137,7 @@ export async function calculateRoute(
       instructions: instructions.length > 0 ? instructions : undefined,
     };
   } catch (error) {
-    console.error('OSRM routing error:', error);
+    logger.error('api', 'OSRM routing error', error);
     throw error;
   }
 }

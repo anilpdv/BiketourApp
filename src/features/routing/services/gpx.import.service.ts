@@ -1,7 +1,8 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 import { XMLParser } from 'fast-xml-parser';
 import { CustomRoute, Waypoint, Coordinate, RoutePlanningMode } from '../types';
+import { logger } from '../../../shared/utils';
 
 interface GPXData {
   metadata?: {
@@ -235,7 +236,7 @@ export async function pickAndImportGPX(): Promise<CustomRoute | null> {
 
     return route;
   } catch (error) {
-    console.error('GPX import error:', error);
+    logger.error('filesystem', 'GPX import error', error);
     throw error;
   }
 }

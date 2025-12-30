@@ -2,6 +2,7 @@ import { File } from 'expo-file-system/next';
 import { parseGPX, gpxToRoute } from './gpxParser.service';
 import { routeCacheRepository, computeGPXHash } from './routeCache.repository';
 import { ParsedRoute, EuroVeloRoute, RouteVariant } from '../types';
+import { logger } from '../../../shared/utils';
 
 // @ts-ignore - expo-asset types
 const { Asset } = require('expo-asset');
@@ -104,7 +105,7 @@ async function loadGPXContent(fileKey: string): Promise<string | null> {
     }
     return null;
   } catch (error) {
-    console.warn(`Failed to load GPX for ${fileKey}:`, error);
+    logger.warn('filesystem', `Failed to load GPX for ${fileKey}`, error);
     return null;
   }
 }
@@ -165,12 +166,12 @@ export async function loadRoute(
 
     // Cache the parsed route (async, don't block return)
     routeCacheRepository.cacheRoute(parsedRoute, gpxHash).catch((error) => {
-      console.warn(`Failed to cache route ${routeId}:`, error);
+      logger.warn('cache', `Failed to cache route ${routeId}`, error);
     });
 
     return parsedRoute;
   } catch (error) {
-    console.error(`Failed to parse GPX for EV${euroVeloId} ${variant}:`, error);
+    logger.error('filesystem', `Failed to parse GPX for EV${euroVeloId} ${variant}`, error);
     return null;
   }
 }
@@ -198,7 +199,7 @@ export async function loadRouteFromCache(
     }
     return null;
   } catch (error) {
-    console.warn(`Failed to load cached route ${routeId}:`, error);
+    logger.warn('cache', `Failed to load cached route ${routeId}`, error);
     return null;
   }
 }

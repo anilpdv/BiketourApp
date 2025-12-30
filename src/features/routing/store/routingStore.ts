@@ -9,6 +9,7 @@ import {
 } from '../types';
 import { calculateRoute } from '../services/routing.service';
 import { getElevations, calculateElevationStats } from '../services/elevation.service';
+import { logger } from '../../../shared/utils';
 
 const MAX_HISTORY_SIZE = 50;
 
@@ -306,7 +307,7 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
         set({ calculatedGeometry: result.geometry, isCalculating: false });
       }
     } catch (error) {
-      console.error('Route calculation error:', error);
+      logger.error('store', 'Route calculation failed', error);
       set({
         error: 'Failed to calculate route. Please try again.',
         isCalculating: false,

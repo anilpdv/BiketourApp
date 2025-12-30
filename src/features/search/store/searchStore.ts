@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { SearchResult, SearchState } from '../types';
 import { searchInEurope } from '../services/nominatim.service';
+import { logger } from '../../../shared/utils';
 
 interface SearchStore extends SearchState {
   // Actions
@@ -37,7 +38,7 @@ export const useSearchStore = create<SearchStore>((set, get) => ({
       const results = await searchInEurope(query.trim(), { limit: 10 });
       set({ results, isSearching: false });
     } catch (error) {
-      console.error('Search error:', error);
+      logger.error('store', 'Search failed', error);
       set({
         error: 'Search failed. Please try again.',
         isSearching: false,

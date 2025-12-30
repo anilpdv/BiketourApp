@@ -2,7 +2,7 @@
 export const DB_NAME = 'biketoureurope.db';
 
 // Schema version for migrations
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 5;
 
 // SQL statements for creating tables
 export const CREATE_TABLES = {
@@ -130,6 +130,32 @@ export const CREATE_TABLES = {
       FOREIGN KEY (route_id) REFERENCES eurovelo_cache_routes(route_id) ON DELETE CASCADE
     )
   `,
+
+  // Weather cache table - persists weather forecasts for offline access
+  weatherCache: `
+    CREATE TABLE IF NOT EXISTS weather_cache (
+      cache_key TEXT PRIMARY KEY,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      timezone TEXT NOT NULL,
+      current_json TEXT NOT NULL,
+      daily_json TEXT NOT NULL,
+      fetched_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL
+    )
+  `,
+
+  // Elevation cache table - persists elevation data for offline access
+  elevationCache: `
+    CREATE TABLE IF NOT EXISTS elevation_cache (
+      cache_key TEXT PRIMARY KEY,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      elevation REAL NOT NULL,
+      fetched_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL
+    )
+  `,
 };
 
 // Indexes for better performance
@@ -178,6 +204,18 @@ export const CREATE_INDEXES = {
     CREATE INDEX IF NOT EXISTS idx_eurovelo_cache_segment_order
     ON eurovelo_cache_segments(route_id, segment_index)
   `,
+
+  // Weather cache index
+  weatherCacheExpiry: `
+    CREATE INDEX IF NOT EXISTS idx_weather_cache_expires
+    ON weather_cache(expires_at)
+  `,
+
+  // Elevation cache index
+  elevationCacheExpiry: `
+    CREATE INDEX IF NOT EXISTS idx_elevation_cache_expires
+    ON elevation_cache(expires_at)
+  `,
 };
 
 // All tables in order of creation
@@ -192,6 +230,8 @@ export const ALL_TABLES = [
   CREATE_TABLES.poiCacheTiles,
   CREATE_TABLES.euroveloCacheRoutes,
   CREATE_TABLES.euroveloCacheSegments,
+  CREATE_TABLES.weatherCache,
+  CREATE_TABLES.elevationCache,
 ];
 
 // All indexes

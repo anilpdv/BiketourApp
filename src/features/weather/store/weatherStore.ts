@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import { WeatherForecast } from '../types';
+import { weatherRepository } from '../services/weather.repository';
+import { fetchWeather as fetchWeatherFromAPI } from '../services/openMeteo.service';
+import { logger } from '../../../shared/utils';
 
 interface WeatherState {
   // Current location weather
   currentWeather: WeatherForecast | null;
 
-  // Cached weather by location key
+  // Cached weather by location key (in-memory for quick access)
   weatherCache: Map<string, WeatherForecast>;
 
   // Loading state
@@ -22,6 +25,9 @@ interface WeatherState {
   clearCache: () => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
+
+  // Enhanced actions with SQLite support
+  fetchWeather: (lat: number, lon: number) => Promise<WeatherForecast | null>;
 }
 
 // Generate cache key from coordinates
@@ -75,6 +81,66 @@ export const useWeatherStore = create<WeatherState>((set, get) => ({
   setLoading: (isLoading) => set({ isLoading }),
 
   setError: (error) => set({ error }),
+
+  // Fetch weather with SQLite cache support
+  fetchWeather: async (lat, lon) => {
+    const cacheKey = getWeatherCacheKey(lat, lon);
+
+    // 1. Check in-memory cache first (fastest)
+    const memCached = get().getCachedWeather(cacheKey);
+    if (memCached) {
+      set({ currentWeather: memCached });
+      return memCached;
+    }
+
+    // 2. Check SQLite cache (persisted across app restarts)
+    try {
+      const dbCached = await weatherRepository.getCached(lat, lon);
+      if (dbCached) {
+        // Update in-memory cache
+        const newCache = new Map(get().weatherCache);
+        newCache.set(cacheKey, dbCached);
+        set({
+          currentWeather: dbCached,
+          weatherCache: newCache,
+          lastFetchedAt: dbCached.fetchedAt,
+        });
+        return dbCached;
+      }
+    } catch (error) {
+      logger.warn('cache', 'SQLite cache read error', error);
+      // Continue to API fetch
+    }
+
+    // 3. Fetch from API
+    set({ isLoading: true, error: null });
+
+    try {
+      const weather = await fetchWeatherFromAPI(lat, lon);
+
+      // Update in-memory cache
+      const newCache = new Map(get().weatherCache);
+      newCache.set(cacheKey, weather);
+
+      set({
+        currentWeather: weather,
+        weatherCache: newCache,
+        lastFetchedAt: new Date(),
+        isLoading: false,
+      });
+
+      // Persist to SQLite (async, non-blocking)
+      weatherRepository.cache(weather).catch((error) => {
+        logger.warn('cache', 'SQLite cache write error', error);
+      });
+
+      return weather;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch weather';
+      set({ error: errorMessage, isLoading: false });
+      return null;
+    }
+  },
 }));
 
 // Selectors

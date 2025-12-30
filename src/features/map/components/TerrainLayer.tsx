@@ -46,6 +46,7 @@ export const TerrainLayer = memo(function TerrainLayer({
           sourceID="composite"
           sourceLayerID="building"
           minZoomLevel={14}
+          maxZoomLevel={22}
           style={{
             fillExtrusionColor: mapStyle === 'dark' ? '#242424' : '#ddd',
             fillExtrusionHeight: ['get', 'height'],

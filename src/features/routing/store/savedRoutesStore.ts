@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { CustomRoute, CustomRouteSummary } from '../types';
 import { routeRepository } from '../services/route.repository';
-import { exportAndShare, pickAndImportGPX } from '../services/gpx.export.service';
+import { exportAndShare } from '../services/gpx.export.service';
+import { pickAndImportGPX } from '../services/gpx.import.service';
+import { logger } from '../../../shared/utils';
 
 interface SavedRoutesState {
   routes: CustomRouteSummary[];
@@ -34,7 +36,7 @@ export const useSavedRoutesStore = create<SavedRoutesStore>((set, get) => ({
       const routes = await routeRepository.getAllRoutes();
       set({ routes, isLoading: false });
     } catch (error) {
-      console.error('Failed to load routes:', error);
+      logger.error('store', 'Failed to load routes', error);
       set({
         error: 'Failed to load saved routes',
         isLoading: false,
@@ -54,7 +56,7 @@ export const useSavedRoutesStore = create<SavedRoutesStore>((set, get) => ({
       const routes = await routeRepository.getAllRoutes();
       set({ routes, isLoading: false });
     } catch (error) {
-      console.error('Failed to save route:', error);
+      logger.error('store', 'Failed to save route', error);
       set({
         error: 'Failed to save route',
         isLoading: false,
@@ -74,7 +76,7 @@ export const useSavedRoutesStore = create<SavedRoutesStore>((set, get) => ({
         isLoading: false,
       });
     } catch (error) {
-      console.error('Failed to delete route:', error);
+      logger.error('store', 'Failed to delete route', error);
       set({
         error: 'Failed to delete route',
         isLoading: false,
@@ -90,7 +92,7 @@ export const useSavedRoutesStore = create<SavedRoutesStore>((set, get) => ({
       set({ routes, isLoading: false });
       return duplicated;
     } catch (error) {
-      console.error('Failed to duplicate route:', error);
+      logger.error('store', 'Failed to duplicate route', error);
       set({
         error: 'Failed to duplicate route',
         isLoading: false,
@@ -110,7 +112,7 @@ export const useSavedRoutesStore = create<SavedRoutesStore>((set, get) => ({
       set({ isLoading: false });
       return success;
     } catch (error) {
-      console.error('Failed to export route:', error);
+      logger.error('store', 'Failed to export route', error);
       set({
         error: 'Failed to export route',
         isLoading: false,
@@ -132,7 +134,7 @@ export const useSavedRoutesStore = create<SavedRoutesStore>((set, get) => ({
       set({ isLoading: false });
       return null;
     } catch (error) {
-      console.error('Failed to import route:', error);
+      logger.error('store', 'Failed to import route', error);
       set({
         error: 'Failed to import route',
         isLoading: false,

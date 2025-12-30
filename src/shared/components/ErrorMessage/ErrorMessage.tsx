@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
+import { Text, Banner, useTheme } from 'react-native-paper';
 import { Button } from '../Button';
-import { colors, spacing, typography, borderRadius } from '../../design/tokens';
+import { colors, spacing, borderRadius } from '../../design/tokens';
 
 export type ErrorMessageVariant = 'inline' | 'banner' | 'full';
 
@@ -20,20 +21,23 @@ export function ErrorMessage({
   retryLabel = 'Retry',
   style,
 }: ErrorMessageProps) {
+  const theme = useTheme();
+
   if (variant === 'banner') {
     return (
-      <View style={[styles.banner, style]}>
-        <Text style={styles.bannerText}>{message}</Text>
-        {onRetry && (
-          <Button
-            label={retryLabel}
-            onPress={onRetry}
-            variant="ghost"
-            size="sm"
-            textStyle={styles.bannerButtonText}
-          />
-        )}
-      </View>
+      <Banner
+        visible
+        icon="alert-circle"
+        actions={
+          onRetry
+            ? [{ label: retryLabel, onPress: onRetry }]
+            : []
+        }
+        style={[styles.banner, style]}
+        contentStyle={styles.bannerContent}
+      >
+        {message}
+      </Banner>
     );
   }
 
@@ -41,7 +45,12 @@ export function ErrorMessage({
     return (
       <View style={[styles.full, style]}>
         <Text style={styles.fullIcon}>!</Text>
-        <Text style={styles.fullText}>{message}</Text>
+        <Text
+          variant="bodyLarge"
+          style={[styles.fullText, { color: theme.colors.onSurfaceVariant }]}
+        >
+          {message}
+        </Text>
         {onRetry && (
           <Button
             label={retryLabel}
@@ -58,7 +67,12 @@ export function ErrorMessage({
   // inline variant
   return (
     <View style={[styles.inline, style]}>
-      <Text style={styles.inlineText}>{message}</Text>
+      <Text
+        variant="bodyMedium"
+        style={[styles.inlineText, { color: theme.colors.error }]}
+      >
+        {message}
+      </Text>
       {onRetry && (
         <Button label={retryLabel} onPress={onRetry} variant="ghost" size="sm" />
       )}
@@ -75,26 +89,15 @@ const styles = StyleSheet.create({
   },
   inlineText: {
     flex: 1,
-    fontSize: typography.fontSizes.lg,
-    color: colors.status.error,
   },
 
   // Banner variant
   banner: {
     backgroundColor: colors.status.errorLight,
-    padding: spacing.md,
     borderRadius: borderRadius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
-  bannerText: {
-    flex: 1,
-    fontSize: typography.fontSizes.lg,
-    color: colors.neutral[0],
-    textAlign: 'center',
-  },
-  bannerButtonText: {
-    color: colors.neutral[0],
+  bannerContent: {
+    paddingVertical: spacing.sm,
   },
 
   // Full variant
@@ -110,8 +113,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   fullText: {
-    fontSize: typography.fontSizes.xl,
-    color: colors.neutral[600],
     textAlign: 'center',
     marginBottom: spacing.xl,
   },
@@ -119,3 +120,5 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
 });
+
+export default ErrorMessage;

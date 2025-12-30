@@ -1,50 +1,73 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { useTheme } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function TabLayout() {
+  const theme = useTheme();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2196F3',
-        tabBarInactiveTintColor: '#666',
-        headerStyle: { backgroundColor: '#2196F3' },
-        headerTintColor: '#fff',
-        tabBarStyle: { paddingBottom: 5, height: 60 },
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        headerStyle: { backgroundColor: theme.colors.primary },
+        headerTintColor: theme.colors.onPrimary,
+        tabBarStyle: {
+          paddingBottom: 5,
+          height: 60,
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.outlineVariant,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '500',
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Map',
-          tabBarIcon: () => <Text style={{ fontSize: 24 }}>🗺️</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="map-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="routes"
         options={{
           title: 'Routes',
-          tabBarIcon: () => <Text style={{ fontSize: 24 }}>🚴</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="road-variant" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="planner"
         options={{
           title: 'Planner',
-          tabBarIcon: () => <Text style={{ fontSize: 24 }}>📅</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="calendar-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="journal"
         options={{
           title: 'Journal',
-          tabBarIcon: () => <Text style={{ fontSize: 24 }}>📔</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="book-outline" size={size} color={color} />
+          ),
+          headerStyle: { backgroundColor: '#7E57C2' },
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: () => <Text style={{ fontSize: 24 }}>⚙️</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

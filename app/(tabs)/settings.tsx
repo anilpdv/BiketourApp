@@ -1,73 +1,121 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
-import { colors, spacing, typography, borderRadius, shadows } from '../../src/shared/design/tokens';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import {
+  List,
+  Switch,
+  Surface,
+  Text,
+  Divider,
+  useTheme,
+} from 'react-native-paper';
+import { colors, spacing, borderRadius } from '../../src/shared/design/tokens';
 
 export default function SettingsScreen() {
+  const theme = useTheme();
   const [offlineMode, setOfflineMode] = React.useState(false);
   const [showWeather, setShowWeather] = React.useState(true);
   const [showPOIs, setShowPOIs] = React.useState(true);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Map Settings</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Surface style={styles.section} elevation={1}>
+        <List.Section>
+          <List.Subheader style={styles.sectionTitle}>Map Settings</List.Subheader>
 
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>Show Weather</Text>
-            <Text style={styles.settingDescription}>Display weather widget on map</Text>
-          </View>
-          <Switch value={showWeather} onValueChange={setShowWeather} />
-        </View>
+          <List.Item
+            title="Show Weather"
+            description="Display weather widget on map"
+            left={(props) => <List.Icon {...props} icon="weather-partly-cloudy" />}
+            right={() => (
+              <Switch
+                value={showWeather}
+                onValueChange={setShowWeather}
+                color={theme.colors.primary}
+              />
+            )}
+          />
+          <Divider />
 
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>Show POIs</Text>
-            <Text style={styles.settingDescription}>Display points of interest markers</Text>
-          </View>
-          <Switch value={showPOIs} onValueChange={setShowPOIs} />
-        </View>
-      </View>
+          <List.Item
+            title="Show POIs"
+            description="Display points of interest markers"
+            left={(props) => <List.Icon {...props} icon="map-marker-multiple" />}
+            right={() => (
+              <Switch
+                value={showPOIs}
+                onValueChange={setShowPOIs}
+                color={theme.colors.primary}
+              />
+            )}
+          />
+        </List.Section>
+      </Surface>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Offline Data</Text>
+      <Surface style={styles.section} elevation={1}>
+        <List.Section>
+          <List.Subheader style={styles.sectionTitle}>Offline Data</List.Subheader>
 
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingLabel}>Offline Mode</Text>
-            <Text style={styles.settingDescription}>Use cached data only</Text>
-          </View>
-          <Switch value={offlineMode} onValueChange={setOfflineMode} />
-        </View>
+          <List.Item
+            title="Offline Mode"
+            description="Use cached data only"
+            left={(props) => <List.Icon {...props} icon="cloud-off-outline" />}
+            right={() => (
+              <Switch
+                value={offlineMode}
+                onValueChange={setOfflineMode}
+                color={theme.colors.primary}
+              />
+            )}
+          />
+          <Divider />
 
-        <TouchableOpacity style={styles.downloadButton}>
-          <Text style={styles.downloadButtonText}>Download Route Data</Text>
-          <Text style={styles.downloadSize}>~50 MB</Text>
-        </TouchableOpacity>
+          <List.Item
+            title="Download Route Data"
+            description="~50 MB"
+            left={(props) => <List.Icon {...props} icon="download" />}
+            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => {}}
+            style={styles.downloadItem}
+          />
+          <Divider />
 
-        <TouchableOpacity style={styles.downloadButton}>
-          <Text style={styles.downloadButtonText}>Download Map Tiles</Text>
-          <Text style={styles.downloadSize}>~500 MB per route</Text>
-        </TouchableOpacity>
-      </View>
+          <List.Item
+            title="Download Map Tiles"
+            description="~500 MB per route"
+            left={(props) => <List.Icon {...props} icon="map-outline" />}
+            right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            onPress={() => {}}
+            style={styles.downloadItem}
+          />
+        </List.Section>
+      </Surface>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
+      <Surface style={styles.section} elevation={1}>
+        <List.Section>
+          <List.Subheader style={styles.sectionTitle}>About</List.Subheader>
 
-        <View style={styles.aboutRow}>
-          <Text style={styles.aboutLabel}>Version</Text>
-          <Text style={styles.aboutValue}>1.0.0</Text>
-        </View>
+          <List.Item
+            title="Version"
+            description="1.0.0"
+            left={(props) => <List.Icon {...props} icon="information-outline" />}
+          />
+          <Divider />
 
-        <View style={styles.aboutRow}>
-          <Text style={styles.aboutLabel}>Data Sources</Text>
-          <Text style={styles.aboutValue}>OpenStreetMap, Open-Meteo</Text>
-        </View>
-      </View>
+          <List.Item
+            title="Data Sources"
+            description="OpenStreetMap, Open-Meteo"
+            left={(props) => <List.Icon {...props} icon="database-outline" />}
+          />
+        </List.Section>
+      </Surface>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>BikeTour Europe</Text>
-        <Text style={styles.footerSubtext}>Built for the journey of a lifetime</Text>
+        <Text variant="titleLarge" style={{ color: theme.colors.primary }}>
+          BikeTour Europe
+        </Text>
+        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          Built for the journey of a lifetime
+        </Text>
       </View>
     </ScrollView>
   );
@@ -76,87 +124,21 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
   },
   section: {
-    backgroundColor: colors.neutral[0],
     marginTop: spacing.lg,
     marginHorizontal: spacing.lg,
     borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    ...shadows.md,
+    overflow: 'hidden',
   },
   sectionTitle: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.neutral[800],
-    marginBottom: spacing.lg,
+    fontWeight: '600',
   },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  settingInfo: {
-    flex: 1,
-    marginRight: spacing.lg,
-  },
-  settingLabel: {
-    fontSize: typography.fontSizes.lg,
-    color: colors.neutral[800],
-  },
-  settingDescription: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.neutral[500],
-    marginTop: spacing.xs,
-  },
-  downloadButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  downloadItem: {
     backgroundColor: colors.neutral[50],
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.md,
-  },
-  downloadButtonText: {
-    fontSize: typography.fontSizes.base,
-    color: colors.neutral[800],
-  },
-  downloadSize: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.neutral[500],
-  },
-  aboutRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  aboutLabel: {
-    fontSize: typography.fontSizes.base,
-    color: colors.neutral[600],
-  },
-  aboutValue: {
-    fontSize: typography.fontSizes.base,
-    color: colors.neutral[800],
   },
   footer: {
     alignItems: 'center',
     padding: spacing['3xl'],
-  },
-  footerText: {
-    fontSize: typography.fontSizes.xl,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.primary[500],
-  },
-  footerSubtext: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.neutral[500],
-    marginTop: spacing.xs,
   },
 });

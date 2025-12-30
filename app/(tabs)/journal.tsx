@@ -1,8 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import {
+  Card,
+  Text,
+  FAB,
+  Chip,
+  useTheme,
+} from 'react-native-paper';
 import { StatsHeader, ErrorBoundary } from '../../src/shared/components';
-import { colors, spacing, typography, borderRadius, shadows } from '../../src/shared/design/tokens';
+import { colors, spacing, borderRadius } from '../../src/shared/design/tokens';
 
 type Mood = 'amazing' | 'good' | 'okay' | 'tired' | 'challenging';
 
@@ -15,6 +22,8 @@ const moodEmoji: Record<Mood, string> = {
 };
 
 export default function JournalScreen() {
+  const theme = useTheme();
+  const router = useRouter();
   const [entries] = useState([
     {
       id: '1',
@@ -44,45 +53,78 @@ export default function JournalScreen() {
 
   return (
     <ErrorBoundary>
-    <View style={styles.container}>
-      <StatsHeader stats={stats} backgroundColor={JOURNAL_ACCENT} />
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <StatsHeader stats={stats} backgroundColor={JOURNAL_ACCENT} />
 
-      <ScrollView style={styles.entriesList}>
-        <Text style={styles.entriesTitle}>Recent Entries</Text>
-        {entries.map((entry) => (
-          <Link key={entry.id} href={`/journal/${entry.id}`} asChild>
-            <TouchableOpacity style={styles.entryCard}>
-              <View style={styles.entryHeader}>
-                <Text style={styles.entryDate}>{entry.date}</Text>
-                {entry.mood && (
-                  <Text style={styles.entryMood}>{moodEmoji[entry.mood]}</Text>
-                )}
-              </View>
-              <Text style={styles.entryTitle}>{entry.title}</Text>
-              <Text style={styles.entryPreview}>{entry.preview}</Text>
-              <View style={styles.entryFooter}>
-                {entry.photoCount > 0 && (
-                  <Text style={styles.entryPhotoCount}>
-                    📷 {entry.photoCount} photos
-                  </Text>
-                )}
-                {entry.distanceKm > 0 && (
-                  <Text style={styles.entryDistance}>
-                    🚴 {entry.distanceKm} km
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          </Link>
-        ))}
-      </ScrollView>
+        <ScrollView style={styles.entriesList} contentContainerStyle={styles.entriesContent}>
+          <Text variant="titleMedium" style={styles.entriesTitle}>
+            Recent Entries
+          </Text>
 
-      <Link href="/journal/create" asChild>
-        <TouchableOpacity style={styles.addButton}>
-          <Text style={styles.addButtonText}>+ New Entry</Text>
-        </TouchableOpacity>
-      </Link>
-    </View>
+          {entries.map((entry) => (
+            <Card
+              key={entry.id}
+              mode="elevated"
+              style={styles.entryCard}
+              onPress={() => router.push(`/journal/${entry.id}`)}
+            >
+              <Card.Content>
+                <View style={styles.entryHeader}>
+                  <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {entry.date}
+                  </Text>
+                  {entry.mood && (
+                    <Text style={styles.entryMood}>{moodEmoji[entry.mood]}</Text>
+                  )}
+                </View>
+
+                <Text variant="titleMedium" style={styles.entryTitle}>
+                  {entry.title}
+                </Text>
+
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                  numberOfLines={2}
+                >
+                  {entry.preview}
+                </Text>
+
+                <View style={styles.entryFooter}>
+                  {entry.photoCount > 0 && (
+                    <Chip
+                      icon="camera"
+                      compact
+                      mode="flat"
+                      style={styles.chip}
+                    >
+                      {entry.photoCount} photos
+                    </Chip>
+                  )}
+                  {entry.distanceKm > 0 && (
+                    <Chip
+                      icon="bike"
+                      compact
+                      mode="flat"
+                      style={styles.chip}
+                    >
+                      {entry.distanceKm} km
+                    </Chip>
+                  )}
+                </View>
+              </Card.Content>
+            </Card>
+          ))}
+        </ScrollView>
+
+        <FAB
+          icon="plus"
+          label="New Entry"
+          style={[styles.fab, { backgroundColor: JOURNAL_ACCENT }]}
+          color={colors.neutral[0]}
+          onPress={() => router.push('/journal/create')}
+        />
+      </View>
     </ErrorBoundary>
   );
 }
@@ -93,24 +135,20 @@ const JOURNAL_ACCENT = '#7E57C2';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
   },
   entriesList: {
     flex: 1,
+  },
+  entriesContent: {
     padding: spacing.lg,
+    paddingBottom: 100, // Space for FAB
   },
   entriesTitle: {
-    fontSize: typography.fontSizes.xl,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.neutral[800],
     marginBottom: spacing.md,
   },
   entryCard: {
-    backgroundColor: colors.neutral[0],
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
-    ...shadows.md,
+    borderRadius: borderRadius.lg,
   },
   entryHeader: {
     flexDirection: 'row',
@@ -118,47 +156,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  entryDate: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.neutral[400],
-  },
   entryMood: {
-    fontSize: typography.fontSizes.xl,
+    fontSize: 20,
   },
   entryTitle: {
-    fontSize: typography.fontSizes.xl,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.neutral[800],
     marginBottom: spacing.xs,
-  },
-  entryPreview: {
-    fontSize: typography.fontSizes.base,
-    color: colors.neutral[600],
-    lineHeight: 20,
   },
   entryFooter: {
     flexDirection: 'row',
     marginTop: spacing.md,
-    gap: spacing.lg,
+    gap: spacing.sm,
   },
-  entryPhotoCount: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.neutral[500],
+  chip: {
+    backgroundColor: colors.neutral[100],
   },
-  entryDistance: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.neutral[500],
-  },
-  addButton: {
-    backgroundColor: JOURNAL_ACCENT,
-    margin: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: colors.neutral[0],
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg,
   },
 });

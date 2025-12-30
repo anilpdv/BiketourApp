@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
 import { Button } from '../Button';
-import { colors, spacing, typography } from '../../design/tokens';
+import { spacing } from '../../design/tokens';
 
 export interface EmptyStateProps {
   icon: string;
@@ -21,11 +22,25 @@ export function EmptyState({
   action,
   style,
 }: EmptyStateProps) {
+  const theme = useTheme();
+
   return (
     <View style={[styles.container, style]}>
       <Text style={styles.icon}>{icon}</Text>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+      <Text
+        variant="headlineSmall"
+        style={[styles.title, { color: theme.colors.onSurface }]}
+      >
+        {title}
+      </Text>
+      {subtitle && (
+        <Text
+          variant="bodyLarge"
+          style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}
+        >
+          {subtitle}
+        </Text>
+      )}
       {action && (
         <Button
           label={action.label}
@@ -51,15 +66,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
-    fontSize: typography.fontSizes['2xl'],
-    fontWeight: typography.fontWeights.bold,
-    color: colors.neutral[800],
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: typography.fontSizes.xl,
-    color: colors.neutral[500],
     textAlign: 'center',
     marginBottom: spacing.xl,
   },
@@ -68,3 +78,5 @@ const styles = StyleSheet.create({
     minWidth: 150,
   },
 });
+
+export default EmptyState;

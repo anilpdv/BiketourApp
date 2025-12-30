@@ -1,13 +1,7 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  ViewStyle,
-  TextStyle,
-} from 'react-native';
-import { colors, spacing, typography, borderRadius, shadows, sizes } from '../../design/tokens';
+import { ViewStyle, TextStyle } from 'react-native';
+import { Button as PaperButton, useTheme } from 'react-native-paper';
+import { colors } from '../../design/tokens';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -19,11 +13,35 @@ export interface ButtonProps {
   size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | ((props: { size: number; color: string }) => React.ReactNode);
   iconPosition?: 'left' | 'right';
   style?: ViewStyle;
   textStyle?: TextStyle;
 }
+
+// Map our variants to Paper's button modes
+const variantToMode: Record<ButtonVariant, 'contained' | 'outlined' | 'text' | 'contained-tonal'> = {
+  primary: 'contained',
+  secondary: 'contained-tonal',
+  outline: 'outlined',
+  ghost: 'text',
+};
+
+// Size configurations
+const sizeConfig = {
+  sm: {
+    contentStyle: { paddingVertical: 0, paddingHorizontal: 4 },
+    labelStyle: { fontSize: 12, marginVertical: 4 },
+  },
+  md: {
+    contentStyle: { paddingVertical: 2, paddingHorizontal: 8 },
+    labelStyle: { fontSize: 14, marginVertical: 6 },
+  },
+  lg: {
+    contentStyle: { paddingVertical: 4, paddingHorizontal: 12 },
+    labelStyle: { fontSize: 16, marginVertical: 8 },
+  },
+};
 
 export function Button({
   label,
@@ -37,124 +55,54 @@ export function Button({
   style,
   textStyle,
 }: ButtonProps) {
-  const isDisabled = disabled || loading;
+  const theme = useTheme();
+  const mode = variantToMode[variant];
+  const sizeStyles = sizeConfig[size];
 
-  const buttonStyle = [
-    styles.base,
-    styles[`size_${size}`],
-    styles[`variant_${variant}`],
-    isDisabled && styles.disabled,
-    style,
-  ];
+  // Get button color based on variant
+  const getButtonColor = () => {
+    switch (variant) {
+      case 'primary':
+        return colors.primary[500];
+      case 'secondary':
+        return colors.secondary[500];
+      default:
+        return undefined;
+    }
+  };
 
-  const labelStyle = [
-    styles.label,
-    styles[`labelSize_${size}`],
-    styles[`labelVariant_${variant}`],
-    isDisabled && styles.labelDisabled,
-    textStyle,
-  ];
+  // Handle icon rendering
+  const renderIcon = icon
+    ? typeof icon === 'function'
+      ? icon
+      : () => icon
+    : undefined;
 
   return (
-    <TouchableOpacity
-      style={buttonStyle}
+    <PaperButton
+      mode={mode}
       onPress={onPress}
-      disabled={isDisabled}
-      activeOpacity={0.7}
+      disabled={disabled}
+      loading={loading}
+      icon={iconPosition === 'left' ? renderIcon : undefined}
+      buttonColor={getButtonColor()}
+      textColor={
+        variant === 'outline' || variant === 'ghost'
+          ? colors.primary[500]
+          : undefined
+      }
+      style={[style]}
+      contentStyle={[
+        sizeStyles.contentStyle,
+        iconPosition === 'right' && renderIcon
+          ? { flexDirection: 'row-reverse' }
+          : undefined,
+      ]}
+      labelStyle={[sizeStyles.labelStyle, textStyle]}
     >
-      {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'primary' ? colors.neutral[0] : colors.primary[500]}
-        />
-      ) : (
-        <>
-          {icon && iconPosition === 'left' && icon}
-          <Text style={labelStyle}>{label}</Text>
-          {icon && iconPosition === 'right' && icon}
-        </>
-      )}
-    </TouchableOpacity>
+      {label}
+    </PaperButton>
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-
-  // Sizes
-  size_sm: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    minHeight: 32,
-  },
-  size_md: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    minHeight: sizes.touchTarget,
-  },
-  size_lg: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    minHeight: 52,
-  },
-
-  // Variants
-  variant_primary: {
-    backgroundColor: colors.primary[500],
-    ...shadows.md,
-  },
-  variant_secondary: {
-    backgroundColor: colors.secondary[500],
-    ...shadows.md,
-  },
-  variant_outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-  },
-  variant_ghost: {
-    backgroundColor: 'transparent',
-  },
-
-  // Disabled state
-  disabled: {
-    opacity: 0.5,
-  },
-
-  // Label styles
-  label: {
-    fontWeight: typography.fontWeights.semibold,
-  },
-  labelSize_sm: {
-    fontSize: typography.fontSizes.md,
-  },
-  labelSize_md: {
-    fontSize: typography.fontSizes.lg,
-  },
-  labelSize_lg: {
-    fontSize: typography.fontSizes.xl,
-  },
-  labelVariant_primary: {
-    color: colors.neutral[0],
-  },
-  labelVariant_secondary: {
-    color: colors.neutral[0],
-  },
-  labelVariant_outline: {
-    color: colors.primary[500],
-  },
-  labelVariant_ghost: {
-    color: colors.primary[500],
-  },
-  labelDisabled: {
-    color: colors.neutral[400],
-  },
-});
+export default Button;

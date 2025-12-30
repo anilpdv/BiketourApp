@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, ViewStyle } from 'react-native';
-import { colors, spacing, typography } from '../../design/tokens';
+import { View, StyleSheet, ViewStyle } from 'react-native';
+import { ActivityIndicator, Text, useTheme } from 'react-native-paper';
+import { colors, spacing } from '../../design/tokens';
 
 export type LoadingSpinnerSize = 'small' | 'large';
 
@@ -14,15 +15,29 @@ export interface LoadingSpinnerProps {
 
 export function LoadingSpinner({
   size = 'large',
-  color = colors.primary[500],
+  color,
   message,
   overlay = false,
   style,
 }: LoadingSpinnerProps) {
+  const theme = useTheme();
+  const spinnerColor = color || theme.colors.primary;
+
   const content = (
     <>
-      <ActivityIndicator size={size} color={color} />
-      {message && <Text style={styles.message}>{message}</Text>}
+      <ActivityIndicator
+        animating
+        size={size}
+        color={spinnerColor}
+      />
+      {message && (
+        <Text
+          variant="bodyLarge"
+          style={[styles.message, { color: theme.colors.onSurfaceVariant }]}
+        >
+          {message}
+        </Text>
+      )}
     </>
   );
 
@@ -59,7 +74,7 @@ const styles = StyleSheet.create({
   },
   message: {
     marginTop: spacing.md,
-    fontSize: typography.fontSizes.xl,
-    color: colors.neutral[600],
   },
 });
+
+export default LoadingSpinner;

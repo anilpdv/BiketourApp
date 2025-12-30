@@ -29,7 +29,6 @@ export default function CreateJournalEntry() {
 
   const handleSave = () => {
     // Save entry logic would go here
-    console.log({ title, content, selectedMood, distance });
     router.back();
   };
 

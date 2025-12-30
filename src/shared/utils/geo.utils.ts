@@ -104,3 +104,158 @@ export function isWithinBounds(
     coord.longitude <= east
   );
 }
+
+/**
+ * Find the nearest point on a route to a given position
+ * @returns Object with index of nearest point and distance to it in km
+ */
+export function findNearestPointOnRoute(
+  routePoints: Coordinate[],
+  lat: number,
+  lon: number
+): { index: number; distance: number } {
+  if (routePoints.length === 0) {
+    return { index: -1, distance: Infinity };
+  }
+
+  let nearestIndex = 0;
+  let minDistance = calculateHaversineDistance(
+    lat,
+    lon,
+    routePoints[0].latitude,
+    routePoints[0].longitude
+  );
+
+  for (let i = 1; i < routePoints.length; i++) {
+    const distance = calculateHaversineDistance(
+      lat,
+      lon,
+      routePoints[i].latitude,
+      routePoints[i].longitude
+    );
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestIndex = i;
+    }
+  }
+
+  return { index: nearestIndex, distance: minDistance };
+}
+
+/**
+ * Get a segment of route points ahead of a starting index for a given distance
+ * @param routePoints Array of route coordinates
+ * @param startIndex Index to start from
+ * @param distanceKm Distance ahead to include (in km)
+ * @returns Array of route points within the distance
+ */
+export function getRouteSegmentAhead(
+  routePoints: Coordinate[],
+  startIndex: number,
+  distanceKm: number
+): Coordinate[] {
+  if (routePoints.length === 0 || startIndex < 0 || startIndex >= routePoints.length) {
+    return [];
+  }
+
+  const segment: Coordinate[] = [routePoints[startIndex]];
+  let accumulatedDistance = 0;
+
+  for (let i = startIndex + 1; i < routePoints.length; i++) {
+    const distance = calculateHaversineDistance(
+      routePoints[i - 1].latitude,
+      routePoints[i - 1].longitude,
+      routePoints[i].latitude,
+      routePoints[i].longitude
+    );
+    accumulatedDistance += distance;
+
+    if (accumulatedDistance > distanceKm) {
+      break;
+    }
+
+    segment.push(routePoints[i]);
+  }
+
+  return segment;
+}
+
+/**
+ * Calculate bounding box for an array of coordinates with optional buffer
+ */
+export function getBoundingBox(
+  points: Coordinate[],
+  bufferKm: number = 0
+): { south: number; north: number; west: number; east: number } | null {
+  if (points.length === 0) return null;
+
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+
+  for (const point of points) {
+    minLat = Math.min(minLat, point.latitude);
+    maxLat = Math.max(maxLat, point.latitude);
+    minLon = Math.min(minLon, point.longitude);
+    maxLon = Math.max(maxLon, point.longitude);
+  }
+
+  if (bufferKm > 0) {
+    const latBuffer = bufferKm / 111; // ~111km per degree latitude
+    const avgLat = (minLat + maxLat) / 2;
+    const lonBuffer = bufferKm / (111 * Math.cos(avgLat * (Math.PI / 180)));
+
+    minLat -= latBuffer;
+    maxLat += latBuffer;
+    minLon -= lonBuffer;
+    maxLon += lonBuffer;
+  }
+
+  return { south: minLat, north: maxLat, west: minLon, east: maxLon };
+}
+
+/**
+ * Split a route into fixed-length segments for progressive loading
+ * @param routePoints Array of route coordinates
+ * @param segmentLengthKm Target length of each segment in km (default 50km)
+ * @returns Array of segments, each containing an array of coordinates
+ */
+export function splitRouteIntoSegments(
+  routePoints: Coordinate[],
+  segmentLengthKm: number = 50
+): Coordinate[][] {
+  if (routePoints.length === 0) return [];
+  if (routePoints.length === 1) return [[routePoints[0]]];
+
+  const segments: Coordinate[][] = [];
+  let currentSegment: Coordinate[] = [routePoints[0]];
+  let currentSegmentDistance = 0;
+
+  for (let i = 1; i < routePoints.length; i++) {
+    const distance = calculateHaversineDistance(
+      routePoints[i - 1].latitude,
+      routePoints[i - 1].longitude,
+      routePoints[i].latitude,
+      routePoints[i].longitude
+    );
+
+    currentSegmentDistance += distance;
+    currentSegment.push(routePoints[i]);
+
+    // If we've exceeded the segment length, start a new segment
+    if (currentSegmentDistance >= segmentLengthKm) {
+      segments.push(currentSegment);
+      // Start new segment with the last point (overlap for continuity)
+      currentSegment = [routePoints[i]];
+      currentSegmentDistance = 0;
+    }
+  }
+
+  // Don't forget the last segment
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment);
+  }
+
+  return segments;
+}

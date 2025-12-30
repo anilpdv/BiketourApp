@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
+import { Text, Divider, useTheme } from 'react-native-paper';
 import { POIContactInfo, formatDistance } from '../../utils/poiTagParser';
 import { infoStyles as styles } from './POIDetailSheet.styles';
 
@@ -15,32 +16,42 @@ export const POIDetailInfo = memo(function POIDetailInfo({
   distanceFromUser,
   contactInfo,
 }: POIDetailInfoProps) {
+  const theme = useTheme();
   const distance = formatDistance(distanceFromUser);
 
   return (
     <>
       {/* Distance */}
       {distance && (
-        <View style={styles.row}>
-          <Text style={styles.label}>Distance</Text>
-          <Text style={styles.value}>{distance}</Text>
-        </View>
+        <>
+          <View style={styles.row}>
+            <Text variant="bodyMedium" style={styles.label}>Distance</Text>
+            <Text variant="bodyMedium" style={styles.value}>{distance}</Text>
+          </View>
+          <Divider />
+        </>
       )}
 
       {/* Address */}
       {contactInfo.address && (
-        <View style={styles.row}>
-          <Text style={styles.label}>Address</Text>
-          <Text style={styles.value}>{contactInfo.address}</Text>
-        </View>
+        <>
+          <View style={styles.row}>
+            <Text variant="bodyMedium" style={styles.label}>Address</Text>
+            <Text variant="bodyMedium" style={styles.value}>{contactInfo.address}</Text>
+          </View>
+          <Divider />
+        </>
       )}
 
       {/* Opening Hours */}
       {contactInfo.openingHours && (
-        <View style={styles.row}>
-          <Text style={styles.label}>Hours</Text>
-          <Text style={styles.value}>{contactInfo.openingHours}</Text>
-        </View>
+        <>
+          <View style={styles.row}>
+            <Text variant="bodyMedium" style={styles.label}>Hours</Text>
+            <Text variant="bodyMedium" style={styles.value}>{contactInfo.openingHours}</Text>
+          </View>
+          <Divider />
+        </>
       )}
     </>
   );

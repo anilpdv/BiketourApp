@@ -8,11 +8,11 @@ export interface MapStyleOption {
 }
 
 export const MAP_STYLE_OPTIONS: MapStyleOption[] = [
-  { key: 'outdoors', label: 'Outdoors', icon: '🚴' },
-  { key: 'streets', label: 'Streets', icon: '🏙️' },
-  { key: 'satellite', label: 'Satellite', icon: '🛰️' },
-  { key: 'light', label: 'Light', icon: '☀️' },
-  { key: 'dark', label: 'Dark', icon: '🌙' },
+  { key: 'outdoors', label: 'Outdoors', icon: 'bike' },
+  { key: 'streets', label: 'Streets', icon: 'city' },
+  { key: 'satellite', label: 'Satellite', icon: 'satellite-variant' },
+  { key: 'light', label: 'Light', icon: 'white-balance-sunny' },
+  { key: 'dark', label: 'Dark', icon: 'moon-waning-crescent' },
 ];
 
 export interface UseMapSettingsReturn {

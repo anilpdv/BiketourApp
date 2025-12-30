@@ -1,8 +1,16 @@
 import React, { memo } from 'react';
-import { View, Text, Modal, Pressable, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import {
+  Portal,
+  Dialog,
+  List,
+  RadioButton,
+  useTheme,
+} from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MapStyleKey } from '../../../shared/config/mapbox.config';
 import { MapStyleOption } from '../hooks/useMapSettings';
-import { colors, spacing, typography, borderRadius, shadows } from '../../../shared/design/tokens';
+import { colors, spacing, borderRadius } from '../../../shared/design/tokens';
 
 export interface MapStylePickerProps {
   visible: boolean;
@@ -13,7 +21,7 @@ export interface MapStylePickerProps {
 }
 
 /**
- * Modal for selecting map style (outdoors, streets, satellite, etc.)
+ * Dialog for selecting map style (outdoors, streets, satellite, etc.)
  */
 export const MapStylePicker = memo(function MapStylePicker({
   visible,
@@ -22,90 +30,75 @@ export const MapStylePicker = memo(function MapStylePicker({
   onSelectStyle,
   onClose,
 }: MapStylePickerProps) {
+  const theme = useTheme();
+
+  const handleSelect = (style: MapStyleKey) => {
+    onSelectStyle(style);
+    onClose();
+  };
+
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent
-      onRequestClose={onClose}
-    >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Map Style</Text>
-          {styleOptions.map((option) => {
-            const isActive = option.key === currentStyle;
-            return (
-              <TouchableOpacity
-                key={option.key}
-                style={[styles.option, isActive && styles.optionActive]}
-                onPress={() => onSelectStyle(option.key)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.optionIcon}>{option.icon}</Text>
-                <Text style={[styles.optionLabel, isActive && styles.optionLabelActive]}>
-                  {option.label}
-                </Text>
-                {isActive && <Text style={styles.checkmark}>✓</Text>}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </Pressable>
-    </Modal>
+    <Portal>
+      <Dialog visible={visible} onDismiss={onClose} style={styles.dialog}>
+        <Dialog.Title style={styles.title}>Map Style</Dialog.Title>
+        <Dialog.Content>
+          <RadioButton.Group value={currentStyle} onValueChange={(value) => handleSelect(value as MapStyleKey)}>
+            {styleOptions.map((option) => {
+              const isActive = option.key === currentStyle;
+              return (
+                <List.Item
+                  key={option.key}
+                  title={option.label}
+                  left={() => (
+                    <MaterialCommunityIcons
+                      name={option.icon}
+                      size={24}
+                      color={isActive ? colors.primary[700] : colors.neutral[600]}
+                      style={styles.optionIcon}
+                    />
+                  )}
+                  right={() => (
+                    <RadioButton
+                      value={option.key}
+                      status={isActive ? 'checked' : 'unchecked'}
+                    />
+                  )}
+                  onPress={() => handleSelect(option.key)}
+                  style={[
+                    styles.option,
+                    isActive && styles.optionActive,
+                  ]}
+                  titleStyle={isActive ? styles.optionLabelActive : undefined}
+                />
+              );
+            })}
+          </RadioButton.Group>
+        </Dialog.Content>
+      </Dialog>
+    </Portal>
   );
 });
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.dark,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    backgroundColor: colors.neutral[0],
+  dialog: {
     borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    minWidth: 220,
-    ...shadows['2xl'],
   },
   title: {
-    fontSize: typography.fontSizes['2xl'],
-    fontWeight: typography.fontWeights.bold,
-    color: colors.neutral[800],
-    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-    backgroundColor: colors.neutral[50],
+    marginBottom: spacing.xs,
   },
   optionActive: {
     backgroundColor: colors.primary[50],
-    borderWidth: 2,
-    borderColor: colors.primary[500],
   },
   optionIcon: {
-    fontSize: 24,
-    marginRight: spacing.md,
-  },
-  optionLabel: {
-    fontSize: typography.fontSizes.xl,
-    color: colors.neutral[800],
-    flex: 1,
+    marginLeft: spacing.sm,
+    alignSelf: 'center',
   },
   optionLabelActive: {
-    fontWeight: typography.fontWeights.bold,
+    fontWeight: '700',
     color: colors.primary[700],
-  },
-  checkmark: {
-    fontSize: typography.fontSizes['2xl'],
-    color: colors.primary[500],
-    fontWeight: typography.fontWeights.bold,
   },
 });

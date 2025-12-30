@@ -15,7 +15,7 @@ export interface CameraSettings {
 }
 
 export interface UseMapCameraReturn {
-  cameraRef: React.RefObject<Camera>;
+  cameraRef: React.RefObject<Camera | null>;
   currentBounds: MapBounds | null;
   initialCameraSettings: CameraSettings;
 

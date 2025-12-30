@@ -29,7 +29,7 @@ export const RouteInfoCard = memo(function RouteInfoCard({
     <View style={styles.container}>
       <Text style={styles.name}>{getRouteName(route.euroVeloId)}</Text>
       <Text style={styles.details}>
-        {route.country || 'Europe'} • {formatDistance(route.totalDistance)}
+        Europe • {formatDistance(route.totalDistance)}
       </Text>
       {route.elevationGain !== undefined && (
         <Text style={styles.elevation}>

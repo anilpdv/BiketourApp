@@ -1,5 +1,6 @@
 import { databaseService } from '../../../shared/database/database.service';
 import { POI, POICategory, BoundingBox } from '../types';
+import { logger } from '../../../shared/utils';
 
 interface POIRow {
   id: string;
@@ -232,7 +233,7 @@ export const poiRepository = {
 
     // Chain to the queue to serialize operations
     cachingQueue = cachingQueue.then(cacheOperation).catch((error) => {
-      console.warn('POI caching error (queued):', error);
+      logger.warn('cache', 'POI caching error (queued)', error);
     });
 
     return cachingQueue;
@@ -264,7 +265,7 @@ export const poiRepository = {
 
     // Queue the operation
     cachingQueue = cachingQueue.then(cleanOperation).catch((error) => {
-      console.warn('Cache cleanup error:', error);
+      logger.warn('cache', 'Cache cleanup error', error);
     });
 
     return cachingQueue;

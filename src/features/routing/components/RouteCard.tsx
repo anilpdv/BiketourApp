@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
-import { colors, spacing, typography, borderRadius, shadows } from '../../../shared/design/tokens';
+import { Card, Text, Chip, useTheme } from 'react-native-paper';
+import { colors, spacing, borderRadius } from '../../../shared/design/tokens';
 
 const COUNTRY_FLAGS: Record<string, string> = {
   NO: '🇳🇴', UK: '🇬🇧', IE: '🇮🇪', FR: '🇫🇷', ES: '🇪🇸', PT: '🇵🇹',
@@ -34,30 +35,61 @@ interface RouteCardProps {
 }
 
 export const RouteCard = memo(function RouteCard({ route }: RouteCardProps) {
+  const theme = useTheme();
   const flags = route.countries.map((c) => COUNTRY_FLAGS[c] || c).join('');
   const difficultyColor = DIFFICULTY_COLORS[route.difficulty];
 
   return (
     <Link href={`/route/${route.id}`} asChild>
-      <TouchableOpacity style={styles.card} activeOpacity={0.7}>
-        <View style={styles.header}>
-          <View style={[styles.colorBadge, { backgroundColor: route.color }]}>
-            <Text style={styles.colorBadgeText}>EV{route.euroVeloId}</Text>
-          </View>
-          <View style={[styles.difficultyBadge, { backgroundColor: difficultyColor }]}>
-            <Text style={styles.difficultyText}>{route.difficulty}</Text>
-          </View>
-        </View>
-        <Text style={styles.name}>{route.name}</Text>
-        <Text style={styles.description}>{route.description}</Text>
-        <Text style={styles.info}>
-          {route.distance.toLocaleString()} km • {flags}
-        </Text>
-        <View style={styles.highlights}>
-          {route.highlights.slice(0, 3).map((h, i) => (
-            <Text key={i} style={styles.highlightTag}>{h}</Text>
-          ))}
-        </View>
+      <TouchableOpacity activeOpacity={0.7}>
+        <Card mode="elevated" style={styles.card}>
+          <Card.Content>
+            <View style={styles.header}>
+              <Chip
+                compact
+                mode="flat"
+                style={[styles.evBadge, { backgroundColor: route.color }]}
+                textStyle={styles.evBadgeText}
+              >
+                EV{route.euroVeloId}
+              </Chip>
+              <Chip
+                compact
+                mode="flat"
+                style={[styles.difficultyBadge, { backgroundColor: difficultyColor }]}
+                textStyle={styles.difficultyText}
+              >
+                {route.difficulty}
+              </Chip>
+            </View>
+
+            <Text variant="titleLarge" style={styles.name}>
+              {route.name}
+            </Text>
+
+            <Text variant="bodyMedium" style={styles.description}>
+              {route.description}
+            </Text>
+
+            <Text variant="bodyMedium" style={styles.info}>
+              {route.distance.toLocaleString()} km • {flags}
+            </Text>
+
+            <View style={styles.highlights}>
+              {route.highlights.slice(0, 3).map((h, i) => (
+                <Chip
+                  key={i}
+                  compact
+                  mode="flat"
+                  style={styles.highlightChip}
+                  textStyle={styles.highlightText}
+                >
+                  {h}
+                </Chip>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
       </TouchableOpacity>
     </Link>
   );
@@ -65,50 +97,39 @@ export const RouteCard = memo(function RouteCard({ route }: RouteCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.neutral[0],
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
-    ...shadows.md,
+    borderRadius: borderRadius.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
-  colorBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+  evBadge: {
     borderRadius: borderRadius.lg,
   },
-  colorBadgeText: {
+  evBadgeText: {
     color: colors.neutral[0],
-    fontWeight: typography.fontWeights.bold,
-    fontSize: typography.fontSizes.md,
+    fontWeight: '700',
+    fontSize: 12,
   },
   difficultyBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
     borderRadius: borderRadius.md,
   },
   difficultyText: {
     color: colors.neutral[0],
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
+    fontSize: 11,
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
   name: {
-    fontSize: typography.fontSizes['2xl'],
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.neutral[800],
+    marginBottom: spacing.xs,
   },
   description: {
-    fontSize: typography.fontSizes.base,
     color: colors.neutral[500],
     marginBottom: spacing.xs,
   },
   info: {
-    fontSize: typography.fontSizes.lg,
     color: colors.neutral[600],
     marginTop: spacing.xs,
   },
@@ -118,12 +139,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     gap: spacing.xs,
   },
-  highlightTag: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.neutral[600],
+  highlightChip: {
     backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
     borderRadius: borderRadius.lg,
+  },
+  highlightText: {
+    fontSize: 11,
+    color: colors.neutral[600],
   },
 });

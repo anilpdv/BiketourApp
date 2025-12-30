@@ -6,6 +6,7 @@ import {
   fetchPOIsProgressively,
   fetchPOIsForViewport,
 } from '../services/overpass.service';
+import { logger } from '../../../shared/utils';
 
 interface POIState {
   // All loaded POIs
@@ -139,7 +140,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
       const favoriteIds = new Set(favorites.map((f) => f.id));
       set({ favorites, favoriteIds, favoritesLoading: false });
     } catch (error) {
-      console.error('Failed to load favorites:', error);
+      logger.error('store', 'Failed to load favorites', error);
       set({ favoritesLoading: false });
     }
   },
@@ -174,7 +175,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
         await poiRepository.addFavorite(poi.id, note);
       }
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      logger.error('store', 'Failed to toggle favorite', error);
       // Rollback on failure
       set({ favoriteIds, favorites });
     }
@@ -185,7 +186,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
     try {
       await poiRepository.updateFavoriteNote(poiId, note);
     } catch (error) {
-      console.error('Failed to update favorite note:', error);
+      logger.error('store', 'Failed to update favorite note', error);
     }
   },
 
@@ -202,7 +203,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
       get().addPOIs(pois);
       set({ isLoading: false });
     } catch (error) {
-      console.error('Failed to load POIs:', error);
+      logger.error('store', 'Failed to load POIs', error);
       set({ isLoading: false, error: 'Failed to load POIs' });
     }
   },
@@ -225,7 +226,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
       );
       set({ isLoading: false });
     } catch (error) {
-      console.error('Failed to load POIs progressively:', error);
+      logger.error('store', 'Failed to load POIs progressively', error);
       set({ isLoading: false, error: 'Failed to load POIs' });
     }
   },
@@ -242,7 +243,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
       get().addPOIs(pois);
       set({ isLoading: false });
     } catch (error) {
-      console.error('Failed to load POIs for viewport:', error);
+      logger.error('store', 'Failed to load POIs for viewport', error);
       set({ isLoading: false, error: 'Failed to load POIs' });
     }
   },

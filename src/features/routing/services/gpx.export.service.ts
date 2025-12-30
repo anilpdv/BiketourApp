@@ -1,6 +1,7 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { CustomRoute, Waypoint, Coordinate } from '../types';
+import { logger } from '../../../shared/utils';
 
 /**
  * Generate GPX XML string from a custom route
@@ -86,7 +87,7 @@ export async function exportAndShare(route: CustomRoute): Promise<boolean> {
     // Check if sharing is available
     const isAvailable = await Sharing.isAvailableAsync();
     if (!isAvailable) {
-      console.error('Sharing is not available on this device');
+      logger.warn('filesystem', 'Sharing is not available on this device');
       return false;
     }
 
@@ -108,7 +109,7 @@ export async function exportAndShare(route: CustomRoute): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('GPX export error:', error);
+    logger.error('filesystem', 'GPX export failed', error);
     return false;
   }
 }
@@ -142,7 +143,7 @@ export async function saveToFile(route: CustomRoute): Promise<string | null> {
 
     return fileUri;
   } catch (error) {
-    console.error('GPX save error:', error);
+    logger.error('filesystem', 'GPX save failed', error);
     return null;
   }
 }
@@ -162,7 +163,7 @@ export async function getSavedGPXFiles(): Promise<string[]> {
     const files = await FileSystem.readDirectoryAsync(dirUri);
     return files.filter((f) => f.endsWith('.gpx')).map((f) => `${dirUri}${f}`);
   } catch (error) {
-    console.error('Error listing GPX files:', error);
+    logger.error('filesystem', 'Failed to list GPX files', error);
     return [];
   }
 }
@@ -175,7 +176,7 @@ export async function deleteGPXFile(fileUri: string): Promise<boolean> {
     await FileSystem.deleteAsync(fileUri, { idempotent: true });
     return true;
   } catch (error) {
-    console.error('Error deleting GPX file:', error);
+    logger.error('filesystem', 'Failed to delete GPX file', error);
     return false;
   }
 }

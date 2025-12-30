@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Feature, FeatureCollection, LineString } from 'geojson';
 import { loadRoute, hasDevelopedVersion } from '../../routes/services/routeLoader.service';
 import { ParsedRoute } from '../../routes/types';
+import { logger } from '../../../shared/utils';
 
 export interface UseRouteManagementReturn {
   routes: ParsedRoute[];
@@ -64,7 +65,7 @@ export function useRouteManagement(): UseRouteManagementReturn {
         // Add to existing routes (don't replace)
         setRoutes((prev) => [...prev, ...newRoutes]);
       } catch (error) {
-        console.error('Failed to load route:', error);
+        logger.error('ui', 'Failed to load route', error);
       } finally {
         setIsLoading(false);
       }

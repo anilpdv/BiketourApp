@@ -1,26 +1,16 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Chip, Badge, ActivityIndicator, useTheme } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { POICategory } from '../types';
 import { POI_CATEGORIES } from '../services/overpass.service';
-
-// Category icon mapping
-const CATEGORY_ICONS: Record<POICategory, string> = {
-  campsite: '⛺',
-  drinking_water: '💧',
-  bike_shop: '🚲',
-  bike_repair: '🔧',
-  hotel: '🏨',
-  hostel: '🛏️',
-  guest_house: '🏠',
-  shelter: '🏕️',
-  supermarket: '🛒',
-  restaurant: '🍽️',
-};
+import { getCategoryIcon } from '../config/poiIcons';
+import { colors, spacing } from '../../../shared/design/tokens';
 
 interface POIFilterBarProps {
   selectedCategories: POICategory[];
   onToggleCategory: (category: POICategory) => void;
-  poiCounts?: Record<POICategory, number>;
+  poiCounts?: Partial<Record<POICategory, number>>;
   isLoading?: boolean;
 }
 
@@ -30,6 +20,8 @@ function POIFilterBarComponent({
   poiCounts = {},
   isLoading = false,
 }: POIFilterBarProps) {
+  const theme = useTheme();
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -40,45 +32,57 @@ function POIFilterBarComponent({
         {POI_CATEGORIES.map((category) => {
           const isSelected = selectedCategories.includes(category.id);
           const count = poiCounts[category.id] || 0;
-          const icon = CATEGORY_ICONS[category.id] || '📍';
+          const iconConfig = getCategoryIcon(category.id);
 
           return (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.chip,
-                isSelected && styles.chipSelected,
-                isSelected && { borderColor: category.color },
-              ]}
-              onPress={() => onToggleCategory(category.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.chipIcon}>{icon}</Text>
-              <Text
+            <View key={category.id} style={styles.chipWrapper}>
+              <Chip
+                mode={isSelected ? 'flat' : 'outlined'}
+                selected={isSelected}
+                onPress={() => onToggleCategory(category.id)}
+                icon={() => (
+                  <MaterialCommunityIcons
+                    name={iconConfig.vectorIcon}
+                    size={18}
+                    color={category.color}
+                  />
+                )}
                 style={[
-                  styles.chipText,
-                  isSelected && styles.chipTextSelected,
+                  styles.chip,
+                  {
+                    backgroundColor: '#FFFFFF',
+                    borderColor: isSelected ? category.color : colors.neutral[300],
+                  },
                 ]}
+                textStyle={[
+                  styles.chipText,
+                  isSelected && { color: category.color, fontWeight: '600' },
+                ]}
+                selectedColor={category.color}
+                showSelectedCheck={false}
+                elevated={!isSelected}
+                elevation={isSelected ? 0 : 1}
               >
                 {category.name}
-              </Text>
+              </Chip>
               {count > 0 && (
-                <View
+                <Badge
+                  size={18}
                   style={[
-                    styles.countBadge,
-                    { backgroundColor: isSelected ? category.color : '#ccc' },
+                    styles.badge,
+                    { backgroundColor: isSelected ? category.color : colors.neutral[400] },
                   ]}
                 >
-                  <Text style={styles.countText}>{count > 99 ? '99+' : count}</Text>
-                </View>
+                  {count > 99 ? '99+' : count}
+                </Badge>
               )}
-            </TouchableOpacity>
+            </View>
           );
         })}
       </ScrollView>
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>Loading POIs...</Text>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
         </View>
       )}
     </View>
@@ -92,63 +96,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   scrollContent: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  chipWrapper: {
+    position: 'relative',
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    gap: 6,
-  },
-  chipSelected: {
-    backgroundColor: '#f8f8f8',
-  },
-  chipIcon: {
-    fontSize: 16,
   },
   chipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#666',
+    color: colors.neutral[600],
   },
-  chipTextSelected: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  countBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  countText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#fff',
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
   },
   loadingOverlay: {
     position: 'absolute',
-    right: 10,
+    right: spacing.sm,
     top: '50%',
     transform: [{ translateY: -10 }],
-  },
-  loadingText: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
   },
 });

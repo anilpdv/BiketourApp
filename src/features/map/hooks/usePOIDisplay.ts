@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { Feature, FeatureCollection, Point } from 'geojson';
 import * as Location from 'expo-location';
 import {
   usePOIStore,
-  fetchPOIsWithCache,
-  fetchPOIsAlongRouteWithCache,
+  selectPOIsInViewport,
+  fetchPOIsForRouteProgressively,
+  fetchPOIsForViewport,
   addDistanceFromUser,
   POI,
   POICategory,
@@ -15,6 +16,7 @@ import {
   CATEGORY_TO_MAKI_ICON,
   CATEGORY_TO_EMOJI,
 } from '../../pois/config/poiIcons';
+import { logger } from '../../../shared/utils';
 import { ParsedRoute } from '../../routes/types';
 
 export interface MapBounds {
@@ -48,7 +50,7 @@ export function usePOIDisplay(
   enabledRoutes: ParsedRoute[]
 ): UsePOIDisplayReturn {
   const [showPOIs, setShowPOIs] = useState(false);
-  const poiDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [viewportBounds, setViewportBounds] = useState<BoundingBox | null>(null);
 
   const {
     pois,
@@ -68,11 +70,16 @@ export function usePOIDisplay(
     loadFavorites();
   }, [loadFavorites]);
 
-  // Memoize filtered POIs
-  const filteredPOIs = useMemo(
-    () => pois.filter((poi) => filters.categories.includes(poi.category)),
-    [pois, filters.categories]
-  );
+  // Memoize filtered POIs with viewport culling
+  // Only includes POIs that are visible in the current viewport
+  const filteredPOIs = useMemo(() => {
+    if (!viewportBounds) {
+      // Fallback to simple filtering if no viewport bounds
+      return pois.filter((poi) => filters.categories.includes(poi.category));
+    }
+    // Use viewport culling - only render POIs visible on screen
+    return selectPOIsInViewport(viewportBounds)(usePOIStore.getState());
+  }, [viewportBounds, pois, filters.categories]);
 
   // Calculate POI counts by category
   const poiCounts = useMemo(() => {
@@ -114,39 +121,36 @@ export function usePOIDisplay(
     setShowPOIs((prev) => !prev);
   }, []);
 
-  // Load POIs for viewport bounds
+  // Load POIs for viewport bounds (exploration mode)
+  // Only fetches selected categories
   const loadPOIsForBounds = useCallback(
     async (bounds: MapBounds) => {
       if (!showPOIs) return;
+      // Don't load if no categories selected
+      if (filters.categories.length === 0) return;
 
+      const bbox: BoundingBox = {
+        south: bounds.sw[1],
+        north: bounds.ne[1],
+        west: bounds.sw[0],
+        east: bounds.ne[0],
+      };
+
+      // Update viewport bounds for culling - only render visible POIs
+      setViewportBounds(bbox);
+
+      // Fetch POIs for viewport with selected categories only
       setPOIsLoading(true);
       try {
-        const bbox: BoundingBox = {
-          south: bounds.sw[1],
-          north: bounds.ne[1],
-          west: bounds.sw[0],
-          east: bounds.ne[0],
-        };
-
-        const fetchedPOIs = await fetchPOIsWithCache(bbox);
-
-        let processedPOIs = fetchedPOIs;
-        if (location) {
-          processedPOIs = addDistanceFromUser(
-            fetchedPOIs,
-            location.coords.latitude,
-            location.coords.longitude
-          );
-        }
-
-        addPOIs(processedPOIs);
+        const viewportPOIs = await fetchPOIsForViewport(bbox, filters.categories);
+        addPOIs(viewportPOIs);
       } catch (error) {
-        console.error('Failed to fetch POIs:', error);
+        logger.error('ui', 'Failed to load POIs for viewport', error);
       } finally {
         setPOIsLoading(false);
       }
     },
-    [showPOIs, location, addPOIs, setPOIsLoading]
+    [showPOIs, filters.categories, addPOIs, setPOIsLoading]
   );
 
   // Handle POI press
@@ -157,36 +161,67 @@ export function usePOIDisplay(
     [selectPOI]
   );
 
-  // Load POIs along enabled routes
+  // Load POIs along enabled routes progressively
+  // Shows cached POIs immediately, then fetches fresh data segment by segment
   useEffect(() => {
     if (!showPOIs || enabledRoutes.length === 0) return;
+    // Don't load if no categories selected
+    if (filters.categories.length === 0) return;
 
-    const loadRoutePOIs = async () => {
+    let cancelled = false;
+
+    const loadPOIs = async () => {
       setPOIsLoading(true);
+
       try {
         for (const route of enabledRoutes) {
-          const routePOIs = await fetchPOIsAlongRouteWithCache(route.points, 10);
+          if (cancelled) break;
 
-          let processedPOIs = routePOIs;
-          if (location) {
-            processedPOIs = addDistanceFromUser(
-              routePOIs,
-              location.coords.latitude,
-              location.coords.longitude
-            );
-          }
+          // Progressive loading: POIs appear as each segment loads
+          await fetchPOIsForRouteProgressively(
+            route.points,
+            10, // 10km corridor
+            filters.categories,
+            (pois, segmentIndex) => {
+              if (cancelled) return;
 
-          addPOIs(processedPOIs);
+              // Add distance from user if location available
+              let processedPOIs = pois;
+              if (location) {
+                processedPOIs = addDistanceFromUser(
+                  pois,
+                  location.coords.latitude,
+                  location.coords.longitude
+                );
+              }
+
+              addPOIs(processedPOIs);
+            },
+            (loaded, total) => {
+              // Progress callback - could update UI progress indicator
+              logger.debug('ui', `POI loading progress: ${loaded}/${total} segments`);
+            }
+          );
         }
-      } catch (error) {
-        console.error('Failed to fetch POIs along route:', error);
+      } catch (error: any) {
+        // Don't log abort errors - they're expected when request is cancelled
+        if (error?.name !== 'AbortError') {
+          logger.error('ui', 'Failed to fetch POIs along route', error);
+        }
       } finally {
-        setPOIsLoading(false);
+        if (!cancelled) {
+          setPOIsLoading(false);
+        }
       }
     };
 
-    loadRoutePOIs();
-  }, [enabledRoutes.length, showPOIs]);
+    loadPOIs();
+
+    // Cleanup: mark as cancelled to prevent state updates after unmount
+    return () => {
+      cancelled = true;
+    };
+  }, [enabledRoutes.length, showPOIs, filters.categories, location, addPOIs, setPOIsLoading]);
 
   return {
     showPOIs,

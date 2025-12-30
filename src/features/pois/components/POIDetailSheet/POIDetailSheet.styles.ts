@@ -87,16 +87,12 @@ export const infoStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
   },
   label: {
-    fontSize: typography.fontSizes.lg,
     color: colors.neutral[600],
     flex: 1,
   },
   value: {
-    fontSize: typography.fontSizes.lg,
     color: colors.neutral[800],
     fontWeight: typography.fontWeights.medium,
     flex: 2,
@@ -110,28 +106,17 @@ export const actionsStyles = StyleSheet.create({
     justifyContent: 'space-around',
     marginTop: spacing.xl,
     paddingTop: spacing.sm,
+    gap: spacing.sm,
   },
   button: {
-    alignItems: 'center',
-    padding: spacing.md,
+    flex: 1,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[50],
-    minWidth: 80,
   },
-  buttonIcon: {
-    fontSize: 24,
-    marginBottom: spacing.xs,
-  },
-  buttonText: {
-    fontSize: typography.fontSizes.md,
-    color: colors.neutral[600],
-    fontWeight: typography.fontWeights.medium,
+  buttonContent: {
+    paddingVertical: spacing.xs,
   },
   navigateButton: {
-    backgroundColor: colors.primary[500],
-  },
-  navigateButtonText: {
-    color: colors.neutral[0],
+    // Paper Button handles contained mode styling
   },
 });
 
@@ -139,27 +124,15 @@ export const notesStyles = StyleSheet.create({
   container: {
     marginTop: spacing.xl,
     padding: spacing.md,
-    backgroundColor: '#fffbe6',
+    backgroundColor: '#fffbe6', // Light amber for notes section
     borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#ffe58f',
   },
   label: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
-    color: '#8b6914',
+    color: '#8b6914', // Amber text color
     marginBottom: spacing.sm,
   },
   input: {
-    fontSize: typography.fontSizes.lg,
-    color: colors.neutral[800],
     backgroundColor: colors.neutral[0],
-    padding: spacing.md,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    minHeight: 80,
-    textAlignVertical: 'top',
   },
 });
 

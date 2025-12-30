@@ -1,7 +1,8 @@
 import { Coordinate, ElevationPoint } from '../types';
-import { calculateDistanceMeters } from '../../../shared/utils';
+import { calculateDistanceMeters, logger } from '../../../shared/utils';
 import { httpGet, ApiError } from '../../../shared/api';
 import { API_CONFIG } from '../../../shared/config';
+import { elevationRepository } from './elevation.repository';
 
 // Max points per request
 const MAX_POINTS_PER_REQUEST = 100;
@@ -11,11 +12,9 @@ interface ElevationResponse {
 }
 
 /**
- * Get elevations for an array of coordinates
+ * Fetch elevations from API for coordinates (internal helper)
  */
-export async function getElevations(
-  coordinates: Coordinate[]
-): Promise<number[]> {
+async function fetchElevationsFromAPI(coordinates: Coordinate[]): Promise<number[]> {
   if (coordinates.length === 0) {
     return [];
   }
@@ -41,9 +40,9 @@ export async function getElevations(
       allElevations.push(...data.elevation);
     } catch (error) {
       if (error instanceof ApiError) {
-        console.warn(`Elevation API error: ${error.status} - ${error.message}`);
+        logger.warn('api', `Elevation API error: ${error.status}`, error);
       } else {
-        console.error('Elevation fetch error:', error);
+        logger.error('api', 'Elevation fetch error', error);
       }
       // Return NaN for failed chunk
       allElevations.push(...chunk.map(() => NaN));
@@ -51,6 +50,81 @@ export async function getElevations(
   }
 
   return allElevations;
+}
+
+/**
+ * Get elevations for an array of coordinates with SQLite caching
+ */
+export async function getElevations(
+  coordinates: Coordinate[]
+): Promise<number[]> {
+  if (coordinates.length === 0) {
+    return [];
+  }
+
+  // 1. Check cache for all coordinates
+  let cachedElevations: Map<string, number>;
+  try {
+    cachedElevations = await elevationRepository.getCachedBatch(coordinates);
+  } catch (error) {
+    logger.warn('cache', 'Elevation cache read error', error);
+    cachedElevations = new Map();
+  }
+
+  // 2. Identify uncached coordinates
+  const uncachedIndices: number[] = [];
+  const uncachedCoordinates: Coordinate[] = [];
+
+  for (let i = 0; i < coordinates.length; i++) {
+    const cacheKey = elevationRepository.getCacheKey(
+      coordinates[i].latitude,
+      coordinates[i].longitude
+    );
+    if (!cachedElevations.has(cacheKey)) {
+      uncachedIndices.push(i);
+      uncachedCoordinates.push(coordinates[i]);
+    }
+  }
+
+  // 3. Fetch uncached from API
+  let freshElevations: number[] = [];
+  if (uncachedCoordinates.length > 0) {
+    freshElevations = await fetchElevationsFromAPI(uncachedCoordinates);
+
+    // 4. Persist new elevations to cache (async, non-blocking)
+    const dataToCache = uncachedCoordinates
+      .map((coord, idx) => ({
+        latitude: coord.latitude,
+        longitude: coord.longitude,
+        elevation: freshElevations[idx],
+      }))
+      .filter((item) => !isNaN(item.elevation));
+
+    if (dataToCache.length > 0) {
+      elevationRepository.cacheBatch(dataToCache).catch((error) => {
+        logger.warn('cache', 'Elevation cache write error', error);
+      });
+    }
+  }
+
+  // 5. Merge results
+  const results: number[] = new Array(coordinates.length);
+  let freshIdx = 0;
+
+  for (let i = 0; i < coordinates.length; i++) {
+    const cacheKey = elevationRepository.getCacheKey(
+      coordinates[i].latitude,
+      coordinates[i].longitude
+    );
+
+    if (cachedElevations.has(cacheKey)) {
+      results[i] = cachedElevations.get(cacheKey)!;
+    } else {
+      results[i] = freshElevations[freshIdx++];
+    }
+  }
+
+  return results;
 }
 
 /**

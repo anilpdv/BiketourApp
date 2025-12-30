@@ -1,7 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import {
+  Surface,
+  Text,
+  IconButton,
+  Card,
+  Chip,
+  useTheme,
+} from 'react-native-paper';
 import { EmptyState, StatsHeader, ErrorBoundary } from '../../src/shared/components';
-import { colors, spacing, typography, borderRadius, shadows } from '../../src/shared/design/tokens';
+import { Button } from '../../src/shared/components/Button';
+import { colors, spacing, borderRadius } from '../../src/shared/design/tokens';
 
 type Plan = {
   id: string;
@@ -18,6 +27,7 @@ const STATUS_COLORS = {
 };
 
 export default function PlannerScreen() {
+  const theme = useTheme();
   const [dailyTarget, setDailyTarget] = useState(80);
   const [plans] = useState<Plan[]>([]);
 
@@ -41,71 +51,94 @@ export default function PlannerScreen() {
 
   return (
     <ErrorBoundary>
-    <ScrollView style={styles.container}>
-      <StatsHeader stats={stats} backgroundColor={colors.primary[500]} style={styles.header} />
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <StatsHeader stats={stats} backgroundColor={theme.colors.primary} />
 
-      <View style={styles.targetSection}>
-        <Text style={styles.sectionTitle}>Daily Target</Text>
-        <View style={styles.targetRow}>
-          <TouchableOpacity
-            style={styles.targetButton}
-            onPress={() => setDailyTarget(Math.max(20, dailyTarget - 10))}
-          >
-            <Text style={styles.targetButtonText}>-10</Text>
-          </TouchableOpacity>
-          <View style={styles.targetDisplay}>
-            <Text style={styles.targetValue}>{dailyTarget}</Text>
-            <Text style={styles.targetUnit}>km/day</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.targetButton}
-            onPress={() => setDailyTarget(Math.min(200, dailyTarget + 10))}
-          >
-            <Text style={styles.targetButtonText}>+10</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.plansSection}>
-        <Text style={styles.sectionTitle}>Upcoming Days</Text>
-        {plans.length === 0 ? (
-          <EmptyState
-            icon="🚴"
-            title="No trip plans yet"
-            subtitle="Start planning your bike tour by adding daily targets"
-          />
-        ) : (
-          plans.map((plan) => (
-            <View key={plan.id} style={styles.planCard}>
-              <View style={styles.planCardLeft}>
-                <View style={[styles.statusDot, { backgroundColor: getStatusColor(plan.status) }]} />
-                <View>
-                  <Text style={styles.planDate}>{plan.date}</Text>
-                  <Text style={styles.planTarget}>Target: {plan.targetKm} km</Text>
-                  {plan.actualKm && (
-                    <Text style={styles.planActual}>Actual: {plan.actualKm} km</Text>
-                  )}
-                </View>
-              </View>
-              <View style={styles.planCardRight}>
-                <Text style={[styles.planStatus, { color: getStatusColor(plan.status) }]}>
-                  {plan.status}
-                </Text>
-              </View>
+        <Surface style={styles.targetSection} elevation={1}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Daily Target
+          </Text>
+          <View style={styles.targetRow}>
+            <IconButton
+              icon="minus"
+              mode="contained-tonal"
+              size={28}
+              onPress={() => setDailyTarget(Math.max(20, dailyTarget - 10))}
+            />
+            <View style={styles.targetDisplay}>
+              <Text variant="displaySmall" style={{ color: theme.colors.primary, fontWeight: '700' }}>
+                {dailyTarget}
+              </Text>
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                km/day
+              </Text>
             </View>
-          ))
-        )}
-      </View>
+            <IconButton
+              icon="plus"
+              mode="contained-tonal"
+              size={28}
+              onPress={() => setDailyTarget(Math.min(200, dailyTarget + 10))}
+            />
+          </View>
+        </Surface>
 
-      <View style={styles.actionsSection}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>+ Add Day Plan</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]}>
-          <Text style={styles.actionButtonTextSecondary}>View Statistics</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        <View style={styles.plansSection}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Upcoming Days
+          </Text>
+          {plans.length === 0 ? (
+            <EmptyState
+              icon="🚴"
+              title="No trip plans yet"
+              subtitle="Start planning your bike tour by adding daily targets"
+            />
+          ) : (
+            plans.map((plan) => (
+              <Card key={plan.id} mode="elevated" style={styles.planCard}>
+                <Card.Content style={styles.planCardContent}>
+                  <View style={styles.planCardLeft}>
+                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(plan.status) }]} />
+                    <View>
+                      <Text variant="titleSmall">{plan.date}</Text>
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                        Target: {plan.targetKm} km
+                      </Text>
+                      {plan.actualKm && (
+                        <Text variant="bodySmall" style={{ color: colors.status.success }}>
+                          Actual: {plan.actualKm} km
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <Chip
+                    compact
+                    mode="flat"
+                    style={{ backgroundColor: `${getStatusColor(plan.status)}20` }}
+                    textStyle={{ color: getStatusColor(plan.status), textTransform: 'capitalize' }}
+                  >
+                    {plan.status}
+                  </Chip>
+                </Card.Content>
+              </Card>
+            ))
+          )}
+        </View>
+
+        <View style={styles.actionsSection}>
+          <Button
+            label="+ Add Day Plan"
+            onPress={() => {}}
+            variant="primary"
+            size="lg"
+          />
+          <Button
+            label="View Statistics"
+            onPress={() => {}}
+            variant="outline"
+            size="lg"
+          />
+        </View>
+      </ScrollView>
     </ErrorBoundary>
   );
 }
@@ -113,22 +146,13 @@ export default function PlannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
-  },
-  header: {
-    padding: spacing.lg,
   },
   targetSection: {
-    backgroundColor: colors.neutral[0],
     margin: spacing.lg,
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
-    ...shadows.md,
   },
   sectionTitle: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.neutral[800],
     marginBottom: spacing.md,
   },
   targetRow: {
@@ -136,44 +160,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  targetButton: {
-    width: 50,
-    height: 50,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  targetButtonText: {
-    fontSize: typography.fontSizes.xl,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.primary[500],
-  },
   targetDisplay: {
     alignItems: 'center',
     marginHorizontal: spacing['2xl'],
-  },
-  targetValue: {
-    fontSize: 48,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.primary[500],
-  },
-  targetUnit: {
-    fontSize: typography.fontSizes.base,
-    color: colors.neutral[600],
   },
   plansSection: {
     paddingHorizontal: spacing.lg,
   },
   planCard: {
-    backgroundColor: colors.neutral[0],
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  planCardContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...shadows.sm,
   },
   planCardLeft: {
     flexDirection: 'row',
@@ -185,52 +186,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: spacing.md,
   },
-  planDate: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.neutral[800],
-  },
-  planTarget: {
-    fontSize: typography.fontSizes.base,
-    color: colors.neutral[600],
-    marginTop: spacing.xs,
-  },
-  planActual: {
-    fontSize: typography.fontSizes.base,
-    color: colors.status.success,
-    marginTop: spacing.xs,
-  },
-  planCardRight: {
-    alignItems: 'flex-end',
-  },
-  planStatus: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    textTransform: 'capitalize',
-  },
   actionsSection: {
     padding: spacing.lg,
     gap: spacing.md,
-  },
-  actionButton: {
-    backgroundColor: colors.primary[500],
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    color: colors.neutral[0],
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
-  },
-  actionButtonSecondary: {
-    backgroundColor: colors.neutral[0],
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-  },
-  actionButtonTextSecondary: {
-    color: colors.primary[500],
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
   },
 });

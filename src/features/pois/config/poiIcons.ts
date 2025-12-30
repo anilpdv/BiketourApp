@@ -38,7 +38,21 @@ export const CATEGORY_TO_MAKI_ICON: Record<POICategory, string> = {
   restaurant: 'restaurant',
 };
 
-// Fallback emoji icons (used if Maki icons don't render)
+// MaterialCommunityIcons names for UI components
+export const CATEGORY_TO_VECTOR_ICON: Record<POICategory, string> = {
+  campsite: 'tent',
+  drinking_water: 'water',
+  bike_shop: 'bicycle',
+  bike_repair: 'wrench',
+  hotel: 'bed',
+  hostel: 'bunk-bed',
+  guest_house: 'home',
+  shelter: 'home-roof',
+  supermarket: 'cart',
+  restaurant: 'silverware-fork-knife',
+};
+
+// Fallback emoji icons (used if vector icons unavailable)
 export const CATEGORY_TO_EMOJI: Record<POICategory, string> = {
   campsite: '⛺',
   drinking_water: '💧',
@@ -73,6 +87,7 @@ export function getCategoryIcon(category: POICategory) {
   return {
     color: CATEGORY_COLORS[category] || '#666666',
     makiIcon: CATEGORY_TO_MAKI_ICON[category] || 'marker',
+    vectorIcon: CATEGORY_TO_VECTOR_ICON[category] || 'map-marker',
     emoji: CATEGORY_TO_EMOJI[category] || '📍',
     name: CATEGORY_NAMES[category] || category,
   };

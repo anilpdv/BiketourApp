@@ -1,5 +1,5 @@
 import { SearchResult, GeocodeResult } from '../types';
-import { createRateLimiter } from '../../../shared/utils';
+import { createRateLimiter, logger } from '../../../shared/utils';
 import { httpGet, ApiError } from '../../../shared/api';
 import { API_CONFIG, getApiHeaders } from '../../../shared/config';
 
@@ -108,7 +108,7 @@ export async function searchPlaces(
         : undefined,
     }));
   } catch (error) {
-    console.error('Nominatim search error:', error);
+    logger.error('api', 'Nominatim search error', error);
     throw error;
   }
 }
@@ -154,7 +154,7 @@ export async function reverseGeocode(
     if (error instanceof ApiError && error.code === 'NOT_FOUND') {
       return null; // No result for this location
     }
-    console.error('Nominatim reverse geocode error:', error);
+    logger.error('api', 'Nominatim reverse geocode error', error);
     throw error;
   }
 }

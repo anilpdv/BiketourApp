@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, TextStyle, ViewStyle } from 'react-native';
-import { colors, spacing, typography } from '../../design/tokens';
+import { View, StyleSheet, TextStyle, ViewStyle } from 'react-native';
+import { Surface, Text, useTheme } from 'react-native-paper';
+import { colors, spacing } from '../../design/tokens';
 
 export interface StatItem {
   value: string | number;
@@ -21,21 +22,36 @@ export const StatsHeader = memo(function StatsHeader({
   variant = 'default',
   style,
 }: StatsHeaderProps) {
+  const theme = useTheme();
   const isCompact = variant === 'compact';
 
   return (
-    <View style={[styles.container, { backgroundColor }, isCompact && styles.containerCompact, style]}>
+    <Surface
+      style={[
+        styles.container,
+        { backgroundColor },
+        isCompact && styles.containerCompact,
+        style,
+      ]}
+      elevation={2}
+    >
       {stats.map((stat, index) => (
         <View key={index} style={styles.statItem}>
-          <Text style={[styles.statValue, isCompact && styles.statValueCompact, stat.valueStyle]}>
+          <Text
+            variant={isCompact ? 'titleLarge' : 'headlineSmall'}
+            style={[styles.statValue, stat.valueStyle]}
+          >
             {stat.value}
           </Text>
-          <Text style={[styles.statLabel, isCompact && styles.statLabelCompact]}>
+          <Text
+            variant={isCompact ? 'labelSmall' : 'labelMedium'}
+            style={styles.statLabel}
+          >
             {stat.label}
           </Text>
         </View>
       ))}
-    </View>
+    </Surface>
   );
 });
 
@@ -44,6 +60,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     padding: spacing.xl,
+    borderRadius: 0,
   },
   containerCompact: {
     padding: spacing.lg,
@@ -52,19 +69,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: typography.fontSizes['3xl'],
-    fontWeight: typography.fontWeights.bold,
+    fontWeight: '700',
     color: colors.neutral[0],
   },
-  statValueCompact: {
-    fontSize: typography.fontSizes['2xl'],
-  },
   statLabel: {
-    fontSize: typography.fontSizes.sm,
     color: 'rgba(255,255,255,0.8)',
     marginTop: spacing.xs,
   },
-  statLabelCompact: {
-    fontSize: typography.fontSizes.xs,
-  },
 });
+
+export default StatsHeader;

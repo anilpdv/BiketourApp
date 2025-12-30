@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { fetchWeather } from '../../weather/services/openMeteo.service';
 import { WeatherForecast } from '../../weather/types';
+import { logger } from '../../../shared/utils';
 
 export interface UseWeatherIntegrationReturn {
   weather: WeatherForecast | null;
@@ -37,7 +38,7 @@ export function useWeatherIntegration(
       );
       setWeather(weatherData);
     } catch (err) {
-      console.error('Failed to fetch weather:', err);
+      logger.error('ui', 'Failed to fetch weather', err);
       setError('Unable to load weather');
     } finally {
       setIsLoading(false);

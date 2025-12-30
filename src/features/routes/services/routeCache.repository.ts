@@ -1,5 +1,6 @@
 import { databaseService } from '../../../shared/database/database.service';
 import { ParsedRoute, RoutePoint, RouteVariant } from '../types';
+import { logger } from '../../../shared/utils';
 
 // Caching queue to serialize write operations and prevent transaction conflicts
 let cachingQueue: Promise<void> = Promise.resolve();
@@ -162,7 +163,7 @@ export const routeCacheRepository = {
 
     // Chain to the queue to serialize operations
     cachingQueue = cachingQueue.then(cacheOperation).catch((error) => {
-      console.warn('Route caching error (queued):', error);
+      logger.warn('cache', 'Route caching error (queued)', error);
     });
 
     return cachingQueue;
@@ -186,7 +187,7 @@ export const routeCacheRepository = {
     };
 
     cachingQueue = cachingQueue.then(invalidateOperation).catch((error) => {
-      console.warn('Route cache invalidation error:', error);
+      logger.warn('cache', 'Route cache invalidation error', error);
     });
 
     return cachingQueue;
@@ -204,7 +205,7 @@ export const routeCacheRepository = {
     };
 
     cachingQueue = cachingQueue.then(clearOperation).catch((error) => {
-      console.warn('Route cache clear error:', error);
+      logger.warn('cache', 'Route cache clear error', error);
     });
 
     return cachingQueue;

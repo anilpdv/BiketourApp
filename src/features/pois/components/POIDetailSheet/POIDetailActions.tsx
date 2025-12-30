@@ -1,5 +1,6 @@
 import React, { memo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Linking, Platform } from 'react-native';
+import { View, Linking, Platform } from 'react-native';
+import { Button, useTheme } from 'react-native-paper';
 import { POI } from '../../types';
 import { getCategoryConfig } from '../../services/overpass.service';
 import { POIContactInfo } from '../../utils/poiTagParser';
@@ -43,27 +44,44 @@ export const POIDetailActions = memo(function POIDetailActions({
     Linking.openURL(`tel:${phoneNumber}`);
   }, []);
 
+  const theme = useTheme();
+
   return (
     <View style={styles.container}>
       {phone && (
-        <TouchableOpacity style={styles.button} onPress={() => callPhone(phone)}>
-          <Text style={styles.buttonIcon}>📞</Text>
-          <Text style={styles.buttonText}>Call</Text>
-        </TouchableOpacity>
+        <Button
+          mode="outlined"
+          icon="phone"
+          onPress={() => callPhone(phone)}
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+          compact
+        >
+          Call
+        </Button>
       )}
       {website && (
-        <TouchableOpacity style={styles.button} onPress={() => openWebsite(website)}>
-          <Text style={styles.buttonIcon}>🌐</Text>
-          <Text style={styles.buttonText}>Website</Text>
-        </TouchableOpacity>
+        <Button
+          mode="outlined"
+          icon="web"
+          onPress={() => openWebsite(website)}
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+          compact
+        >
+          Website
+        </Button>
       )}
-      <TouchableOpacity
-        style={[styles.button, styles.navigateButton]}
+      <Button
+        mode="contained"
+        icon="navigation"
         onPress={openInMaps}
+        style={[styles.button, styles.navigateButton]}
+        contentStyle={styles.buttonContent}
+        compact
       >
-        <Text style={styles.buttonIcon}>🧭</Text>
-        <Text style={[styles.buttonText, styles.navigateButtonText]}>Navigate</Text>
-      </TouchableOpacity>
+        Navigate
+      </Button>
     </View>
   );
 });

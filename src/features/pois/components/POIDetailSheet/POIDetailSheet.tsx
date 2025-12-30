@@ -1,5 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useCallback } from 'react';
 import { View, Modal, Pressable, ScrollView } from 'react-native';
+import { Surface, Text, useTheme } from 'react-native-paper';
 import { POI } from '../../types';
 import { usePOIStore } from '../../store/poiStore';
 import { getPOIContactInfo } from '../../utils/poiTagParser';
@@ -8,7 +9,6 @@ import { POIDetailInfo } from './POIDetailInfo';
 import { POIDetailActions } from './POIDetailActions';
 import { POIDetailNotes } from './POIDetailNotes';
 import { styles, descriptionStyles } from './POIDetailSheet.styles';
-import { Text } from 'react-native';
 
 export interface POIDetailSheetRef {
   present: (poi: POI) => void;
@@ -28,6 +28,7 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
     const [poi, setPOI] = React.useState<POI | null>(null);
     const [visible, setVisible] = React.useState(false);
     const { isFavorite } = usePOIStore();
+    const theme = useTheme();
 
     useImperativeHandle(ref, () => ({
       present: (newPOI: POI) => {
@@ -59,36 +60,43 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
         onRequestClose={handleClose}
       >
         <Pressable style={styles.backdrop} onPress={handleClose}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            {/* Handle bar */}
-            <View style={styles.handleContainer}>
-              <View style={styles.handle} />
-            </View>
+          <Surface
+            style={styles.sheet}
+            elevation={5}
+          >
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              {/* Handle bar */}
+              <View style={styles.handleContainer}>
+                <View style={styles.handle} />
+              </View>
 
-            <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
-              {/* Header */}
-              <POIDetailHeader poi={poi} onClose={handleClose} />
+              <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
+                {/* Header */}
+                <POIDetailHeader poi={poi} onClose={handleClose} />
 
-              {/* Info rows */}
-              <POIDetailInfo
-                distanceFromUser={poi.distanceFromUser}
-                contactInfo={contactInfo}
-              />
+                {/* Info rows */}
+                <POIDetailInfo
+                  distanceFromUser={poi.distanceFromUser}
+                  contactInfo={contactInfo}
+                />
 
-              {/* Action buttons */}
-              <POIDetailActions poi={poi} contactInfo={contactInfo} />
+                {/* Action buttons */}
+                <POIDetailActions poi={poi} contactInfo={contactInfo} />
 
-              {/* Notes for favorited POIs */}
-              {isFavorite(poi.id) && <POIDetailNotes poiId={poi.id} />}
+                {/* Notes for favorited POIs */}
+                {isFavorite(poi.id) && <POIDetailNotes poiId={poi.id} />}
 
-              {/* Description */}
-              {contactInfo.description && (
-                <View style={descriptionStyles.container}>
-                  <Text style={descriptionStyles.text}>{contactInfo.description}</Text>
-                </View>
-              )}
-            </ScrollView>
-          </Pressable>
+                {/* Description */}
+                {contactInfo.description && (
+                  <Surface style={descriptionStyles.container} elevation={0}>
+                    <Text variant="bodyMedium" style={descriptionStyles.text}>
+                      {contactInfo.description}
+                    </Text>
+                  </Surface>
+                )}
+              </ScrollView>
+            </Pressable>
+          </Surface>
         </Pressable>
       </Modal>
     );

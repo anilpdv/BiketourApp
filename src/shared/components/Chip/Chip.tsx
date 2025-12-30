@@ -1,10 +1,11 @@
 import React from 'react';
-import { TouchableOpacity, View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { colors, spacing, typography, borderRadius, shadows } from '../../design/tokens';
+import { View, StyleSheet, ViewStyle } from 'react-native';
+import { Chip as PaperChip, Badge, useTheme } from 'react-native-paper';
+import { colors, spacing, borderRadius } from '../../design/tokens';
 
 export interface ChipProps {
   label: string;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | (() => React.ReactNode);
   selected?: boolean;
   color?: string;
   count?: number;
@@ -23,94 +24,72 @@ export function Chip({
   disabled = false,
   style,
 }: ChipProps) {
-  const chipStyle = [
-    styles.base,
-    selected && styles.selected,
-    color && selected && { borderColor: color, backgroundColor: `${color}15` },
-    disabled && styles.disabled,
-    style,
-  ];
+  const theme = useTheme();
 
-  const textStyle = [
-    styles.label,
-    selected && styles.labelSelected,
-    color && selected && { color },
-  ];
+  // Determine colors based on selection state
+  const selectedColor = color || colors.primary[500];
+  const backgroundColor = selected ? `${selectedColor}15` : colors.neutral[0];
+  const textColor = selected ? selectedColor : colors.neutral[600];
 
-  const content = (
-    <>
-      {icon && <View style={styles.iconContainer}>{icon}</View>}
-      <Text style={textStyle}>{label}</Text>
-      {count !== undefined && count > 0 && (
-        <View style={[styles.countBadge, color && { backgroundColor: color }]}>
-          <Text style={styles.countText}>{count}</Text>
-        </View>
-      )}
-    </>
-  );
+  // Handle icon rendering for Paper
+  const renderIcon = icon
+    ? typeof icon === 'function'
+      ? icon
+      : () => icon
+    : undefined;
 
-  if (onPress) {
-    return (
-      <TouchableOpacity
-        style={chipStyle}
+  return (
+    <View style={[styles.wrapper, style]}>
+      <PaperChip
+        mode={selected ? 'flat' : 'outlined'}
+        selected={selected}
         onPress={onPress}
         disabled={disabled}
-        activeOpacity={0.7}
+        icon={renderIcon}
+        textStyle={{ color: textColor, fontWeight: selected ? '600' : '500' }}
+        style={[
+          styles.chip,
+          {
+            backgroundColor,
+            borderColor: selected ? selectedColor : colors.neutral[200],
+          },
+        ]}
+        selectedColor={selectedColor}
+        showSelectedCheck={false}
+        elevated={!selected}
+        elevation={selected ? 0 : 1}
       >
-        {content}
-      </TouchableOpacity>
-    );
-  }
-
-  return <View style={chipStyle}>{content}</View>;
+        {label}
+      </PaperChip>
+      {count !== undefined && count > 0 && (
+        <Badge
+          size={18}
+          style={[
+            styles.badge,
+            { backgroundColor: color || colors.primary[500] },
+          ]}
+        >
+          {count}
+        </Badge>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius['2xl'],
+  wrapper: {
+    position: 'relative',
+  },
+  chip: {
     borderWidth: 2,
-    borderColor: colors.neutral[200],
-    ...shadows.md,
+    borderRadius: borderRadius['2xl'],
   },
-  selected: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-
-  iconContainer: {
-    marginRight: spacing.xs,
-  },
-
-  label: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.neutral[600],
-  },
-  labelSelected: {
-    color: colors.primary[700],
-    fontWeight: typography.fontWeights.bold,
-  },
-
-  countBadge: {
-    marginLeft: spacing.xs,
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  countText: {
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.neutral[0],
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
   },
 });
+
+export default Chip;

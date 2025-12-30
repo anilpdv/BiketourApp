@@ -28,28 +28,28 @@ export const MapControls = memo(function MapControls({
   return (
     <View style={styles.container}>
       <IconButton
-        icon="📍"
+        icon="map-marker"
         onPress={onTogglePOIs}
         isActive={showPOIs}
         activeColor={colors.primary[500]}
         activeBackgroundColor={colors.primary[50]}
       />
       <IconButton
-        icon="⛰️"
+        icon="image-filter-hdr"
         onPress={onToggle3DTerrain}
         isActive={show3DTerrain}
         activeColor={colors.feature.terrain}
         activeBackgroundColor={colors.feature.terrainLight}
       />
       <IconButton
-        icon="🏢"
+        icon="office-building"
         onPress={onToggle3DBuildings}
         isActive={show3DBuildings}
         activeColor={colors.feature.buildings}
         activeBackgroundColor={colors.feature.buildingsLight}
       />
       <IconButton
-        icon="🗺️"
+        icon="layers"
         onPress={onOpenStylePicker}
         activeColor={colors.feature.mapStyle}
         style={styles.styleButton}

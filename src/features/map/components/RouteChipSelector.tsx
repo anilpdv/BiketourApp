@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { Chip, ActivityIndicator, useTheme } from 'react-native-paper';
 import { getRouteName, ROUTE_CONFIGS } from '../../routes/services/routeLoader.service';
-import { colors, spacing, typography, borderRadius, shadows } from '../../../shared/design/tokens';
+import { colors, spacing, borderRadius } from '../../../shared/design/tokens';
 
 export interface RouteChipSelectorProps {
   availableRouteIds: number[];
@@ -23,6 +24,8 @@ export const RouteChipSelector = memo(function RouteChipSelector({
   isLoading,
   onToggleRoute,
 }: RouteChipSelectorProps) {
+  const theme = useTheme();
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -32,30 +35,51 @@ export const RouteChipSelector = memo(function RouteChipSelector({
       >
         {availableRouteIds.map((id) => {
           const config = ROUTE_CONFIGS[id];
+          const routeColor = config?.color || colors.neutral[400];
           const isEnabled = enabledRouteIds.includes(id);
           const isSelected = selectedRouteId === id;
           const isLoadingThis = isLoading && enabledRouteIds.includes(id) && !loadedRouteIds.includes(id);
 
           return (
-            <TouchableOpacity
-              key={id}
-              style={[
-                styles.chip,
-                isEnabled && styles.chipEnabled,
-                isSelected && styles.chipSelected,
-                { borderColor: config?.color || colors.neutral[300] },
-              ]}
-              onPress={() => onToggleRoute(id)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.dot, { backgroundColor: config?.color || colors.neutral[400] }]} />
-              <Text style={[styles.chipText, isEnabled && styles.chipTextEnabled]}>
+            <View key={id} style={styles.chipWrapper}>
+              <Chip
+                mode={isEnabled ? 'flat' : 'outlined'}
+                selected={isSelected}
+                onPress={() => onToggleRoute(id)}
+                icon={() => (
+                  <View style={[styles.dot, { backgroundColor: routeColor }]} />
+                )}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isSelected
+                      ? colors.primary[100]
+                      : isEnabled
+                      ? colors.primary[50]
+                      : theme.colors.surface,
+                    borderColor: routeColor,
+                    borderWidth: isSelected ? 3 : 2,
+                  },
+                ]}
+                textStyle={[
+                  styles.chipText,
+                  isEnabled && styles.chipTextEnabled,
+                ]}
+                selectedColor={routeColor}
+                showSelectedCheck={false}
+                elevated={!isEnabled}
+                elevation={isEnabled ? 0 : 1}
+              >
                 EV{id}
-              </Text>
+              </Chip>
               {isLoadingThis && (
-                <ActivityIndicator size="small" color={config?.color || colors.primary[500]} style={styles.loader} />
+                <ActivityIndicator
+                  size="small"
+                  color={routeColor}
+                  style={styles.loader}
+                />
               )}
-            </TouchableOpacity>
+            </View>
           );
         })}
       </ScrollView>
@@ -75,37 +99,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     gap: spacing.sm,
   },
-  chip: {
+  chipWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  },
+  chip: {
     borderRadius: borderRadius['2xl'],
-    borderWidth: 2,
-    ...shadows.md,
-  },
-  chipEnabled: {
-    backgroundColor: colors.primary[50],
-  },
-  chipSelected: {
-    backgroundColor: colors.primary[100],
-    borderWidth: 3,
   },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginRight: spacing.xs,
   },
   chipText: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.neutral[600],
   },
   chipTextEnabled: {
     color: colors.primary[700],
-    fontWeight: typography.fontWeights.bold,
+    fontWeight: '700',
   },
   loader: {
     marginLeft: spacing.xs,
