@@ -1,5 +1,5 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-type LogCategory = 'database' | 'api' | 'cache' | 'store' | 'ui' | 'filesystem';
+type LogCategory = 'database' | 'api' | 'cache' | 'store' | 'ui' | 'filesystem' | 'poi';
 
 interface LogContext {
   operation?: string;

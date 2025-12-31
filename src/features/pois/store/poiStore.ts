@@ -8,9 +8,25 @@ import {
 } from '../services/overpass.service';
 import { logger } from '../../../shared/utils';
 
+// Loading timeout to prevent forever loading (15 seconds)
+const LOADING_TIMEOUT_MS = 15000;
+
+// Helper to wrap promises with timeout
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+    ),
+  ]);
+}
+
 interface POIState {
   // All loaded POIs
   pois: POI[];
+
+  // POI IDs for O(1) deduplication lookup
+  poiIds: Set<string>;
 
   // POIs grouped by category
   poisByCategory: Map<POICategory, POI[]>;
@@ -68,6 +84,7 @@ const defaultFilters: POIFilterState = {
 
 export const usePOIStore = create<POIState>((set, get) => ({
   pois: [],
+  poiIds: new Set(),
   poisByCategory: new Map(),
   selectedPOI: null,
   filters: defaultFilters,
@@ -79,26 +96,46 @@ export const usePOIStore = create<POIState>((set, get) => ({
 
   setPOIs: (pois) => {
     const byCategory = new Map<POICategory, POI[]>();
+    const ids = new Set<string>();
     for (const poi of pois) {
+      ids.add(poi.id);
       const existing = byCategory.get(poi.category) || [];
       byCategory.set(poi.category, [...existing, poi]);
     }
-    set({ pois, poisByCategory: byCategory });
+    set({ pois, poiIds: ids, poisByCategory: byCategory });
   },
 
+  // OPTIMIZED: Uses persistent Set for O(1) deduplication instead of O(n) array scan
   addPOIs: (newPOIs) => {
-    const { pois, poisByCategory } = get();
-    const existingIds = new Set(pois.map((p) => p.id));
-    const uniqueNew = newPOIs.filter((p) => !existingIds.has(p.id));
+    const { pois, poiIds, poisByCategory } = get();
 
-    const newByCategory = new Map(poisByCategory);
+    // Filter using existing Set - O(1) per lookup instead of O(n)
+    const uniqueNew = newPOIs.filter((p) => !poiIds.has(p.id));
+    if (uniqueNew.length === 0) return; // Early exit if no new POIs
+
+    // Add new IDs to Set
     for (const poi of uniqueNew) {
-      const existing = newByCategory.get(poi.category) || [];
-      newByCategory.set(poi.category, [...existing, poi]);
+      poiIds.add(poi.id);
+    }
+
+    // Batch category updates - group by category first
+    const newByCategory = new Map(poisByCategory);
+    const categoryBatches = new Map<POICategory, POI[]>();
+
+    for (const poi of uniqueNew) {
+      const batch = categoryBatches.get(poi.category) || [];
+      batch.push(poi);
+      categoryBatches.set(poi.category, batch);
+    }
+
+    for (const [category, batch] of categoryBatches) {
+      const existing = newByCategory.get(category) || [];
+      newByCategory.set(category, [...existing, ...batch]);
     }
 
     set({
       pois: [...pois, ...uniqueNew],
+      poiIds, // Mutated in place for performance
       poisByCategory: newByCategory,
     });
   },
@@ -106,6 +143,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
   clearPOIs: () => {
     set({
       pois: [],
+      poiIds: new Set(),
       poisByCategory: new Map(),
       selectedPOI: null,
     });
@@ -195,43 +233,57 @@ export const usePOIStore = create<POIState>((set, get) => ({
     return get().favoriteIds.has(poiId);
   },
 
-  // Load POIs with cache-first strategy
+  // Load POIs with cache-first strategy (with timeout)
   loadPOIsForBounds: async (bbox: BoundingBox, categories?: POICategory[]) => {
     set({ isLoading: true, error: null });
     try {
-      const pois = await fetchPOIsWithCache(bbox, categories);
+      const pois = await withTimeout(
+        fetchPOIsWithCache(bbox, categories),
+        LOADING_TIMEOUT_MS,
+        'POI loading timed out'
+      );
       get().addPOIs(pois);
       set({ isLoading: false });
-    } catch (error) {
-      logger.error('store', 'Failed to load POIs', error);
-      set({ isLoading: false, error: 'Failed to load POIs' });
+    } catch (error: any) {
+      const errorMessage = error?.message?.includes('timed out')
+        ? 'POI loading timed out. Try zooming in.'
+        : 'Failed to load POIs';
+      logger.error('store', errorMessage, error);
+      set({ isLoading: false, error: errorMessage });
     }
   },
 
-  // Progressive loading: show cached POIs immediately, fetch fresh in background
+  // Progressive loading: show cached POIs immediately, fetch fresh in background (with timeout)
   loadPOIsProgressively: async (bbox: BoundingBox, categories?: POICategory[]) => {
     set({ isLoading: true, error: null });
     try {
-      await fetchPOIsProgressively(
-        bbox,
-        (cachedPOIs) => {
-          // Show cached data immediately
-          get().addPOIs(cachedPOIs);
-        },
-        (freshPOIs) => {
-          // Update with fresh data
-          get().addPOIs(freshPOIs);
-        },
-        categories
+      await withTimeout(
+        fetchPOIsProgressively(
+          bbox,
+          (cachedPOIs) => {
+            // Show cached data immediately
+            get().addPOIs(cachedPOIs);
+          },
+          (freshPOIs) => {
+            // Update with fresh data
+            get().addPOIs(freshPOIs);
+          },
+          categories
+        ),
+        LOADING_TIMEOUT_MS,
+        'POI loading timed out'
       );
       set({ isLoading: false });
-    } catch (error) {
-      logger.error('store', 'Failed to load POIs progressively', error);
-      set({ isLoading: false, error: 'Failed to load POIs' });
+    } catch (error: any) {
+      const errorMessage = error?.message?.includes('timed out')
+        ? 'POI loading timed out. Try zooming in.'
+        : 'Failed to load POIs';
+      logger.error('store', errorMessage, error);
+      set({ isLoading: false, error: errorMessage });
     }
   },
 
-  // Viewport-based loading: only fetch uncached tiles
+  // Viewport-based loading: only fetch uncached tiles (with timeout)
   loadPOIsForViewport: async (
     bbox: BoundingBox,
     categories?: POICategory[],
@@ -239,12 +291,19 @@ export const usePOIStore = create<POIState>((set, get) => ({
   ) => {
     set({ isLoading: true, error: null });
     try {
-      const pois = await fetchPOIsForViewport(bbox, categories, onProgress);
+      const pois = await withTimeout(
+        fetchPOIsForViewport(bbox, categories, onProgress),
+        LOADING_TIMEOUT_MS,
+        'POI loading timed out'
+      );
       get().addPOIs(pois);
       set({ isLoading: false });
-    } catch (error) {
-      logger.error('store', 'Failed to load POIs for viewport', error);
-      set({ isLoading: false, error: 'Failed to load POIs' });
+    } catch (error: any) {
+      const errorMessage = error?.message?.includes('timed out')
+        ? 'POI loading timed out. Try zooming in.'
+        : 'Failed to load POIs';
+      logger.error('store', errorMessage, error);
+      set({ isLoading: false, error: errorMessage });
     }
   },
 }));

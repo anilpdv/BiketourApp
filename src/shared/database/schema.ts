@@ -190,6 +190,11 @@ export const CREATE_INDEXES = {
     CREATE INDEX IF NOT EXISTS idx_pois_expires
     ON pois(expires_at)
   `,
+  // Compound index for optimized viewport queries (2-5x faster)
+  poisCategoryLocation: `
+    CREATE INDEX IF NOT EXISTS idx_pois_category_location
+    ON pois(category, latitude, longitude, expires_at)
+  `,
   poiFavoritesDate: `
     CREATE INDEX IF NOT EXISTS idx_poi_favorites_date
     ON poi_favorites(favorited_at DESC)

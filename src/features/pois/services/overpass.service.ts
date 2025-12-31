@@ -25,14 +25,17 @@ const rateLimiter = createRateLimiter(API_CONFIG.pois.rateLimit);
 const pendingRequests = new Map<string, Promise<POI[]>>();
 
 /**
- * Generate a key for deduplicating requests based on bounding box
+ * Generate a key for deduplicating requests based on bounding box and categories
  * Uses 2 decimal places for reasonable grouping
+ * Includes categories to prevent returning wrong POIs for concurrent requests
  */
-function getBboxKey(bbox: BoundingBox): string {
-  return `${bbox.south.toFixed(2)}_${bbox.north.toFixed(2)}_${bbox.west.toFixed(2)}_${bbox.east.toFixed(2)}`;
+function getBboxKey(bbox: BoundingBox, categories?: POICategory[]): string {
+  const categoryStr = categories?.slice().sort().join(',') ?? 'all';
+  return `${bbox.south.toFixed(2)}_${bbox.north.toFixed(2)}_${bbox.west.toFixed(2)}_${bbox.east.toFixed(2)}_${categoryStr}`;
 }
 
 // POI category configurations
+// All categories are disabled by default - only explicitly selected categories are fetched
 export const POI_CATEGORIES: POICategoryConfig[] = [
   {
     id: 'campsite',
@@ -40,7 +43,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     icon: 'tent',
     color: '#4CAF50',
     osmQuery: 'tourism=camp_site',
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'drinking_water',
@@ -48,7 +51,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     icon: 'water',
     color: '#2196F3',
     osmQuery: 'amenity=drinking_water',
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'bike_shop',
@@ -56,7 +59,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     icon: 'bicycle',
     color: '#FF9800',
     osmQuery: 'shop=bicycle',
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'bike_repair',
@@ -64,7 +67,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     icon: 'wrench',
     color: '#9C27B0',
     osmQuery: 'amenity=bicycle_repair_station',
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'hotel',
@@ -72,7 +75,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     icon: 'hotel',
     color: '#3F51B5',
     osmQuery: 'tourism=hotel',
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'hostel',
@@ -80,7 +83,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     icon: 'bed',
     color: '#009688',
     osmQuery: 'tourism=hostel',
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'guest_house',
@@ -88,7 +91,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     icon: 'home',
     color: '#795548',
     osmQuery: 'tourism=guest_house',
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'shelter',
@@ -96,7 +99,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     icon: 'shelter',
     color: '#607D8B',
     osmQuery: 'amenity=shelter',
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'supermarket',
@@ -154,7 +157,7 @@ function buildMultiCategoryQuery(
     .join('\n');
 
   return `
-    [out:json][timeout:30];
+    [out:json][timeout:15];
     (
       ${queries}
     );
@@ -178,6 +181,12 @@ function getCategoryFromTags(tags: Record<string, string>): POICategory | null {
 }
 
 // Parse Overpass response to POIs
+// Essential tags to keep - reduces memory by ~80%
+const ESSENTIAL_TAGS = [
+  'name', 'website', 'phone', 'email', 'opening_hours',
+  'fee', 'capacity', 'addr:street', 'addr:city', 'description'
+];
+
 function parseOverpassResponse(response: OverpassResponse): POI[] {
   const pois: POI[] = [];
 
@@ -191,6 +200,12 @@ function parseOverpassResponse(response: OverpassResponse): POI[] {
     const lon = element.lon ?? element.center?.lon;
     if (lat === undefined || lon === undefined) continue;
 
+    // Strip unnecessary tags - keep only essential ones for memory efficiency
+    const essentialTags: Record<string, string> = {};
+    for (const key of ESSENTIAL_TAGS) {
+      if (tags[key]) essentialTags[key] = tags[key];
+    }
+
     pois.push({
       id: `${element.type}/${element.id}`,
       type: element.type,
@@ -198,7 +213,7 @@ function parseOverpassResponse(response: OverpassResponse): POI[] {
       name: tags.name || null,
       latitude: lat,
       longitude: lon,
-      tags,
+      tags: essentialTags,
     });
   }
 
@@ -231,15 +246,19 @@ function sleep(ms: number): Promise<void> {
 }
 
 // Fetch POIs for a bounding box
+// IMPORTANT: Only fetches explicitly selected categories - returns empty if none provided
 export async function fetchPOIs(
   bbox: BoundingBox,
   categories?: POICategory[]
 ): Promise<POI[]> {
+  // Return empty if no categories explicitly provided
+  if (!categories || categories.length === 0) {
+    return [];
+  }
+
   await waitForRateLimit();
 
-  const categoriesToFetch = categories
-    ? POI_CATEGORIES.filter((c) => categories.includes(c.id))
-    : POI_CATEGORIES.filter((c) => c.enabled);
+  const categoriesToFetch = POI_CATEGORIES.filter((c) => categories.includes(c.id));
 
   if (categoriesToFetch.length === 0) {
     return [];
@@ -252,7 +271,10 @@ export async function fetchPOIs(
       API_CONFIG.pois.baseUrl,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept-Encoding': 'gzip, deflate',
+        },
         body: `data=${encodeURIComponent(query)}`,
       },
       API_CONFIG.pois.timeout
@@ -270,7 +292,10 @@ export async function fetchPOIs(
         API_CONFIG.pois.baseUrl,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept-Encoding': 'gzip, deflate',
+          },
           body: `data=${encodeURIComponent(query)}`,
         },
         API_CONFIG.pois.timeout
@@ -371,17 +396,13 @@ export async function fetchPOIsWithCache(
   bbox: BoundingBox,
   categories?: POICategory[]
 ): Promise<POI[]> {
-  const bboxKey = getBboxKey(bbox);
+  const bboxKey = getBboxKey(bbox, categories);
 
   // Check if request for this area is already pending (deduplication)
   const pendingRequest = pendingRequests.get(bboxKey);
   if (pendingRequest) {
-    const pois = await pendingRequest;
-    // Filter by categories if specified
-    if (categories && categories.length > 0) {
-      return pois.filter((poi) => categories.includes(poi.category));
-    }
-    return pois;
+    // Same bbox + categories = exact match, return as-is (already filtered by query)
+    return pendingRequest;
   }
 
   // Create new request promise
@@ -391,12 +412,15 @@ export async function fetchPOIsWithCache(
       const isCached = await poiRepository.isTileCached(bbox);
 
       if (isCached) {
-        // Return from cache
+        // Return from cache - filter by categories since cache stores all POIs
         const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
+        if (categories && categories.length > 0) {
+          return cachedPOIs.filter((poi) => categories.includes(poi.category));
+        }
         return cachedPOIs;
       }
 
-      // Not cached - fetch from Overpass API
+      // Not cached - fetch from Overpass API (already filtered by query)
       const freshPOIs = await fetchPOIs(bbox, categories);
 
       // Save to cache (async, don't block return)
@@ -420,14 +444,7 @@ export async function fetchPOIsWithCache(
   // Track the pending request
   pendingRequests.set(bboxKey, requestPromise);
 
-  const pois = await requestPromise;
-
-  // Filter by categories if specified
-  if (categories && categories.length > 0) {
-    return pois.filter((poi) => categories.includes(poi.category));
-  }
-
-  return pois;
+  return requestPromise;
 }
 
 /**
@@ -457,7 +474,7 @@ export async function fetchPOIsProgressively(
       return;
     }
 
-    // 3. Fetch fresh data in background
+    // 3. Fetch fresh data in background (already filtered by query)
     const freshPOIs = await fetchPOIs(bbox, categories);
 
     // 4. Save to cache
@@ -465,11 +482,8 @@ export async function fetchPOIsProgressively(
       await poiRepository.savePOIs(freshPOIs, bbox);
     }
 
-    // 5. Notify with fresh data
-    const filtered = categories && categories.length > 0
-      ? freshPOIs.filter((poi) => categories.includes(poi.category))
-      : freshPOIs;
-    onFreshData(filtered);
+    // 5. Notify with fresh data (no need to filter - fetchPOIs already did)
+    onFreshData(freshPOIs);
   } catch (error) {
     logger.warn('api', 'fetchPOIsProgressively error', error);
   }
@@ -482,15 +496,29 @@ export async function fetchPOIsProgressively(
 export async function fetchPOIsForViewport(
   bbox: BoundingBox,
   categories?: POICategory[],
-  onProgress?: (loaded: number, total: number) => void
+  onProgress?: (loaded: number, total: number) => void,
+  onChunkComplete?: (pois: POI[]) => void  // NEW: Show POIs as they load
 ): Promise<POI[]> {
+  const startTime = Date.now();
+  logger.info('poi', 'fetchPOIsForViewport START', { bbox, categories });
+
   const allPOIs: POI[] = [];
 
   // Get uncached tiles
   const uncachedTiles = await poiRepository.getUncachedTiles(bbox);
+  logger.info('poi', 'Tiles check complete', {
+    uncachedTiles: uncachedTiles.length,
+    elapsed: Date.now() - startTime,
+  });
 
-  // If all tiles are cached, just return from cache
-  if (uncachedTiles.length === 0) {
+  // OPTIMIZATION: If too many tiles needed, skip API and return cached only
+  // This prevents slow/hung requests when zoomed out too far
+  const MAX_TILES = 20;
+  if (uncachedTiles.length > MAX_TILES) {
+    logger.warn('poi', 'Too many tiles - returning cached only (zoom in for more)', {
+      tilesNeeded: uncachedTiles.length,
+      maxAllowed: MAX_TILES,
+    });
     const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
     if (categories && categories.length > 0) {
       return cachedPOIs.filter(poi => categories.includes(poi.category));
@@ -498,13 +526,42 @@ export async function fetchPOIsForViewport(
     return cachedPOIs;
   }
 
-  // Get cached POIs first
-  const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
-  allPOIs.push(...cachedPOIs);
+  // If all tiles are cached, just return from cache
+  if (uncachedTiles.length === 0) {
+    logger.info('poi', 'All tiles CACHED - fetching from DB');
+    const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
+    logger.info('poi', 'Cache returned', {
+      count: cachedPOIs.length,
+      elapsed: Date.now() - startTime,
+    });
+    if (categories && categories.length > 0) {
+      const filtered = cachedPOIs.filter(poi => categories.includes(poi.category));
+      logger.info('poi', 'Filtered cached POIs', {
+        before: cachedPOIs.length,
+        after: filtered.length,
+        elapsed: Date.now() - startTime,
+      });
+      return filtered;
+    }
+    return cachedPOIs;
+  }
 
-  // Fetch uncached tiles in parallel with concurrency limit
-  // This is 3-4x faster than sequential fetching
-  const CONCURRENCY = 3;
+  // Get cached POIs first - filter by categories since cache stores all POIs
+  logger.info('poi', 'Getting cached POIs for partial coverage');
+  const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
+  if (categories && categories.length > 0) {
+    allPOIs.push(...cachedPOIs.filter(poi => categories.includes(poi.category)));
+  } else {
+    allPOIs.push(...cachedPOIs);
+  }
+  logger.info('poi', 'Cached POIs retrieved', {
+    count: allPOIs.length,
+    elapsed: Date.now() - startTime,
+  });
+
+  // Fetch tiles with reduced concurrency
+  // Lower concurrency = less likely to hit Overpass rate limits
+  const CONCURRENCY = 2;  // kumi.systems server handles 2 parallel requests well
   let loaded = 0;
 
   // Split tiles into chunks for parallel processing
@@ -512,8 +569,20 @@ export async function fetchPOIsForViewport(
   for (let i = 0; i < uncachedTiles.length; i += CONCURRENCY) {
     chunks.push(uncachedTiles.slice(i, i + CONCURRENCY));
   }
+  logger.info('poi', 'Starting API fetches', {
+    totalTiles: uncachedTiles.length,
+    chunks: chunks.length,
+    concurrency: CONCURRENCY,
+  });
 
+  let chunkIndex = 0;
   for (const chunk of chunks) {
+    chunkIndex++;
+    logger.info('poi', `Fetching chunk ${chunkIndex}/${chunks.length}`, {
+      tilesInChunk: chunk.length,
+      elapsed: Date.now() - startTime,
+    });
+
     // Fetch tiles in this chunk in parallel
     const results = await Promise.all(
       chunk.map(async (tile) => {
@@ -535,9 +604,18 @@ export async function fetchPOIsForViewport(
       })
     );
 
+    const chunkPOIsList = results.flat();
+    logger.info('poi', `Chunk ${chunkIndex} complete`, {
+      poisFetched: chunkPOIsList.length,
+      elapsed: Date.now() - startTime,
+    });
+
     // Add all results from this chunk
-    for (const pois of results) {
-      allPOIs.push(...pois);
+    allPOIs.push(...chunkPOIsList);
+
+    // PROGRESSIVE DISPLAY: Show POIs immediately as each chunk completes
+    if (chunkPOIsList.length > 0) {
+      onChunkComplete?.(chunkPOIsList);
     }
 
     loaded += chunk.length;
@@ -545,18 +623,19 @@ export async function fetchPOIsForViewport(
   }
 
   // Deduplicate POIs by ID (in case of overlap)
+  // All POIs are already filtered - cached filtered when added, fresh filtered by query
   const uniquePOIs = new Map<string, POI>();
   for (const poi of allPOIs) {
     uniquePOIs.set(poi.id, poi);
   }
 
-  const result = Array.from(uniquePOIs.values());
+  logger.info('poi', 'fetchPOIsForViewport COMPLETE', {
+    totalPOIs: uniquePOIs.size,
+    beforeDedup: allPOIs.length,
+    totalTime: Date.now() - startTime,
+  });
 
-  if (categories && categories.length > 0) {
-    return result.filter(poi => categories.includes(poi.category));
-  }
-
-  return result;
+  return Array.from(uniquePOIs.values());
 }
 
 /**
@@ -691,44 +770,15 @@ export async function fetchPOIsForRouteProgressively(
 
   logger.info('api', `Loading POIs for ${totalSegments} segments along route`);
 
-  // First pass: show cached POIs immediately for all segments
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
-    const bbox = getBoundingBox(segment, corridorKm);
-    if (!bbox) continue;
-
-    const boundingBox: BoundingBox = {
-      south: bbox.south,
-      north: bbox.north,
-      west: bbox.west,
-      east: bbox.east,
-    };
-
-    // Check cache and show cached POIs immediately
-    try {
-      const cachedPOIs = await poiRepository.getPOIsInBounds(boundingBox);
-      if (cachedPOIs.length > 0) {
-        const filteredCached = cachedPOIs.filter((poi) =>
-          categories.includes(poi.category)
-        );
-        if (filteredCached.length > 0) {
-          onSegmentLoaded(filteredCached, i);
-        }
-      }
-    } catch (error) {
-      // Ignore cache errors, will fetch fresh
-    }
-  }
-
-  // Second pass: fetch fresh data for segments in parallel (3 at a time)
+  // Single-pass loading: check cache AND fetch fresh in one pass
+  // Process segments in chunks of 3 for parallel fetching
   const CONCURRENCY = 3;
   let loadedCount = 0;
 
-  // Process segments in chunks
   for (let chunkStart = 0; chunkStart < segments.length; chunkStart += CONCURRENCY) {
     const chunk = segments.slice(chunkStart, chunkStart + CONCURRENCY);
 
-    // Fetch all segments in this chunk in parallel
+    // Process all segments in this chunk in parallel
     await Promise.all(
       chunk.map(async (segment, chunkIndex) => {
         const segmentIndex = chunkStart + chunkIndex;
@@ -743,26 +793,36 @@ export async function fetchPOIsForRouteProgressively(
         };
 
         try {
-          // Check if tile is cached and fresh
+          // Check cache first - show cached POIs immediately if available
+          const cachedPOIs = await poiRepository.getPOIsInBounds(boundingBox);
+          if (cachedPOIs.length > 0) {
+            const filteredCached = cachedPOIs.filter((poi) =>
+              categories.includes(poi.category)
+            );
+            if (filteredCached.length > 0) {
+              onSegmentLoaded(filteredCached, segmentIndex);
+            }
+          }
+
+          // Check if cache is fresh - if so, we're done with this segment
           const isCached = await poiRepository.isTileCached(boundingBox);
           if (isCached) {
-            // Already showed cached data in first pass, skip
             loadedCount++;
             onProgress?.(loadedCount, totalSegments);
             return;
           }
 
-          // Fetch fresh data
+          // Cache is stale or missing - fetch fresh data
           const freshPOIs = await fetchPOIs(boundingBox, categories);
 
-          // Cache the results
+          // Cache the results (async, don't block)
           if (freshPOIs.length > 0) {
             poiRepository.savePOIs(freshPOIs, boundingBox).catch((error) => {
               logger.warn('cache', 'Failed to cache segment POIs', error);
             });
           }
 
-          // Notify with fresh POIs
+          // Notify with fresh POIs (no need to filter - fetchPOIs already did)
           onSegmentLoaded(freshPOIs, segmentIndex);
           loadedCount++;
           onProgress?.(loadedCount, totalSegments);

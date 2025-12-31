@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useMemo, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, SymbolLayer } from '@rnmapbox/maps';
 import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
@@ -6,6 +6,7 @@ import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/s
 import { POIDetailSheet, POIDetailSheetRef, POIFilterBar } from '../../src/features/pois';
 import { LoadingSpinner, ErrorMessage, ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing } from '../../src/shared/design/tokens';
+import { debounce } from '../../src/shared/utils';
 
 // Map feature hooks
 import {
@@ -68,6 +69,7 @@ export default function MapScreen() {
     togglePOIs,
     toggleCategory,
     loadPOIsForBounds,
+    updateViewportBounds,
     selectPOI,
   } = usePOIDisplay(location, enabledRoutes);
 
@@ -76,6 +78,22 @@ export default function MapScreen() {
     initialCameraSettings,
     handleCameraChanged: baseCameraChanged,
   } = useMapCamera(selectedFullRoute, location);
+
+  // Stable ref for loadPOIsForBounds - prevents debounce reset on every render
+  const loadPOIsRef = useRef(loadPOIsForBounds);
+  useEffect(() => {
+    loadPOIsRef.current = loadPOIsForBounds;
+  }, [loadPOIsForBounds]);
+
+  // Debounced POI loading - prevents constant API calls during pan
+  // Uses ref so dependency array is empty = stable debounce timer
+  // 500ms debounce gives user time to settle before fetching
+  const debouncedLoadPOIs = useMemo(
+    () => debounce((bounds: { ne: [number, number]; sw: [number, number] }) => {
+      loadPOIsRef.current(bounds);
+    }, 500),
+    [] // Empty deps = stable reference, won't reset timer
+  );
 
   // Handle camera changes with POI loading
   const handleCameraChanged = useCallback((state: any) => {
@@ -87,12 +105,15 @@ export default function MapScreen() {
       sw: state.properties.bounds.sw as [number, number],
     };
 
-    // Load POIs when zoomed in enough
+    // Always update viewport bounds for filtering (shows only POIs in view)
+    updateViewportBounds(bounds);
+
+    // Load NEW POIs only when zoomed in enough (DEBOUNCED)
     const latDelta = bounds.ne[1] - bounds.sw[1];
     if (latDelta < 0.5 && showPOIs) {
-      loadPOIsForBounds(bounds);
+      debouncedLoadPOIs(bounds);
     }
-  }, [baseCameraChanged, loadPOIsForBounds, showPOIs]);
+  }, [baseCameraChanged, debouncedLoadPOIs, updateViewportBounds, showPOIs]);
 
   // Handle POI press from map
   const handlePOIShapePress = useCallback((event: any) => {

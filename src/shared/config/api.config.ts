@@ -30,9 +30,10 @@ export const API_CONFIG = {
   },
 
   pois: {
-    baseUrl: 'https://overpass-api.de/api/interpreter',
-    timeout: 30000,
-    rateLimit: 2000, // 1 request per 2 seconds
+    // Using kumi.systems - faster alternative to overpass-api.de
+    baseUrl: 'https://overpass.kumi.systems/api/interpreter',
+    timeout: 10000, // 10s timeout (reduced from 30s)
+    rateLimit: 500, // 2 requests per second (with debouncing, this is safe)
   },
 } as const;
 
