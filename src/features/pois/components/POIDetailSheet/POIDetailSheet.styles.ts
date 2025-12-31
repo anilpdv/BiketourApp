@@ -1,7 +1,7 @@
 import { StyleSheet, Dimensions } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../../shared/design/tokens';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
   backdrop: {
@@ -13,12 +13,12 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.neutral[0],
     borderTopLeftRadius: borderRadius['2xl'],
     borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: SCREEN_HEIGHT * 0.6,
-    minHeight: SCREEN_HEIGHT * 0.35,
+    maxHeight: SCREEN_HEIGHT * 0.85,
+    minHeight: SCREEN_HEIGHT * 0.4,
   },
   handleContainer: {
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   handle: {
     width: 40,
@@ -27,85 +27,206 @@ export const styles = StyleSheet.create({
     borderRadius: 2,
   },
   contentContainer: {
-    paddingHorizontal: spacing.xl,
     paddingBottom: spacing['3xl'],
+  },
+  sectionPadding: {
+    paddingHorizontal: spacing.lg,
   },
 });
 
+// Hero photo with overlay header
+export const heroStyles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    width: '100%',
+    height: 200,
+    backgroundColor: colors.neutral[100],
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  gradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  noPhotoContainer: {
+    width: '100%',
+    height: 120,
+    backgroundColor: colors.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noPhotoIcon: {
+    marginBottom: spacing.xs,
+  },
+  headerOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.lg,
+    paddingTop: spacing['3xl'],
+  },
+  photoCount: {
+    position: 'absolute',
+    bottom: spacing.md,
+    right: spacing.md,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  photoCountText: {
+    color: colors.neutral[0],
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
+  },
+});
+
+// Header styles (for overlay on hero or standalone)
 export const headerStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xl,
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  overlayContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.lg,
-  },
-  icon: {
-    fontSize: 28,
+    marginRight: spacing.md,
+    ...shadows.md,
   },
   textContainer: {
     flex: 1,
   },
   name: {
-    fontSize: typography.fontSizes['3xl'],
+    fontSize: typography.fontSizes['2xl'],
     fontWeight: typography.fontWeights.bold,
     color: colors.neutral[800],
     marginBottom: spacing.xs,
   },
+  nameOverlay: {
+    color: colors.neutral[0],
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   category: {
-    fontSize: typography.fontSizes.lg,
-    color: colors.neutral[600],
+    fontSize: typography.fontSizes.base,
+    color: colors.neutral[500],
+  },
+  categoryOverlay: {
+    color: 'rgba(255,255,255,0.9)',
   },
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: typography.fontSizes.xl,
-    color: colors.neutral[600],
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
 });
 
+// Thumbnail gallery
+export const thumbnailStyles = StyleSheet.create({
+  container: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  scrollContent: {
+    gap: spacing.sm,
+  },
+  thumbnail: {
+    width: 72,
+    height: 54,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.neutral[100],
+  },
+  thumbnailActive: {
+    borderWidth: 2,
+    borderColor: colors.primary[500],
+  },
+});
+
+// Info section styles
 export const infoStyles = StyleSheet.create({
+  section: {
+    marginTop: spacing.md,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionIcon: {
+    marginRight: spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: typography.fontSizes.base,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.neutral[700],
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: spacing.md,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  rowWithBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[200],
   },
   label: {
-    color: colors.neutral[600],
+    color: colors.neutral[500],
+    fontSize: typography.fontSizes.base,
     flex: 1,
+  },
+  valueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 2,
+    justifyContent: 'flex-end',
   },
   value: {
     color: colors.neutral[800],
+    fontSize: typography.fontSizes.base,
     fontWeight: typography.fontWeights.medium,
-    flex: 2,
     textAlign: 'right',
+    flexShrink: 1,
+  },
+  copyButton: {
+    margin: 0,
+    marginLeft: spacing.xs,
   },
 });
 
+// Action buttons
 export const actionsStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: spacing.xl,
-    paddingTop: spacing.sm,
+    justifyContent: 'space-between',
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
     gap: spacing.sm,
   },
   button: {
@@ -115,37 +236,62 @@ export const actionsStyles = StyleSheet.create({
   buttonContent: {
     paddingVertical: spacing.xs,
   },
-  navigateButton: {
-    // Paper Button handles contained mode styling
-  },
 });
 
+// Notes section
 export const notesStyles = StyleSheet.create({
   container: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
     padding: spacing.md,
-    backgroundColor: '#fffbe6', // Light amber for notes section
-    borderRadius: borderRadius.md,
+    backgroundColor: '#fffbe6',
+    borderRadius: borderRadius.lg,
   },
   label: {
-    color: '#8b6914', // Amber text color
+    color: '#8b6914',
     marginBottom: spacing.sm,
+    fontWeight: typography.fontWeights.medium,
   },
   input: {
     backgroundColor: colors.neutral[0],
   },
 });
 
+// Description section
 export const descriptionStyles = StyleSheet.create({
   container: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
     padding: spacing.md,
     backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  headerIcon: {
+    marginRight: spacing.sm,
+  },
+  headerText: {
+    fontSize: typography.fontSizes.base,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.neutral[700],
   },
   text: {
-    fontSize: typography.fontSizes.lg,
-    color: colors.neutral[700],
+    fontSize: typography.fontSizes.base,
+    color: colors.neutral[600],
     lineHeight: 20,
+  },
+});
+
+// Loading state
+export const loadingStyles = StyleSheet.create({
+  container: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[100],
   },
 });

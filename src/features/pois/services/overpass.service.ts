@@ -220,14 +220,19 @@ function parseOverpassResponse(response: OverpassResponse): POI[] {
   return pois;
 }
 
-// Fetch with timeout
+// Fetch with timeout and optional external abort signal
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  timeout: number
+  timeout: number,
+  externalSignal?: AbortSignal
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  // If external signal aborts, abort our controller too
+  const onExternalAbort = () => controller.abort();
+  externalSignal?.addEventListener('abort', onExternalAbort);
 
   try {
     const response = await fetch(url, {
@@ -237,6 +242,7 @@ async function fetchWithTimeout(
     return response;
   } finally {
     clearTimeout(timeoutId);
+    externalSignal?.removeEventListener('abort', onExternalAbort);
   }
 }
 
@@ -249,10 +255,16 @@ function sleep(ms: number): Promise<void> {
 // IMPORTANT: Only fetches explicitly selected categories - returns empty if none provided
 export async function fetchPOIs(
   bbox: BoundingBox,
-  categories?: POICategory[]
+  categories?: POICategory[],
+  signal?: AbortSignal  // Optional abort signal for per-tile timeout
 ): Promise<POI[]> {
   // Return empty if no categories explicitly provided
   if (!categories || categories.length === 0) {
+    return [];
+  }
+
+  // Check if already aborted
+  if (signal?.aborted) {
     return [];
   }
 
@@ -277,7 +289,8 @@ export async function fetchPOIs(
         },
         body: `data=${encodeURIComponent(query)}`,
       },
-      API_CONFIG.pois.timeout
+      API_CONFIG.pois.timeout,
+      signal  // Pass through external signal
     );
 
     if (response.ok) {
@@ -285,8 +298,8 @@ export async function fetchPOIs(
       return parseOverpassResponse(data);
     }
 
-    // Rate limited or server error - one retry
-    if (response.status === 429 || response.status >= 500) {
+    // Rate limited or server error - one retry (skip if aborted)
+    if (!signal?.aborted && (response.status === 429 || response.status >= 500)) {
       await sleep(2000);
       const retry = await fetchWithTimeout(
         API_CONFIG.pois.baseUrl,
@@ -298,7 +311,8 @@ export async function fetchPOIs(
           },
           body: `data=${encodeURIComponent(query)}`,
         },
-        API_CONFIG.pois.timeout
+        API_CONFIG.pois.timeout,
+        signal
       );
       if (retry.ok) {
         const data: OverpassResponse = await retry.json();
@@ -308,7 +322,7 @@ export async function fetchPOIs(
 
     return [];
   } catch (error: any) {
-    // Don't log AbortError - it's expected when requests are cancelled
+    // Don't log AbortError - it's expected when requests are cancelled/timed out
     if (error?.name !== 'AbortError') {
       logger.warn('api', 'POI fetch failed', error);
     }
@@ -559,9 +573,9 @@ export async function fetchPOIsForViewport(
     elapsed: Date.now() - startTime,
   });
 
-  // Fetch tiles with reduced concurrency
-  // Lower concurrency = less likely to hit Overpass rate limits
-  const CONCURRENCY = 2;  // kumi.systems server handles 2 parallel requests well
+  // Per-tile timeout: skip slow tiles instead of waiting forever
+  const TILE_TIMEOUT_MS = 4000;  // 4 seconds max per tile
+  const CONCURRENCY = 3;  // Safe with per-tile timeouts
   let loaded = 0;
 
   // Split tiles into chunks for parallel processing
@@ -573,6 +587,7 @@ export async function fetchPOIsForViewport(
     totalTiles: uncachedTiles.length,
     chunks: chunks.length,
     concurrency: CONCURRENCY,
+    tileTimeout: TILE_TIMEOUT_MS,
   });
 
   let chunkIndex = 0;
@@ -583,11 +598,14 @@ export async function fetchPOIsForViewport(
       elapsed: Date.now() - startTime,
     });
 
-    // Fetch tiles in this chunk in parallel
+    // Fetch tiles in this chunk in parallel WITH per-tile timeout
     const results = await Promise.all(
       chunk.map(async (tile) => {
+        const tileController = new AbortController();
+        const tileTimeout = setTimeout(() => tileController.abort(), TILE_TIMEOUT_MS);
+
         try {
-          const freshPOIs = await fetchPOIs(tile, categories);
+          const freshPOIs = await fetchPOIs(tile, categories, tileController.signal);
 
           // Cache the fresh POIs (async, don't block)
           if (freshPOIs.length > 0) {
@@ -597,9 +615,18 @@ export async function fetchPOIsForViewport(
           }
 
           return freshPOIs;
-        } catch (error) {
-          logger.warn('api', 'Failed to fetch tile', error);
+        } catch (error: any) {
+          // Log timeout separately from other errors
+          if (error?.name === 'AbortError') {
+            logger.warn('poi', 'Tile timeout - skipping slow region', {
+              tile: `${tile.south.toFixed(2)},${tile.west.toFixed(2)}`,
+            });
+          } else {
+            logger.warn('api', 'Failed to fetch tile', error);
+          }
           return [];
+        } finally {
+          clearTimeout(tileTimeout);
         }
       })
     );

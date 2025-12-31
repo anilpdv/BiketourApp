@@ -76,7 +76,7 @@ export const POIDetailActions = memo(function POIDetailActions({
         mode="contained"
         icon="navigation"
         onPress={openInMaps}
-        style={[styles.button, styles.navigateButton]}
+        style={styles.button}
         contentStyle={styles.buttonContent}
         compact
       >

@@ -35,6 +35,14 @@ export const API_CONFIG = {
     timeout: 10000, // 10s timeout (reduced from 30s)
     rateLimit: 500, // 2 requests per second (with debouncing, this is safe)
   },
+
+  googlePlaces: {
+    baseUrl: 'https://maps.googleapis.com/maps/api/place',
+    photoBaseUrl: 'https://maps.googleapis.com/maps/api/place/photo',
+    timeout: 8000,
+    rateLimit: 100, // Be conservative to manage costs
+    maxPhotoWidth: 400, // Reasonable for mobile display
+  },
 } as const;
 
 /**

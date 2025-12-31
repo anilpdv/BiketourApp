@@ -38,6 +38,9 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "extra": {
+      "googlePlacesApiKey": ""
+    },
     "plugins": [
       "expo-router",
       "expo-sqlite",
