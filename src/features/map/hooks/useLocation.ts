@@ -7,6 +7,7 @@ export interface UseLocationReturn {
   errorMsg: string | null;
   isLoading: boolean;
   requestPermission: () => Promise<void>;
+  refreshLocation: () => Promise<Location.LocationObject | null>;
 }
 
 /**
@@ -28,13 +29,33 @@ export function useLocation(): UseLocationReturn {
         return;
       }
 
-      const currentLocation = await Location.getCurrentPositionAsync({});
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,  // Use GPS (not network)
+        timeInterval: 10000,               // 10 second timeout
+        mayShowUserSettingsDialog: true,   // Prompt user to enable location
+      });
       setLocation(currentLocation);
     } catch (error) {
       logger.error('ui', 'Failed to get location', error);
       setErrorMsg('Failed to get current location');
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  // Refresh location on-demand (for "center on me" button)
+  const refreshLocation = useCallback(async (): Promise<Location.LocationObject | null> => {
+    try {
+      const freshLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeInterval: 10000,
+        mayShowUserSettingsDialog: true,
+      });
+      setLocation(freshLocation);
+      return freshLocation;
+    } catch (error) {
+      logger.error('ui', 'Failed to refresh location', error);
+      return null;
     }
   }, []);
 
@@ -48,5 +69,6 @@ export function useLocation(): UseLocationReturn {
     errorMsg,
     isLoading,
     requestPermission,
+    refreshLocation,
   };
 }

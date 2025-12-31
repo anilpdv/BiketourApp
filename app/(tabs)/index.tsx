@@ -1,9 +1,11 @@
-import React, { useRef, useCallback, useMemo, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useRef, useCallback, useMemo, useEffect, useState } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
 import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, SymbolLayer } from '@rnmapbox/maps';
+import type { MapView as MapViewType } from '@rnmapbox/maps';
 import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
 import { POIDetailSheet, POIDetailSheetRef, POIFilterBar } from '../../src/features/pois';
+import { RoutePlanningToolbar, SaveRouteDialog, DraggableWaypointMarker } from '../../src/features/routing';
 import { LoadingSpinner, ErrorMessage, ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing } from '../../src/shared/design/tokens';
 import { debounce } from '../../src/shared/utils';
@@ -15,6 +17,7 @@ import {
   useRouteManagement,
   usePOIDisplay,
   useMapCamera,
+  useRoutePlanning,
 } from '../../src/features/map/hooks';
 
 // Map feature components
@@ -24,13 +27,36 @@ import {
   RouteChipSelector,
   RouteInfoCard,
   TerrainLayer,
+  RoutePlanningFAB,
 } from '../../src/features/map/components';
 
 export default function MapScreen() {
   const poiDetailSheetRef = useRef<POIDetailSheetRef>(null);
+  const mapRef = useRef<MapViewType>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   // Custom hooks for state management
-  const { location, errorMsg } = useLocation();
+  const { location, errorMsg, refreshLocation } = useLocation();
+
+  // Route planning
+  const {
+    isPlanning,
+    waypoints,
+    calculatedGeometry,
+    isCalculating,
+    error: routeError,
+    routeGeoJSON: plannedRouteGeoJSON,
+    routeDistance,
+    editingRouteId,
+    editingRouteName,
+    editingRouteDescription,
+    startRoutePlanning,
+    cancelPlanning,
+    handleMapPress: handleRoutePlanningPress,
+    handleWaypointDrag,
+    handleWaypointDragEnd,
+    handleSaveRoute,
+  } = useRoutePlanning();
 
   const {
     routes,
@@ -77,6 +103,8 @@ export default function MapScreen() {
     cameraRef,
     initialCameraSettings,
     handleCameraChanged: baseCameraChanged,
+    flyTo,
+    fitToBounds,
   } = useMapCamera(selectedFullRoute, location);
 
   // Stable ref for loadPOIsForBounds - prevents debounce reset on every render
@@ -84,6 +112,20 @@ export default function MapScreen() {
   useEffect(() => {
     loadPOIsRef.current = loadPOIsForBounds;
   }, [loadPOIsForBounds]);
+
+  // Fit camera to loaded saved route bounds
+  useEffect(() => {
+    if (isPlanning && calculatedGeometry.length >= 2 && editingRouteId) {
+      // Calculate bounds from geometry
+      const lats = calculatedGeometry.map(c => c.latitude);
+      const lons = calculatedGeometry.map(c => c.longitude);
+      const bounds = {
+        ne: [Math.max(...lons), Math.max(...lats)] as [number, number],
+        sw: [Math.min(...lons), Math.min(...lats)] as [number, number],
+      };
+      fitToBounds(bounds, 50);
+    }
+  }, [editingRouteId, isPlanning, calculatedGeometry, fitToBounds]);
 
   // Debounced POI loading - prevents constant API calls during pan
   // Uses ref so dependency array is empty = stable debounce timer
@@ -140,6 +182,54 @@ export default function MapScreen() {
     selectPOI(null);
   }, [selectPOI]);
 
+  // Handle map press for route planning
+  const handleMapPress = useCallback((event: any) => {
+    if (!isPlanning) return;
+
+    const { geometry } = event;
+    if (geometry?.coordinates) {
+      handleRoutePlanningPress({
+        longitude: geometry.coordinates[0],
+        latitude: geometry.coordinates[1],
+      });
+    }
+  }, [isPlanning, handleRoutePlanningPress]);
+
+  // Handle saving the planned route
+  const handleSave = useCallback(async (name: string, description?: string) => {
+    await handleSaveRoute(name, description);
+    setShowSaveDialog(false);
+  }, [handleSaveRoute]);
+
+  // Handle cancel planning with confirmation
+  const handleCancelPlanning = useCallback(() => {
+    // Show confirmation if there are waypoints or editing an existing route
+    if (waypoints.length > 0 || editingRouteId) {
+      Alert.alert(
+        'Discard Changes?',
+        'You have unsaved changes to this route.',
+        [
+          { text: 'Keep Editing', style: 'cancel' },
+          { text: 'Discard', style: 'destructive', onPress: cancelPlanning }
+        ]
+      );
+    } else {
+      cancelPlanning();
+    }
+  }, [waypoints.length, editingRouteId, cancelPlanning]);
+
+  // Handle center on current location - refresh GPS first for accuracy
+  const handleCenterOnLocation = useCallback(async () => {
+    // Get fresh GPS location before centering
+    const freshLocation = await refreshLocation();
+    if (freshLocation?.coords) {
+      flyTo([freshLocation.coords.longitude, freshLocation.coords.latitude], 14);
+    } else if (location?.coords) {
+      // Fallback to cached location
+      flyTo([location.coords.longitude, location.coords.latitude], 14);
+    }
+  }, [refreshLocation, location, flyTo]);
+
   // Get loaded route IDs for chip selector
   const loadedRouteIds = routes.map(r => r.euroVeloId);
 
@@ -147,6 +237,7 @@ export default function MapScreen() {
     <ErrorBoundary>
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
         style={styles.map}
         styleURL={MAP_STYLES[currentMapStyle]}
         compassEnabled
@@ -158,6 +249,7 @@ export default function MapScreen() {
         attributionEnabled
         logoEnabled
         onCameraChanged={handleCameraChanged}
+        onPress={handleMapPress}
       >
         {/* Camera */}
         <Camera
@@ -180,15 +272,15 @@ export default function MapScreen() {
           mapStyle={currentMapStyle}
         />
 
-        {/* Routes */}
+        {/* Routes - disable press during planning so taps pass through to MapView */}
         {routeGeoJSON.features.length > 0 && (
-          <ShapeSource id="routes" shape={routeGeoJSON} onPress={handleRoutePress}>
+          <ShapeSource id="routes" shape={routeGeoJSON} onPress={isPlanning ? undefined : handleRoutePress}>
             <LineLayer
               id="route-lines-full"
               filter={['==', ['get', 'variant'], 'full']}
               style={{
                 lineColor: ['get', 'color'],
-                lineWidth: ['case', ['==', ['get', 'isSelected'], true], 3, 2],
+                lineWidth: ['case', ['==', ['get', 'isSelected'], true], 4, 3],
                 lineCap: 'round',
                 lineJoin: 'round',
                 lineDasharray: [2, 1],
@@ -274,6 +366,43 @@ export default function MapScreen() {
             />
           </ShapeSource>
         )}
+
+        {/* Planned Route Line with Casing */}
+        {isPlanning && plannedRouteGeoJSON && (
+          <ShapeSource id="planned-route" shape={plannedRouteGeoJSON}>
+            {/* Route casing (dark outline) */}
+            <LineLayer
+              id="planned-route-casing"
+              style={{
+                lineColor: '#1a365d',
+                lineWidth: 8,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+            {/* Main route line */}
+            <LineLayer
+              id="planned-route-line"
+              style={{
+                lineColor: colors.primary[500],
+                lineWidth: 5,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+          </ShapeSource>
+        )}
+
+        {/* Waypoints with MarkerView - supports gestures and nested views */}
+        {isPlanning && waypoints.map((waypoint) => (
+          <DraggableWaypointMarker
+            key={waypoint.id}
+            waypoint={waypoint}
+            onDrag={handleWaypointDrag}
+            onDragEnd={handleWaypointDragEnd}
+            mapRef={mapRef}
+          />
+        ))}
       </MapView>
 
       {/* Route Chip Selector */}
@@ -303,10 +432,12 @@ export default function MapScreen() {
         showPOIs={showPOIs}
         show3DTerrain={show3DTerrain}
         show3DBuildings={show3DBuildings}
+        hasLocation={!!location}
         onTogglePOIs={togglePOIs}
         onToggle3DTerrain={toggle3DTerrain}
         onToggle3DBuildings={toggle3DBuildings}
         onOpenStylePicker={openStylePicker}
+        onCenterOnLocation={handleCenterOnLocation}
       />
 
       {/* Map Style Picker */}
@@ -319,12 +450,40 @@ export default function MapScreen() {
       />
 
       {/* Route Info Card */}
-      {selectedFullRoute && (
+      {selectedFullRoute && !isPlanning && (
         <RouteInfoCard
           route={selectedFullRoute}
           developedRoute={selectedRoutes.find(r => r.variant === 'developed')}
         />
       )}
+
+      {/* Route Planning FAB */}
+      <RoutePlanningFAB
+        onPress={startRoutePlanning}
+        isPlanning={isPlanning}
+      />
+
+      {/* Route Planning Toolbar */}
+      {isPlanning && (
+        <View style={styles.toolbarContainer}>
+          <RoutePlanningToolbar
+            onSave={() => setShowSaveDialog(true)}
+            onCancel={handleCancelPlanning}
+          />
+        </View>
+      )}
+
+      {/* Save Route Dialog */}
+      <SaveRouteDialog
+        visible={showSaveDialog}
+        onSave={handleSave}
+        onCancel={() => setShowSaveDialog(false)}
+        distance={routeDistance}
+        waypointCount={waypoints.length}
+        initialName={editingRouteName || undefined}
+        initialDescription={editingRouteDescription || undefined}
+        isEditing={!!editingRouteId}
+      />
 
       {/* Loading Overlay */}
       {routesLoading && (
@@ -370,5 +529,12 @@ const styles = StyleSheet.create({
     top: spacing.xl,
     left: spacing.xl,
     right: spacing.xl,
+  },
+  toolbarContainer: {
+    position: 'absolute',
+    bottom: spacing['3xl'],
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 10,
   },
 });

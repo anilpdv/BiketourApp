@@ -4,6 +4,8 @@ export * from './types';
 // Services
 export {
   calculateRoute,
+  calculateCyclingRoute,
+  calculateOSRMRoute,
   snapToRoad,
   formatDistance,
   formatDuration,
@@ -50,10 +52,12 @@ export {
 } from './store/savedRoutesStore';
 
 // Components
-export { WaypointMarker } from './components/WaypointMarker';
+export { DraggableWaypointMarker } from './components/DraggableWaypointMarker';
 export { RoutePlanningToolbar } from './components/RoutePlanningToolbar';
 export { RouteInfoPanel } from './components/RouteInfoPanel';
 export { RoutePreviewCard } from './components/RoutePreviewCard';
 export { RouteCard, type RouteConfig } from './components/RouteCard';
 export { EuroVeloRoutesList } from './components/EuroVeloRoutesList';
 export { MyRoutesList } from './components/MyRoutesList';
+export { SaveRouteDialog } from './components/SaveRouteDialog';
+export type { SaveRouteDialogProps } from './components/SaveRouteDialog';

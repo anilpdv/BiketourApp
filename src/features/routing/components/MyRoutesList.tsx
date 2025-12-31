@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
+import { router } from 'expo-router';
 import { useSavedRoutesStore, RoutePreviewCard, CustomRouteSummary } from '../index';
 import { LoadingSpinner, EmptyState, Button } from '../../../shared/components';
 import { colors, spacing, typography } from '../../../shared/design/tokens';
@@ -13,6 +14,7 @@ export function MyRoutesList() {
     deleteRoute,
     exportRoute,
     importRoute,
+    openRoute,
   } = useSavedRoutesStore();
 
   useEffect(() => {
@@ -53,6 +55,15 @@ export function MyRoutesList() {
     }
   }, [importRoute]);
 
+  const handleOpenRoute = useCallback(async (route: CustomRouteSummary) => {
+    const fullRoute = await openRoute(route.id);
+    if (fullRoute) {
+      router.push('/');
+    } else {
+      Alert.alert('Error', 'Failed to open route');
+    }
+  }, [openRoute]);
+
   return (
     <View>
       <View style={styles.header}>
@@ -84,6 +95,7 @@ export function MyRoutesList() {
           <RoutePreviewCard
             key={route.id}
             route={route}
+            onPress={handleOpenRoute}
             onExport={handleExportRoute}
             onDelete={handleDeleteRoute}
           />

@@ -1,6 +1,12 @@
 // Route planning mode
 export type RoutePlanningMode = 'point-to-point' | 'freeform' | 'modify-existing';
 
+// Routing provider
+export type RoutingProvider = 'osrm' | 'mapbox';
+
+// Routing profile
+export type RoutingProfile = 'driving' | 'foot' | 'cycling';
+
 // Coordinate type
 export interface Coordinate {
   latitude: number;
@@ -101,4 +107,9 @@ export interface RoutingState {
   // Calculation state
   isCalculating: boolean;
   error: string | null;
+
+  // Editing existing route (null = new route)
+  editingRouteId: string | null;
+  editingRouteName: string | null;
+  editingRouteDescription: string | null;
 }

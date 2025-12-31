@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { CustomRoute, CustomRouteSummary } from '../types';
+import { CustomRoute, CustomRouteSummary, Waypoint, Coordinate } from '../types';
 import { routeRepository } from '../services/route.repository';
 import { exportAndShare } from '../services/gpx.export.service';
 import { pickAndImportGPX } from '../services/gpx.import.service';
 import { logger } from '../../../shared/utils';
+import { useRoutingStore } from './routingStore';
 
 interface SavedRoutesState {
   routes: CustomRouteSummary[];
@@ -17,10 +18,12 @@ interface SavedRoutesStore extends SavedRoutesState {
   loadRoutes: () => Promise<void>;
   selectRoute: (id: string | null) => void;
   saveRoute: (route: CustomRoute) => Promise<void>;
+  updateExistingRoute: (id: string, waypoints: Waypoint[], geometry: Coordinate[]) => Promise<void>;
   deleteRoute: (id: string) => Promise<void>;
   duplicateRoute: (id: string, newName: string) => Promise<CustomRoute | null>;
   exportRoute: (id: string) => Promise<boolean>;
   importRoute: () => Promise<CustomRoute | null>;
+  openRoute: (id: string) => Promise<CustomRoute | null>;
   clearError: () => void;
 }
 
@@ -59,6 +62,40 @@ export const useSavedRoutesStore = create<SavedRoutesStore>((set, get) => ({
       logger.error('store', 'Failed to save route', error);
       set({
         error: 'Failed to save route',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  updateExistingRoute: async (id, waypoints, geometry) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Calculate new distance
+      let distance = 0;
+      for (let i = 1; i < geometry.length; i++) {
+        const prev = geometry[i - 1];
+        const curr = geometry[i];
+        const R = 6371000;
+        const dLat = ((curr.latitude - prev.latitude) * Math.PI) / 180;
+        const dLon = ((curr.longitude - prev.longitude) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((prev.latitude * Math.PI) / 180) *
+            Math.cos((curr.latitude * Math.PI) / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        distance += R * c;
+      }
+
+      await routeRepository.updateRoute(id, { waypoints, geometry, distance });
+      const routes = await routeRepository.getAllRoutes();
+      set({ routes, isLoading: false });
+    } catch (error) {
+      logger.error('store', 'Failed to update route', error);
+      set({
+        error: 'Failed to update route',
         isLoading: false,
       });
       throw error;
@@ -137,6 +174,27 @@ export const useSavedRoutesStore = create<SavedRoutesStore>((set, get) => ({
       logger.error('store', 'Failed to import route', error);
       set({
         error: 'Failed to import route',
+        isLoading: false,
+      });
+      return null;
+    }
+  },
+
+  openRoute: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      const fullRoute = await routeRepository.getRouteById(id);
+      if (fullRoute) {
+        useRoutingStore.getState().loadSavedRoute(fullRoute);
+        set({ selectedRouteId: id, isLoading: false });
+        return fullRoute;
+      }
+      set({ isLoading: false });
+      return null;
+    } catch (error) {
+      logger.error('store', 'Failed to open route', error);
+      set({
+        error: 'Failed to open route',
         isLoading: false,
       });
       return null;

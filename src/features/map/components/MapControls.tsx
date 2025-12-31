@@ -7,10 +7,12 @@ export interface MapControlsProps {
   showPOIs: boolean;
   show3DTerrain: boolean;
   show3DBuildings: boolean;
+  hasLocation: boolean;
   onTogglePOIs: () => void;
   onToggle3DTerrain: () => void;
   onToggle3DBuildings: () => void;
   onOpenStylePicker: () => void;
+  onCenterOnLocation: () => void;
 }
 
 /**
@@ -20,13 +22,21 @@ export const MapControls = memo(function MapControls({
   showPOIs,
   show3DTerrain,
   show3DBuildings,
+  hasLocation,
   onTogglePOIs,
   onToggle3DTerrain,
   onToggle3DBuildings,
   onOpenStylePicker,
+  onCenterOnLocation,
 }: MapControlsProps) {
   return (
     <View style={styles.container}>
+      <IconButton
+        icon="crosshairs-gps"
+        onPress={onCenterOnLocation}
+        disabled={!hasLocation}
+        activeColor={colors.primary[500]}
+      />
       <IconButton
         icon="map-marker"
         onPress={onTogglePOIs}

@@ -23,3 +23,6 @@ export type { POILayerProps } from './POILayer';
 
 export { TerrainLayer } from './TerrainLayer';
 export type { TerrainLayerProps } from './TerrainLayer';
+
+export { RoutePlanningFAB } from './RoutePlanningFAB';
+export type { RoutePlanningFABProps } from './RoutePlanningFAB';

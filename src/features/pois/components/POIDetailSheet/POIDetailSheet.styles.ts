@@ -27,7 +27,10 @@ export const styles = StyleSheet.create({
     borderRadius: 2,
   },
   contentContainer: {
-    paddingBottom: spacing['3xl'],
+    // No flex: 1 - it breaks sheet sizing
+  },
+  scrollContent: {
+    paddingBottom: 100,  // Large padding to ensure buttons are visible when scrolling
   },
   sectionPadding: {
     paddingHorizontal: spacing.lg,
@@ -148,18 +151,19 @@ export const thumbnailStyles = StyleSheet.create({
   container: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
+    backgroundColor: colors.neutral[50],
   },
   scrollContent: {
     gap: spacing.sm,
   },
   thumbnail: {
-    width: 72,
-    height: 54,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.neutral[100],
+    width: 80,
+    height: 60,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.neutral[200],
   },
   thumbnailActive: {
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.primary[500],
   },
 });
@@ -167,38 +171,42 @@ export const thumbnailStyles = StyleSheet.create({
 // Info section styles
 export const infoStyles = StyleSheet.create({
   section: {
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
     marginHorizontal: spacing.lg,
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    ...shadows.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
   },
   sectionIcon: {
     marginRight: spacing.sm,
   },
   sectionTitle: {
-    fontSize: typography.fontSizes.base,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.neutral[700],
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.neutral[800],
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
   },
   rowWithBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: colors.neutral[100],
   },
   label: {
     color: colors.neutral[500],
-    fontSize: typography.fontSizes.base,
+    fontSize: typography.fontSizes.lg,
     flex: 1,
   },
   valueContainer: {
@@ -209,8 +217,8 @@ export const infoStyles = StyleSheet.create({
   },
   value: {
     color: colors.neutral[800],
-    fontSize: typography.fontSizes.base,
-    fontWeight: typography.fontWeights.medium,
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
     textAlign: 'right',
     flexShrink: 1,
   },
@@ -223,18 +231,41 @@ export const infoStyles = StyleSheet.create({
 // Action buttons
 export const actionsStyles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
     marginHorizontal: spacing.lg,
-    gap: spacing.sm,
+    gap: spacing.md,
   },
-  button: {
-    flex: 1,
-    borderRadius: borderRadius.lg,
+  primaryButton: {
+    borderRadius: borderRadius.xl,
   },
-  buttonContent: {
-    paddingVertical: spacing.xs,
+  primaryButtonContent: {
+    height: 52,
+  },
+  primaryButtonLabel: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing['2xl'],
+    marginTop: spacing.sm,
+  },
+  iconButton: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  iconButtonCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconButtonLabel: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.neutral[600],
   },
 });
 
@@ -283,6 +314,69 @@ export const descriptionStyles = StyleSheet.create({
     fontSize: typography.fontSizes.base,
     color: colors.neutral[600],
     lineHeight: 20,
+  },
+});
+
+// Amenities section
+export const amenitiesStyles = StyleSheet.create({
+  container: {
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    ...shadows.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[100],
+  },
+  headerIcon: {
+    marginRight: spacing.sm,
+  },
+  headerText: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.neutral[800],
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    gap: spacing.xs,
+  },
+  chipYes: {
+    backgroundColor: colors.secondary[50],
+  },
+  chipNo: {
+    backgroundColor: colors.neutral[100],
+  },
+  chipLimited: {
+    backgroundColor: colors.status.warning + '20',
+  },
+  chipText: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
+  },
+  chipTextYes: {
+    color: colors.secondary[700],
+  },
+  chipTextNo: {
+    color: colors.neutral[500],
+  },
+  chipTextLimited: {
+    color: colors.status.warning,
   },
 });
 

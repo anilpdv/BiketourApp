@@ -4,11 +4,12 @@ import { Surface, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { POI } from '../../types';
 import { usePOIStore } from '../../store/poiStore';
-import { getPOIContactInfo } from '../../utils/poiTagParser';
+import { getPOIContactInfo, getPOIAmenities } from '../../utils/poiTagParser';
 import { POIPhotoGallery } from './POIPhotoGallery';
 import { POIDetailInfo } from './POIDetailInfo';
 import { POIDetailActions } from './POIDetailActions';
 import { POIDetailNotes } from './POIDetailNotes';
+import { POIAmenities } from './POIAmenities';
 import { styles, descriptionStyles } from './POIDetailSheet.styles';
 import { colors } from '../../../../shared/design/tokens';
 
@@ -52,6 +53,7 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
     if (!poi) return null;
 
     const contactInfo = getPOIContactInfo(poi);
+    const amenities = getPOIAmenities(poi);
 
     return (
       <Modal
@@ -70,7 +72,9 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
 
               <ScrollView
                 style={styles.contentContainer}
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                bounces={true}
               >
                 {/* Hero Photo Gallery with Header */}
                 <POIPhotoGallery poi={poi} onClose={handleClose} />
@@ -81,6 +85,9 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
                   distanceFromUser={poi.distanceFromUser}
                   contactInfo={contactInfo}
                 />
+
+                {/* Amenities */}
+                <POIAmenities amenities={amenities} />
 
                 {/* Action Buttons */}
                 <POIDetailActions poi={poi} contactInfo={contactInfo} />

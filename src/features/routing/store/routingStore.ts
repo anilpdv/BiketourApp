@@ -17,11 +17,13 @@ interface RoutingStore extends RoutingState {
   // Planning actions
   startPlanning: (mode: RoutePlanningMode) => void;
   cancelPlanning: () => void;
+  loadSavedRoute: (route: CustomRoute) => void;
 
   // Waypoint actions
   addWaypoint: (coordinate: Coordinate, name?: string) => void;
   removeWaypoint: (id: string) => void;
   moveWaypoint: (id: string, newCoordinate: Coordinate) => void;
+  finishMoveWaypoint: () => void;
   reorderWaypoints: (fromIndex: number, toIndex: number) => void;
   clearWaypoints: () => void;
 
@@ -68,6 +70,9 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
   historyIndex: -1,
   isCalculating: false,
   error: null,
+  editingRouteId: null,
+  editingRouteName: null,
+  editingRouteDescription: null,
 
   startPlanning: (mode) => {
     set({
@@ -79,6 +84,9 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
       history: [],
       historyIndex: -1,
       error: null,
+      editingRouteId: null,
+      editingRouteName: null,
+      editingRouteDescription: null,
     });
   },
 
@@ -92,6 +100,29 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
       history: [],
       historyIndex: -1,
       error: null,
+      editingRouteId: null,
+      editingRouteName: null,
+      editingRouteDescription: null,
+    });
+  },
+
+  loadSavedRoute: (route) => {
+    set({
+      mode: route.mode,
+      isPlanning: true,
+      currentRoute: {
+        mode: route.mode,
+        distance: route.distance,
+        duration: route.duration,
+      },
+      waypoints: route.waypoints,
+      calculatedGeometry: route.geometry,
+      history: [createHistoryEntry(route.waypoints, route.geometry)],
+      historyIndex: 0,
+      error: null,
+      editingRouteId: route.id,
+      editingRouteName: route.name,
+      editingRouteDescription: route.description || null,
     });
   },
 
@@ -165,8 +196,9 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
     });
   },
 
+  // Called during drag - no history save (prevents bloat)
   moveWaypoint: (id, newCoordinate) => {
-    const { waypoints, calculatedGeometry, history, historyIndex } = get();
+    const { waypoints } = get();
 
     const updatedWaypoints = waypoints.map((wp) =>
       wp.id === id
@@ -174,15 +206,20 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
         : wp
     );
 
-    // Save to history
+    set({ waypoints: updatedWaypoints });
+  },
+
+  // Called at drag END - saves to history
+  finishMoveWaypoint: () => {
+    const { waypoints, calculatedGeometry, history, historyIndex } = get();
+
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(createHistoryEntry(updatedWaypoints, calculatedGeometry));
+    newHistory.push(createHistoryEntry(waypoints, calculatedGeometry));
     if (newHistory.length > MAX_HISTORY_SIZE) {
       newHistory.shift();
     }
 
     set({
-      waypoints: updatedWaypoints,
       history: newHistory,
       historyIndex: newHistory.length - 1,
     });
@@ -279,7 +316,7 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
   },
 
   calculateCurrentRoute: async () => {
-    const { waypoints, mode } = get();
+    const { waypoints, mode, currentRoute } = get();
 
     if (waypoints.length < 2) {
       set({ calculatedGeometry: [], error: null });
@@ -297,19 +334,32 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
         }));
         set({ calculatedGeometry: geometry, isCalculating: false });
       } else {
-        // For point-to-point, use routing
+        // For point-to-point, use Mapbox cycling routing
         const coordinates = waypoints.map((wp) => ({
           latitude: wp.latitude,
           longitude: wp.longitude,
         }));
 
-        const result = await calculateRoute(coordinates);
-        set({ calculatedGeometry: result.geometry, isCalculating: false });
+        const result = await calculateRoute(coordinates, {
+          profile: 'cycling',
+          provider: 'mapbox',
+        });
+
+        // Store route with distance and duration
+        set({
+          calculatedGeometry: result.geometry,
+          isCalculating: false,
+          currentRoute: {
+            ...currentRoute,
+            distance: result.distance,
+            duration: result.duration,
+          },
+        });
       }
     } catch (error) {
       logger.error('store', 'Route calculation failed', error);
       set({
-        error: 'Failed to calculate route. Please try again.',
+        error: 'Failed to calculate cycling route. Please try again.',
         isCalculating: false,
       });
     }

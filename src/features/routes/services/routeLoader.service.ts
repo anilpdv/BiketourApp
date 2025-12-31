@@ -13,25 +13,25 @@ const EUROVELO_ROUTE_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1
 // Routes that have developed versions
 const ROUTES_WITH_DEVELOPED = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 19];
 
-// Color palette for routes - each route has full (light) and developed (bold) colors
+// Color palette for routes - each route has full (medium-saturated) and developed (bold) colors
 const ROUTE_COLORS: Record<number, { full: string; developed: string }> = {
-  1:  { full: '#90CAF9', developed: '#1565C0' },  // Blue
-  2:  { full: '#A5D6A7', developed: '#2E7D32' },  // Green
-  3:  { full: '#FFCC80', developed: '#EF6C00' },  // Orange
-  4:  { full: '#CE93D8', developed: '#7B1FA2' },  // Purple
-  5:  { full: '#80DEEA', developed: '#00838F' },  // Cyan
-  6:  { full: '#EF9A9A', developed: '#C62828' },  // Red
-  7:  { full: '#FFF59D', developed: '#F9A825' },  // Yellow
-  8:  { full: '#BCAAA4', developed: '#5D4037' },  // Brown
-  9:  { full: '#B0BEC5', developed: '#455A64' },  // Blue Grey
-  10: { full: '#F48FB1', developed: '#AD1457' },  // Pink
-  11: { full: '#81C784', developed: '#388E3C' },  // Light Green
-  12: { full: '#4FC3F7', developed: '#0277BD' },  // Light Blue
-  13: { full: '#FFB74D', developed: '#E65100' },  // Deep Orange
-  14: { full: '#9FA8DA', developed: '#303F9F' },  // Indigo
-  15: { full: '#80CBC4', developed: '#00695C' },  // Teal
-  17: { full: '#E6EE9C', developed: '#9E9D24' },  // Lime
-  19: { full: '#FFAB91', developed: '#D84315' },  // Deep Orange
+  1:  { full: '#42A5F5', developed: '#1565C0' },  // Blue
+  2:  { full: '#66BB6A', developed: '#2E7D32' },  // Green
+  3:  { full: '#FFA726', developed: '#EF6C00' },  // Orange
+  4:  { full: '#AB47BC', developed: '#7B1FA2' },  // Purple
+  5:  { full: '#26C6DA', developed: '#00838F' },  // Cyan
+  6:  { full: '#EF5350', developed: '#C62828' },  // Red
+  7:  { full: '#FFEE58', developed: '#F9A825' },  // Yellow
+  8:  { full: '#8D6E63', developed: '#5D4037' },  // Brown
+  9:  { full: '#78909C', developed: '#455A64' },  // Blue Grey
+  10: { full: '#EC407A', developed: '#AD1457' },  // Pink
+  11: { full: '#4CAF50', developed: '#388E3C' },  // Light Green
+  12: { full: '#29B6F6', developed: '#0277BD' },  // Light Blue
+  13: { full: '#FF7043', developed: '#E65100' },  // Deep Orange
+  14: { full: '#5C6BC0', developed: '#303F9F' },  // Indigo
+  15: { full: '#26A69A', developed: '#00695C' },  // Teal
+  17: { full: '#C0CA33', developed: '#9E9D24' },  // Lime
+  19: { full: '#FF5722', developed: '#D84315' },  // Deep Orange
 };
 
 // Route names

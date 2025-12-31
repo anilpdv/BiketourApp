@@ -20,3 +20,6 @@ export type { UsePOIDisplayReturn, MapBounds } from './usePOIDisplay';
 
 export { useMapCamera } from './useMapCamera';
 export type { UseMapCameraReturn, CameraSettings } from './useMapCamera';
+
+export { useRoutePlanning } from './useRoutePlanning';
+export type { UseRoutePlanningReturn } from './useRoutePlanning';
