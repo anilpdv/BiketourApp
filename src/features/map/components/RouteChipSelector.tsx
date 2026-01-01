@@ -90,7 +90,7 @@ export const RouteChipSelector = memo(function RouteChipSelector({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: spacing.sm,
+    bottom: 10,
     left: 0,
     right: 0,
     zIndex: 1,

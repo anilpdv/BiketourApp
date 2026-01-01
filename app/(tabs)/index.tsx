@@ -6,6 +6,8 @@ import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
 import { POIDetailSheet, POIDetailSheetRef, POIFilterBar } from '../../src/features/pois';
 import { RoutePlanningToolbar, SaveRouteDialog, DraggableWaypointMarker } from '../../src/features/routing';
+import { useActiveNavigation, NavigationOverlay, NavigationStartButton } from '../../src/features/navigation';
+import { SearchBar, SearchResults, SearchResult } from '../../src/features/search';
 import { LoadingSpinner, ErrorMessage, ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing } from '../../src/shared/design/tokens';
 import { debounce } from '../../src/shared/utils';
@@ -34,6 +36,7 @@ export default function MapScreen() {
   const poiDetailSheetRef = useRef<POIDetailSheetRef>(null);
   const mapRef = useRef<MapViewType>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Custom hooks for state management
   const { location, errorMsg, refreshLocation } = useLocation();
@@ -107,6 +110,9 @@ export default function MapScreen() {
     fitToBounds,
   } = useMapCamera(selectedFullRoute, location);
 
+  // Active navigation
+  const navigation = useActiveNavigation();
+
   // Stable ref for loadPOIsForBounds - prevents debounce reset on every render
   const loadPOIsRef = useRef(loadPOIsForBounds);
   useEffect(() => {
@@ -116,14 +122,18 @@ export default function MapScreen() {
   // Fit camera to loaded saved route bounds
   useEffect(() => {
     if (isPlanning && calculatedGeometry.length >= 2 && editingRouteId) {
-      // Calculate bounds from geometry
-      const lats = calculatedGeometry.map(c => c.latitude);
-      const lons = calculatedGeometry.map(c => c.longitude);
-      const bounds = {
-        ne: [Math.max(...lons), Math.max(...lats)] as [number, number],
-        sw: [Math.min(...lons), Math.min(...lats)] as [number, number],
-      };
-      fitToBounds(bounds, 50);
+      // Small delay to ensure camera is mounted before fitting bounds
+      const timer = setTimeout(() => {
+        const lats = calculatedGeometry.map(c => c.latitude);
+        const lons = calculatedGeometry.map(c => c.longitude);
+        const bounds = {
+          ne: [Math.max(...lons), Math.max(...lats)] as [number, number],
+          sw: [Math.min(...lons), Math.min(...lats)] as [number, number],
+        };
+        fitToBounds(bounds, 50);
+      }, 100);
+
+      return () => clearTimeout(timer);
     }
   }, [editingRouteId, isPlanning, calculatedGeometry, fitToBounds]);
 
@@ -229,6 +239,32 @@ export default function MapScreen() {
       flyTo([location.coords.longitude, location.coords.latitude], 14);
     }
   }, [refreshLocation, location, flyTo]);
+
+  // Handle start navigation for loaded route
+  const handleStartNavigation = useCallback(async () => {
+    if (!editingRouteId || calculatedGeometry.length < 2) return;
+
+    // Construct route object from planning state
+    const routeForNavigation = {
+      id: editingRouteId,
+      name: editingRouteName || 'My Route',
+      description: editingRouteDescription || undefined,
+      mode: 'point-to-point' as const,
+      waypoints: waypoints,
+      geometry: calculatedGeometry,
+      distance: routeDistance,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await navigation.startNavigation(routeForNavigation);
+  }, [editingRouteId, editingRouteName, editingRouteDescription, waypoints, calculatedGeometry, routeDistance, navigation]);
+
+  // Handle search result selection - fly to location
+  const handleSelectSearchResult = useCallback((result: SearchResult) => {
+    flyTo([result.longitude, result.latitude], 15);
+    setIsSearchFocused(false);
+  }, [flyTo]);
 
   // Get loaded route IDs for chip selector
   const loadedRouteIds = routes.map(r => r.euroVeloId);
@@ -405,6 +441,18 @@ export default function MapScreen() {
         ))}
       </MapView>
 
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <SearchBar
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => setIsSearchFocused(false)}
+          placeholder="Search location..."
+        />
+        {isSearchFocused && (
+          <SearchResults onSelectResult={handleSelectSearchResult} />
+        )}
+      </View>
+
       {/* Route Chip Selector */}
       <RouteChipSelector
         availableRouteIds={getAvailableRouteIds()}
@@ -449,22 +497,48 @@ export default function MapScreen() {
         onClose={closeStylePicker}
       />
 
-      {/* Route Info Card */}
-      {selectedFullRoute && !isPlanning && (
+      {/* Route Info Card - hide during planning and navigation */}
+      {selectedFullRoute && !isPlanning && !navigation.isNavigating && (
         <RouteInfoCard
           route={selectedFullRoute}
           developedRoute={selectedRoutes.find(r => r.variant === 'developed')}
         />
       )}
 
-      {/* Route Planning FAB */}
+      {/* Active Navigation Overlay */}
+      {navigation.isNavigating && (
+        <NavigationOverlay
+          routeName={navigation.routeName}
+          formattedSpeed={navigation.formattedSpeed}
+          currentSpeedKmh={navigation.currentSpeedKmh}
+          formattedDistanceRemaining={navigation.formattedDistanceRemaining}
+          formattedDistanceTraveled={navigation.formattedDistanceTraveled}
+          progressPercent={navigation.progressPercent}
+          formattedTimeRemaining={navigation.formattedTimeRemaining}
+          isOffRoute={navigation.isOffRoute}
+          isPaused={navigation.isPaused}
+          onPause={navigation.pauseNavigation}
+          onResume={navigation.resumeNavigation}
+          onStop={navigation.stopNavigation}
+        />
+      )}
+
+      {/* Navigation Start Button - show when route loaded but not navigating */}
+      {isPlanning && editingRouteId && calculatedGeometry.length >= 2 && !navigation.isNavigating && (
+        <NavigationStartButton
+          onPress={handleStartNavigation}
+          routeName={editingRouteName || undefined}
+        />
+      )}
+
+      {/* Route Planning FAB - hide during navigation */}
       <RoutePlanningFAB
         onPress={startRoutePlanning}
-        isPlanning={isPlanning}
+        isPlanning={isPlanning || navigation.isNavigating}
       />
 
-      {/* Route Planning Toolbar */}
-      {isPlanning && (
+      {/* Route Planning Toolbar - hide during navigation */}
+      {isPlanning && !navigation.isNavigating && (
         <View style={styles.toolbarContainer}>
           <RoutePlanningToolbar
             onSave={() => setShowSaveDialog(true)}
@@ -536,5 +610,12 @@ const styles = StyleSheet.create({
     left: spacing.lg,
     right: spacing.lg,
     zIndex: 10,
+  },
+  searchContainer: {
+    position: 'absolute',
+    top: spacing.xl,
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 20,
   },
 });
