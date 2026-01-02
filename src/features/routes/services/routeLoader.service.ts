@@ -4,8 +4,9 @@ import { routeCacheRepository, computeGPXHash } from './routeCache.repository';
 import { ParsedRoute, EuroVeloRoute, RouteVariant } from '../types';
 import { logger } from '../../../shared/utils';
 
-// @ts-ignore - expo-asset types
-const { Asset } = require('expo-asset');
+// expo-asset doesn't have proper TS declarations in this environment
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Asset } = require('expo-asset') as { Asset: { fromModule: (module: number) => { downloadAsync: () => Promise<void>; localUri: string | null } } };
 
 // All EuroVelo routes available
 const EUROVELO_ROUTE_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 19];
@@ -56,7 +57,8 @@ const ROUTE_NAMES: Record<number, string> = {
 };
 
 // GPX file imports - we import them as assets
-const GPX_ASSETS: Record<string, any> = {
+// Asset type from expo-asset is used at runtime
+const GPX_ASSETS: Record<string, number> = {
   '1': require('../../../../assets/euroveloRoutes/1.gpx'),
   '2': require('../../../../assets/euroveloRoutes/2.gpx'),
   '2-developed': require('../../../../assets/euroveloRoutes/2-developed.gpx'),

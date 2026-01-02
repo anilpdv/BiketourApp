@@ -1,6 +1,6 @@
 import { databaseService } from '../../../shared/database/database.service';
 import { POI, POICategory, BoundingBox } from '../types';
-import { logger } from '../../../shared/utils';
+import { logger, createWriteQueue } from '../../../shared/utils';
 
 interface POIRow {
   id: string;
@@ -103,8 +103,8 @@ function rowToPOI(row: POIRow): POI {
   };
 }
 
-// Caching queue to serialize write operations and prevent transaction conflicts
-let cachingQueue: Promise<void> = Promise.resolve();
+// Write queue to serialize database operations and prevent transaction conflicts
+const writeQueue = createWriteQueue();
 
 /**
  * POI repository for database operations
@@ -246,12 +246,44 @@ export const poiRepository = {
       );
     };
 
-    // Chain to the queue to serialize operations
-    cachingQueue = cachingQueue.then(cacheOperation).catch((error) => {
+    // Queue the write operation
+    return writeQueue.enqueue(cacheOperation, (error) => {
       logger.warn('cache', 'POI caching error (queued)', error);
     });
+  },
 
-    return cachingQueue;
+  /**
+   * Mark a tile as cached (even if empty)
+   * Prevents infinite refetch loop for regions with no POIs or that timed out
+   */
+  async markTileAsCached(bbox: BoundingBox): Promise<void> {
+    const markOperation = async (): Promise<void> => {
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + CACHE_DURATION_MS);
+      const tileKey = getTileKey(bbox);
+
+      const db = await databaseService.getDatabase();
+      await db.runAsync(
+        `INSERT INTO poi_cache_tiles (tile_key, min_lat, max_lat, min_lon, max_lon, fetched_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(tile_key) DO UPDATE SET
+           fetched_at = excluded.fetched_at,
+           expires_at = excluded.expires_at`,
+        [
+          tileKey,
+          bbox.south,
+          bbox.north,
+          bbox.west,
+          bbox.east,
+          now.toISOString(),
+          expiresAt.toISOString(),
+        ]
+      );
+    };
+
+    return writeQueue.enqueue(markOperation, (error) => {
+      logger.warn('cache', 'Mark tile cached error', error);
+    });
   },
 
   /**
@@ -278,12 +310,10 @@ export const poiRepository = {
       );
     };
 
-    // Queue the operation
-    cachingQueue = cachingQueue.then(cleanOperation).catch((error) => {
+    // Queue the write operation
+    return writeQueue.enqueue(cleanOperation, (error) => {
       logger.warn('cache', 'Cache cleanup error', error);
     });
-
-    return cachingQueue;
   },
 
   // ==================== Viewport-Based Tile Loading ====================

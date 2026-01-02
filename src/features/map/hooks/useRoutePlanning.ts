@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useRoutingStore } from '../../routing/store/routingStore';
 import { useSavedRoutesStore } from '../../routing/store/savedRoutesStore';
 import { Coordinate, Waypoint } from '../../routing/types';
-import { calculatePathDistance } from '../../routing/services/routing.service';
-import { debounce } from '../../../shared/utils';
+import { useWaypointManagement } from './useWaypointManagement';
+import { useRouteGeometry } from './useRouteGeometry';
 
 export interface UseRoutePlanningReturn {
   // State
@@ -41,6 +41,7 @@ export interface UseRoutePlanningReturn {
 
 /**
  * Hook for managing route planning state and actions in the map screen
+ * Composes useWaypointManagement and useRouteGeometry hooks
  */
 export function useRoutePlanning(): UseRoutePlanningReturn {
   const {
@@ -72,11 +73,25 @@ export function useRoutePlanning(): UseRoutePlanningReturn {
 
   const { saveRoute, updateExistingRoute } = useSavedRoutesStore();
 
-  // Drag state - which waypoint is currently being dragged
-  const [draggingWaypointId, setDraggingWaypointId] = useState<string | null>(null);
-
   // Track previous waypoints for change detection
   const prevWaypointsRef = useRef<string>('');
+
+  // Compose waypoint management hook
+  const {
+    draggingWaypointId,
+    handleWaypointPress,
+    handleWaypointDrag,
+    handleWaypointDragEnd,
+  } = useWaypointManagement({
+    waypoints,
+    moveWaypoint,
+    finishMoveWaypoint,
+    calculateCurrentRoute,
+  });
+
+  // Compose route geometry hook
+  const { routeGeoJSON, waypointsGeoJSON, routeDistance, routeDuration } =
+    useRouteGeometry(calculatedGeometry, waypoints, currentRoute);
 
   // Start route planning in point-to-point mode
   const startRoutePlanning = useCallback(() => {
@@ -92,53 +107,12 @@ export function useRoutePlanning(): UseRoutePlanningReturn {
     [isPlanning, addWaypoint]
   );
 
-  // Stable ref for calculateCurrentRoute to avoid debounce resets
-  const calculateRouteRef = useRef(calculateCurrentRoute);
-  useEffect(() => {
-    calculateRouteRef.current = calculateCurrentRoute;
-  }, [calculateCurrentRoute]);
-
-  // Debounced route calculation - 300ms delay prevents excessive API calls during drag
-  const debouncedCalculateRoute = useMemo(
-    () => debounce(() => {
-      calculateRouteRef.current();
-    }, 300),
-    []
-  );
-
-  // Handle waypoint press - select for dragging
-  const handleWaypointPress = useCallback((waypointId: string) => {
-    setDraggingWaypointId(waypointId);
-  }, []);
-
-  // Handle waypoint drag - move position + debounced recalc
-  const handleWaypointDrag = useCallback(
-    (waypointId: string, newCoordinate: Coordinate) => {
-      moveWaypoint(waypointId, newCoordinate);
-      // Recalculate route with debounce to avoid excessive API calls
-      if (waypoints.length >= 2) {
-        debouncedCalculateRoute();
-      }
-    },
-    [moveWaypoint, waypoints.length, debouncedCalculateRoute]
-  );
-
-  // Handle waypoint drag end - save to history and clear drag state
-  const handleWaypointDragEnd = useCallback(() => {
-    finishMoveWaypoint();
-    setDraggingWaypointId(null);
-    // Force final calculation
-    if (waypoints.length >= 2) {
-      calculateCurrentRoute();
-    }
-  }, [finishMoveWaypoint, waypoints.length, calculateCurrentRoute]);
-
   // Auto-calculate route when waypoints are added/removed (not during drag)
   useEffect(() => {
     if (!isPlanning || mode !== 'point-to-point') return;
 
     // Create a simple hash of waypoints to detect real changes
-    const waypointsHash = waypoints.map(w => `${w.id}:${w.order}`).join(',');
+    const waypointsHash = waypoints.map((w) => `${w.id}:${w.order}`).join(',');
     const waypointsChanged = waypointsHash !== prevWaypointsRef.current;
     prevWaypointsRef.current = waypointsHash;
 
@@ -147,49 +121,6 @@ export function useRoutePlanning(): UseRoutePlanningReturn {
       calculateCurrentRoute();
     }
   }, [isPlanning, waypoints, mode, calculateCurrentRoute]);
-
-  // Generate GeoJSON for route display
-  const routeGeoJSON = useMemo((): GeoJSON.Feature<GeoJSON.LineString> | null => {
-    if (calculatedGeometry.length < 2) {
-      return null;
-    }
-    return {
-      type: 'Feature',
-      properties: { type: 'planned-route' },
-      geometry: {
-        type: 'LineString',
-        coordinates: calculatedGeometry.map((c) => [c.longitude, c.latitude]),
-      },
-    };
-  }, [calculatedGeometry]);
-
-  // Generate GeoJSON for waypoint display with CircleLayer
-  const waypointsGeoJSON = useMemo((): GeoJSON.FeatureCollection<GeoJSON.Point> => ({
-    type: 'FeatureCollection',
-    features: waypoints.map((wp) => ({
-      type: 'Feature' as const,
-      id: wp.id,
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [wp.longitude, wp.latitude],
-      },
-      properties: {
-        id: wp.id,
-        order: wp.order + 1,
-        type: wp.type,
-        color: wp.type === 'start' ? '#22C55E' : wp.type === 'end' ? '#EF4444' : '#3B82F6',
-      },
-    })),
-  }), [waypoints]);
-
-  // Calculate route distance
-  const routeDistance = useMemo(() => {
-    if (calculatedGeometry.length < 2) return 0;
-    return calculatePathDistance(calculatedGeometry);
-  }, [calculatedGeometry]);
-
-  // Get duration from current route if available
-  const routeDuration = currentRoute?.duration ?? null;
 
   // Save route handler - update existing or create new
   const handleSaveRoute = useCallback(
@@ -204,7 +135,15 @@ export function useRoutePlanning(): UseRoutePlanningReturn {
       }
       cancelPlanning();
     },
-    [editingRouteId, waypoints, calculatedGeometry, updateExistingRoute, prepareForSave, saveRoute, cancelPlanning]
+    [
+      editingRouteId,
+      waypoints,
+      calculatedGeometry,
+      updateExistingRoute,
+      prepareForSave,
+      saveRoute,
+      cancelPlanning,
+    ]
   );
 
   return {

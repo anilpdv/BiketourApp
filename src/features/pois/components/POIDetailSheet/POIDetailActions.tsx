@@ -1,40 +1,17 @@
 import React, { memo, useCallback } from 'react';
-import { View, Linking, Platform, Pressable, Share } from 'react-native';
-import { Button, Text } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, Linking, Platform, Share } from 'react-native';
+import { Button } from 'react-native-paper';
 import { POI } from '../../types';
 import { getCategoryConfig } from '../../services/overpass.service';
 import { POIContactInfo } from '../../utils/poiTagParser';
 import { actionsStyles as styles } from './POIDetailSheet.styles';
 import { colors } from '../../../../shared/design/tokens';
+import { LabeledIconButton } from '../../../../shared/components';
 
 export interface POIDetailActionsProps {
   poi: POI;
   contactInfo: POIContactInfo;
 }
-
-interface IconButtonProps {
-  icon: string;
-  label: string;
-  onPress: () => void;
-  color?: string;
-}
-
-const ActionIconButton = memo(function ActionIconButton({
-  icon,
-  label,
-  onPress,
-  color = colors.neutral[600],
-}: IconButtonProps) {
-  return (
-    <Pressable style={styles.iconButton} onPress={onPress}>
-      <View style={styles.iconButtonCircle}>
-        <MaterialCommunityIcons name={icon} size={24} color={color} />
-      </View>
-      <Text style={styles.iconButtonLabel}>{label}</Text>
-    </Pressable>
-  );
-});
 
 /**
  * POI action buttons with prominent Navigate and secondary icon buttons
@@ -103,6 +80,8 @@ export const POIDetailActions = memo(function POIDetailActions({
         style={styles.primaryButton}
         contentStyle={styles.primaryButtonContent}
         labelStyle={styles.primaryButtonLabel}
+        accessibilityLabel="Navigate to this location"
+        accessibilityRole="button"
       >
         Navigate
       </Button>
@@ -110,31 +89,35 @@ export const POIDetailActions = memo(function POIDetailActions({
       {/* Secondary Icon Buttons */}
       <View style={styles.secondaryRow}>
         {phone && (
-          <ActionIconButton
+          <LabeledIconButton
             icon="phone"
             label="Call"
             onPress={callPhone}
             color={colors.primary[500]}
+            accessibilityLabel={`Call ${phone}`}
           />
         )}
         {website && (
-          <ActionIconButton
+          <LabeledIconButton
             icon="web"
             label="Website"
             onPress={openWebsite}
             color={colors.primary[500]}
+            accessibilityLabel="Open website"
           />
         )}
-        <ActionIconButton
+        <LabeledIconButton
           icon="google-maps"
           label="Maps"
           onPress={openGoogleMaps}
           color={colors.status.error}
+          accessibilityLabel="Open in Google Maps"
         />
-        <ActionIconButton
+        <LabeledIconButton
           icon="share-variant"
           label="Share"
           onPress={sharePOI}
+          accessibilityLabel="Share this location"
         />
       </View>
     </View>

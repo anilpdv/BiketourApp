@@ -1,4 +1,5 @@
 import { POI } from '../types';
+import { formatDistanceKm } from '../../../shared/utils';
 
 export interface POIContactInfo {
   phone?: string;
@@ -46,17 +47,8 @@ export function getPOIContactInfo(poi: POI): POIContactInfo {
   return extractContactInfo(poi.tags);
 }
 
-/**
- * Format distance for display
- */
-export function formatDistance(distanceKm: number | undefined): string | null {
-  if (distanceKm === undefined) return null;
-
-  if (distanceKm < 1) {
-    return `${Math.round(distanceKm * 1000)} m`;
-  }
-  return `${distanceKm.toFixed(1)} km`;
-}
+// Re-export formatDistanceKm as formatDistance for backward compatibility
+export { formatDistanceKm as formatDistance };
 
 /**
  * Extract amenities information from OSM tags

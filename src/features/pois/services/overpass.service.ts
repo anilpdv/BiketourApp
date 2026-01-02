@@ -15,8 +15,10 @@ import {
   getRouteSegmentAhead,
   getBoundingBox,
   splitRouteIntoSegments,
+  isAbortError,
 } from '../../../shared/utils';
 import { API_CONFIG } from '../../../shared/config';
+import { fetchWithTimeout } from '../../../shared/api/httpClient';
 
 // Rate limiter for Overpass API
 const rateLimiter = createRateLimiter(API_CONFIG.pois.rateLimit);
@@ -130,7 +132,7 @@ function buildOverpassQuery(bbox: BoundingBox, category: POICategoryConfig): str
   const [key, value] = category.osmQuery.split('=');
 
   return `
-    [out:json][timeout:25];
+    [out:json][timeout:8];
     (
       node["${key}"="${value}"](${south},${west},${north},${east});
       way["${key}"="${value}"](${south},${west},${north},${east});
@@ -157,7 +159,7 @@ function buildMultiCategoryQuery(
     .join('\n');
 
   return `
-    [out:json][timeout:15];
+    [out:json][timeout:8];
     (
       ${queries}
     );
@@ -218,32 +220,6 @@ function parseOverpassResponse(response: OverpassResponse): POI[] {
   }
 
   return pois;
-}
-
-// Fetch with timeout and optional external abort signal
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeout: number,
-  externalSignal?: AbortSignal
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  // If external signal aborts, abort our controller too
-  const onExternalAbort = () => controller.abort();
-  externalSignal?.addEventListener('abort', onExternalAbort);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-    return response;
-  } finally {
-    clearTimeout(timeoutId);
-    externalSignal?.removeEventListener('abort', onExternalAbort);
-  }
 }
 
 // Sleep helper
@@ -321,9 +297,11 @@ export async function fetchPOIs(
     }
 
     return [];
-  } catch (error: any) {
-    // Don't log AbortError - it's expected when requests are cancelled/timed out
-    if (error?.name !== 'AbortError') {
+  } catch (error: unknown) {
+    if (isAbortError(error)) {
+      // Log abort separately for debugging timeout issues
+      logger.warn('poi', 'POI fetch aborted (timeout or cancelled)');
+    } else {
       logger.warn('api', 'POI fetch failed', error);
     }
     return [];
@@ -338,28 +316,15 @@ export async function fetchPOIsAlongRoute(
 ): Promise<POI[]> {
   if (routePoints.length === 0) return [];
 
-  // Calculate bounding box that encompasses the route + corridor
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-  let minLon = Infinity;
-  let maxLon = -Infinity;
-
-  for (const point of routePoints) {
-    minLat = Math.min(minLat, point.latitude);
-    maxLat = Math.max(maxLat, point.latitude);
-    minLon = Math.min(minLon, point.longitude);
-    maxLon = Math.max(maxLon, point.longitude);
-  }
-
-  // Add corridor buffer (roughly convert km to degrees)
-  const latBuffer = corridorKm / 111; // ~111km per degree latitude
-  const lonBuffer = corridorKm / (111 * Math.cos((minLat + maxLat) / 2 * Math.PI / 180));
+  // Use shared getBoundingBox utility
+  const bounds = getBoundingBox(routePoints, corridorKm);
+  if (!bounds) return [];
 
   const bbox: BoundingBox = {
-    south: minLat - latBuffer,
-    north: maxLat + latBuffer,
-    west: minLon - lonBuffer,
-    east: maxLon + lonBuffer,
+    south: bounds.south,
+    north: bounds.north,
+    west: bounds.west,
+    east: bounds.east,
   };
 
   return fetchPOIs(bbox, categories);
@@ -574,7 +539,7 @@ export async function fetchPOIsForViewport(
   });
 
   // Per-tile timeout: skip slow tiles instead of waiting forever
-  const TILE_TIMEOUT_MS = 4000;  // 4 seconds max per tile
+  const TILE_TIMEOUT_MS = 8000;  // 8 seconds max per tile (increased from 4s for slow Overpass servers)
   const CONCURRENCY = 3;  // Safe with per-tile timeouts
   let loaded = 0;
 
@@ -607,7 +572,12 @@ export async function fetchPOIsForViewport(
         try {
           const freshPOIs = await fetchPOIs(tile, categories, tileController.signal);
 
-          // Cache the fresh POIs (async, don't block)
+          // Always mark tile as cached (prevents refetch loop for empty regions)
+          poiRepository.markTileAsCached(tile).catch((error) => {
+            logger.warn('cache', 'Failed to mark tile as cached', error);
+          });
+
+          // Save POIs if any were found
           if (freshPOIs.length > 0) {
             poiRepository.savePOIs(freshPOIs, tile).catch((error) => {
               logger.warn('cache', 'Failed to cache tile POIs', error);
@@ -615,12 +585,14 @@ export async function fetchPOIsForViewport(
           }
 
           return freshPOIs;
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Log timeout separately from other errors
-          if (error?.name === 'AbortError') {
+          if (isAbortError(error)) {
             logger.warn('poi', 'Tile timeout - skipping slow region', {
               tile: `${tile.south.toFixed(2)},${tile.west.toFixed(2)}`,
             });
+            // Mark timed out tiles as cached with short duration to prevent immediate refetch
+            poiRepository.markTileAsCached(tile).catch(() => {});
           } else {
             logger.warn('api', 'Failed to fetch tile', error);
           }
@@ -675,28 +647,15 @@ export async function fetchPOIsAlongRouteWithCache(
 ): Promise<POI[]> {
   if (routePoints.length === 0) return [];
 
-  // Calculate bounding box that encompasses the route + corridor
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-  let minLon = Infinity;
-  let maxLon = -Infinity;
-
-  for (const point of routePoints) {
-    minLat = Math.min(minLat, point.latitude);
-    maxLat = Math.max(maxLat, point.latitude);
-    minLon = Math.min(minLon, point.longitude);
-    maxLon = Math.max(maxLon, point.longitude);
-  }
-
-  // Add corridor buffer (roughly convert km to degrees)
-  const latBuffer = corridorKm / 111;
-  const lonBuffer = corridorKm / (111 * Math.cos(((minLat + maxLat) / 2) * (Math.PI / 180)));
+  // Use shared getBoundingBox utility
+  const bounds = getBoundingBox(routePoints, corridorKm);
+  if (!bounds) return [];
 
   const bbox: BoundingBox = {
-    south: minLat - latBuffer,
-    north: maxLat + latBuffer,
-    west: minLon - lonBuffer,
-    east: maxLon + lonBuffer,
+    south: bounds.south,
+    north: bounds.north,
+    west: bounds.west,
+    east: bounds.east,
   };
 
   return fetchPOIsWithCache(bbox, categories);
@@ -853,8 +812,8 @@ export async function fetchPOIsForRouteProgressively(
           onSegmentLoaded(freshPOIs, segmentIndex);
           loadedCount++;
           onProgress?.(loadedCount, totalSegments);
-        } catch (error: any) {
-          if (error?.name !== 'AbortError') {
+        } catch (error: unknown) {
+          if (!isAbortError(error)) {
             logger.warn('api', `Failed to fetch segment ${segmentIndex}`, error);
           }
           loadedCount++;

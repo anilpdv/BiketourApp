@@ -7,6 +7,8 @@ import Constants from 'expo-constants';
 import { API_CONFIG } from '../../../shared/config/api.config';
 import { createRateLimiter } from '../../../shared/utils/rateLimiter';
 import { logger } from '../../../shared/utils/logger';
+import { isAbortError } from '../../../shared/utils/error.utils';
+import { fetchWithTimeout } from '../../../shared/api/httpClient';
 import { POI, POICategory } from '../types';
 import {
   GooglePlacesNearbyResponse,
@@ -65,11 +67,7 @@ export async function findGooglePlace(poi: POI): Promise<GooglePlace | null> {
   try {
     const url = `${API_CONFIG.googlePlaces.baseUrl}/nearbysearch/json?${params}`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.googlePlaces.timeout);
-
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    const response = await fetchWithTimeout(url, {}, API_CONFIG.googlePlaces.timeout);
 
     if (!response.ok) {
       logger.warn('api', `Google Places API error: ${response.status}`);
@@ -85,7 +83,7 @@ export async function findGooglePlace(poi: POI): Promise<GooglePlace | null> {
     // Return best match (first result from nearby search)
     return data.results[0];
   } catch (error) {
-    if ((error as Error).name === 'AbortError') {
+    if (isAbortError(error)) {
       logger.warn('api', 'Google Places request timed out');
     } else {
       logger.warn('api', 'Failed to find Google Place', error);
@@ -114,11 +112,7 @@ async function getPlaceDetails(placeId: string): Promise<GooglePlace | null> {
   try {
     const url = `${API_CONFIG.googlePlaces.baseUrl}/details/json?${params}`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.googlePlaces.timeout);
-
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    const response = await fetchWithTimeout(url, {}, API_CONFIG.googlePlaces.timeout);
 
     if (!response.ok) {
       logger.warn('api', `Google Places Details API error: ${response.status}`);
@@ -135,7 +129,7 @@ async function getPlaceDetails(placeId: string): Promise<GooglePlace | null> {
     logger.debug('api', `Place Details returned ${data.result.photos?.length || 0} photos`);
     return data.result;
   } catch (error) {
-    if ((error as Error).name === 'AbortError') {
+    if (isAbortError(error)) {
       logger.warn('api', 'Google Places Details request timed out');
     } else {
       logger.warn('api', 'Failed to get Place Details', error);

@@ -40,10 +40,22 @@ export function BottomSheet({
       animationType="slide"
       transparent
       onRequestClose={onClose}
+      accessibilityViewIsModal={true}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={sheetStyle} onPress={(e) => e.stopPropagation()}>
-          {showHandle && <View style={styles.handle} />}
+      <Pressable
+        style={styles.overlay}
+        onPress={onClose}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Close sheet"
+      >
+        <Pressable
+          style={sheetStyle}
+          onPress={(e) => e.stopPropagation()}
+          accessible={false}
+          accessibilityRole="none"
+        >
+          {showHandle && <View style={styles.handle} accessibilityElementsHidden={true} />}
           {children}
         </Pressable>
       </Pressable>

@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { CustomRouteSummary, RoutePlanningMode } from '../types';
 import { formatDistance } from '../services/routing.service';
+import { colors, spacing, borderRadius, shadows } from '../../../shared/design/tokens';
 
 const MODE_ICONS: Record<RoutePlanningMode, string> = {
   'point-to-point': '🛣️',
@@ -112,35 +113,31 @@ export const RoutePreviewCard = memo(RoutePreviewCardComponent);
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.sm,
+    ...shadows.md,
   },
   containerSelected: {
     borderWidth: 2,
-    borderColor: '#2196F3',
-    backgroundColor: '#f0f7ff',
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primaryBg.light,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   modeIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.neutral[50],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   modeIconText: {
     fontSize: 22,
@@ -151,21 +148,21 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#333',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   description: {
     fontSize: 13,
-    color: '#666',
+    color: colors.neutral[600],
   },
   stats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: colors.neutral[100],
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.neutral[100],
   },
   stat: {
     alignItems: 'center',
@@ -173,38 +170,38 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.neutral[800],
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: '#888',
+    color: colors.neutral[500],
     textTransform: 'uppercase',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   date: {
     fontSize: 12,
-    color: '#888',
+    color: colors.neutral[500],
   },
   actions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   actionButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.neutral[50],
     justifyContent: 'center',
     alignItems: 'center',
   },
   deleteButton: {
-    backgroundColor: '#ffebee',
+    backgroundColor: colors.status.errorBg,
   },
   actionIcon: {
     fontSize: 16,

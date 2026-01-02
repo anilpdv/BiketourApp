@@ -34,13 +34,8 @@ export interface POICategoryConfig {
   enabled: boolean;
 }
 
-// Bounding box for queries
-export interface BoundingBox {
-  south: number;
-  west: number;
-  north: number;
-  east: number;
-}
+// Re-export BoundingBox from shared types
+export { BoundingBox } from '../../shared/types/geo.types';
 
 // Overpass API response
 export interface OverpassResponse {

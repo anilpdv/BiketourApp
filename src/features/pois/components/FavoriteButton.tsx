@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { POI } from '../types';
 import { usePOIStore } from '../store/poiStore';
+import { colors } from '../../../shared/design/tokens';
 
 interface FavoriteButtonProps {
   poi: POI;
@@ -55,7 +56,7 @@ export function FavoriteButton({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={isFav ? '#DC143C' : '#888'}
+          color={isFav ? colors.status.favorite : colors.neutral[500]}
         />
       ) : (
         <View style={styles.content}>
@@ -79,12 +80,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.neutral[50],
     minWidth: 44,
     minHeight: 44,
   },
   containerActive: {
-    backgroundColor: '#ffe4e8',
+    backgroundColor: colors.status.favoriteLight,
   },
   content: {
     flexDirection: 'row',
@@ -97,9 +98,9 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.neutral[600],
   },
   labelActive: {
-    color: '#DC143C',
+    color: colors.status.favorite,
   },
 });

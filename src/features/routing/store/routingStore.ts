@@ -4,14 +4,17 @@ import {
   Waypoint,
   Coordinate,
   CustomRoute,
-  RouteHistoryEntry,
   RoutingState,
 } from '../types';
 import { calculateRoute } from '../services/routing.service';
-import { getElevations, calculateElevationStats } from '../services/elevation.service';
 import { logger } from '../../../shared/utils';
-
-const MAX_HISTORY_SIZE = 50;
+import {
+  createHistoryEntry,
+  pushToHistory,
+  assignWaypointTypes,
+  convertEndToVia,
+  restoreFromHistory,
+} from '../utils/historyUtils';
 
 interface RoutingStore extends RoutingState {
   // Planning actions
@@ -46,17 +49,6 @@ interface RoutingStore extends RoutingState {
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-function createHistoryEntry(
-  waypoints: Waypoint[],
-  geometry: Coordinate[]
-): RouteHistoryEntry {
-  return {
-    waypoints: JSON.parse(JSON.stringify(waypoints)),
-    geometry: JSON.parse(JSON.stringify(geometry)),
-    timestamp: Date.now(),
-  };
 }
 
 export const useRoutingStore = create<RoutingStore>((set, get) => ({
@@ -130,15 +122,10 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
     const { waypoints, calculatedGeometry, history, historyIndex } = get();
 
     // Determine waypoint type
-    const type =
-      waypoints.length === 0
-        ? 'start'
-        : 'end';
+    const type = waypoints.length === 0 ? 'start' : 'end';
 
     // If adding a new endpoint, convert previous endpoint to via
-    const updatedWaypoints = waypoints.map((wp) =>
-      wp.type === 'end' ? { ...wp, type: 'via' as const } : wp
-    );
+    const updatedWaypoints = convertEndToVia(waypoints);
 
     const newWaypoint: Waypoint = {
       id: generateId(),
@@ -152,47 +139,34 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
     const newWaypoints = [...updatedWaypoints, newWaypoint];
 
     // Save to history
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(createHistoryEntry(newWaypoints, calculatedGeometry));
-    if (newHistory.length > MAX_HISTORY_SIZE) {
-      newHistory.shift();
-    }
+    const historyUpdate = pushToHistory(
+      history,
+      historyIndex,
+      createHistoryEntry(newWaypoints, calculatedGeometry)
+    );
 
     set({
       waypoints: newWaypoints,
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
+      ...historyUpdate,
     });
   },
 
   removeWaypoint: (id) => {
     const { waypoints, calculatedGeometry, history, historyIndex } = get();
 
-    let updatedWaypoints = waypoints.filter((wp) => wp.id !== id);
-
-    // Re-assign types
-    updatedWaypoints = updatedWaypoints.map((wp, index) => ({
-      ...wp,
-      type:
-        index === 0
-          ? 'start'
-          : index === updatedWaypoints.length - 1
-          ? 'end'
-          : 'via',
-      order: index,
-    }));
+    const filtered = waypoints.filter((wp) => wp.id !== id);
+    const updatedWaypoints = assignWaypointTypes(filtered);
 
     // Save to history
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(createHistoryEntry(updatedWaypoints, calculatedGeometry));
-    if (newHistory.length > MAX_HISTORY_SIZE) {
-      newHistory.shift();
-    }
+    const historyUpdate = pushToHistory(
+      history,
+      historyIndex,
+      createHistoryEntry(updatedWaypoints, calculatedGeometry)
+    );
 
     set({
       waypoints: updatedWaypoints,
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
+      ...historyUpdate,
     });
   },
 
@@ -213,16 +187,13 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
   finishMoveWaypoint: () => {
     const { waypoints, calculatedGeometry, history, historyIndex } = get();
 
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(createHistoryEntry(waypoints, calculatedGeometry));
-    if (newHistory.length > MAX_HISTORY_SIZE) {
-      newHistory.shift();
-    }
+    const historyUpdate = pushToHistory(
+      history,
+      historyIndex,
+      createHistoryEntry(waypoints, calculatedGeometry)
+    );
 
-    set({
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
-    });
+    set(historyUpdate);
   },
 
   reorderWaypoints: (fromIndex, toIndex) => {
@@ -233,45 +204,34 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
     reordered.splice(toIndex, 0, removed);
 
     // Re-assign types and order
-    const updatedWaypoints = reordered.map((wp, index) => ({
-      ...wp,
-      type:
-        index === 0
-          ? ('start' as const)
-          : index === reordered.length - 1
-          ? ('end' as const)
-          : ('via' as const),
-      order: index,
-    }));
+    const updatedWaypoints = assignWaypointTypes(reordered);
 
     // Save to history
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(createHistoryEntry(updatedWaypoints, calculatedGeometry));
-    if (newHistory.length > MAX_HISTORY_SIZE) {
-      newHistory.shift();
-    }
+    const historyUpdate = pushToHistory(
+      history,
+      historyIndex,
+      createHistoryEntry(updatedWaypoints, calculatedGeometry)
+    );
 
     set({
       waypoints: updatedWaypoints,
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
+      ...historyUpdate,
     });
   },
 
   clearWaypoints: () => {
-    const { history, historyIndex, calculatedGeometry } = get();
+    const { history, historyIndex } = get();
 
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(createHistoryEntry([], []));
-    if (newHistory.length > MAX_HISTORY_SIZE) {
-      newHistory.shift();
-    }
+    const historyUpdate = pushToHistory(
+      history,
+      historyIndex,
+      createHistoryEntry([], [])
+    );
 
     set({
       waypoints: [],
       calculatedGeometry: [],
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
+      ...historyUpdate,
     });
   },
 
@@ -281,11 +241,11 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
     if (historyIndex <= 0) return;
 
     const newIndex = historyIndex - 1;
-    const entry = history[newIndex];
+    const { waypoints, geometry } = restoreFromHistory(history[newIndex]);
 
     set({
-      waypoints: JSON.parse(JSON.stringify(entry.waypoints)),
-      calculatedGeometry: JSON.parse(JSON.stringify(entry.geometry)),
+      waypoints,
+      calculatedGeometry: geometry,
       historyIndex: newIndex,
     });
   },
@@ -296,11 +256,11 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
     if (historyIndex >= history.length - 1) return;
 
     const newIndex = historyIndex + 1;
-    const entry = history[newIndex];
+    const { waypoints, geometry } = restoreFromHistory(history[newIndex]);
 
     set({
-      waypoints: JSON.parse(JSON.stringify(entry.waypoints)),
-      calculatedGeometry: JSON.parse(JSON.stringify(entry.geometry)),
+      waypoints,
+      calculatedGeometry: geometry,
       historyIndex: newIndex,
     });
   },

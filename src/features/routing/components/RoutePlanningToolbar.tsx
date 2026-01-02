@@ -49,6 +49,10 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
           style={[styles.actionButton, !canUndo() && styles.actionButtonDisabled]}
           onPress={undo}
           disabled={!canUndo()}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Undo last action"
+          accessibilityState={{ disabled: !canUndo() }}
         >
           <Text style={styles.actionIcon}>↩️</Text>
         </TouchableOpacity>
@@ -58,6 +62,10 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
           style={[styles.actionButton, !canRedo() && styles.actionButtonDisabled]}
           onPress={redo}
           disabled={!canRedo()}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Redo last action"
+          accessibilityState={{ disabled: !canRedo() }}
         >
           <Text style={styles.actionIcon}>↪️</Text>
         </TouchableOpacity>
@@ -67,6 +75,10 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
           style={[styles.actionButton, waypoints.length === 0 && styles.actionButtonDisabled]}
           onPress={clearWaypoints}
           disabled={waypoints.length === 0}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Clear all waypoints"
+          accessibilityState={{ disabled: waypoints.length === 0 }}
         >
           <Text style={styles.actionIcon}>🗑️</Text>
         </TouchableOpacity>
@@ -77,6 +89,10 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
             style={[styles.actionButton, styles.calculateButton]}
             onPress={calculateCurrentRoute}
             disabled={isCalculating}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={isCalculating ? 'Calculating route' : 'Calculate route'}
+            accessibilityState={{ disabled: isCalculating }}
           >
             <Text style={styles.actionIcon}>{isCalculating ? '⏳' : '🔄'}</Text>
           </TouchableOpacity>
@@ -85,13 +101,23 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
 
       {/* Save/Cancel buttons */}
       <View style={styles.saveCancel}>
-        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={onCancel}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel route planning"
+        >
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.saveButton, waypoints.length < 2 && styles.saveButtonDisabled]}
           onPress={onSave}
           disabled={waypoints.length < 2}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Save route"
+          accessibilityState={{ disabled: waypoints.length < 2 }}
         >
           <Text style={styles.saveText}>Save</Text>
         </TouchableOpacity>

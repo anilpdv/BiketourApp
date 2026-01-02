@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useCallback } from 'react';
+import React, { forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { View, Modal, Pressable, ScrollView } from 'react-native';
 import { Surface, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -50,10 +50,11 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
       onClose?.();
     }, [onClose]);
 
-    if (!poi) return null;
+    // Memoize extracted POI data to avoid recalculation on every render
+    const contactInfo = useMemo(() => poi ? getPOIContactInfo(poi) : null, [poi]);
+    const amenities = useMemo(() => poi ? getPOIAmenities(poi) : null, [poi]);
 
-    const contactInfo = getPOIContactInfo(poi);
-    const amenities = getPOIAmenities(poi);
+    if (!poi || !contactInfo || !amenities) return null;
 
     return (
       <Modal

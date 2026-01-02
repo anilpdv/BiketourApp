@@ -10,6 +10,7 @@ import {
   Dimensions,
   FlatList,
   StatusBar,
+  ViewToken,
 } from 'react-native';
 import { Text, IconButton, useTheme } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -64,8 +65,8 @@ const FullscreenViewer = memo(function FullscreenViewer({
     }
   };
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index != null) {
       setCurrentIndex(viewableItems[0].index);
     }
   }).current;

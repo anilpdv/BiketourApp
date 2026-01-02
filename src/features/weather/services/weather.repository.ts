@@ -1,6 +1,6 @@
 import { databaseService } from '../../../shared/database/database.service';
 import { WeatherForecast, CurrentWeather, DailyForecast } from '../types';
-import { logger } from '../../../shared/utils';
+import { logger, getCoordinateCacheKey, createWriteQueue } from '../../../shared/utils';
 
 interface WeatherCacheRow {
   cache_key: string;
@@ -16,13 +16,8 @@ interface WeatherCacheRow {
 // Cache duration: 24 hours
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Generate cache key from coordinates
- * Uses 2 decimal precision (~1km)
- */
-function getCacheKey(lat: number, lon: number): string {
-  return `${lat.toFixed(2)},${lon.toFixed(2)}`;
-}
+// Write queue to serialize database operations and prevent transaction conflicts
+const writeQueue = createWriteQueue();
 
 /**
  * Convert database row to WeatherForecast object
@@ -38,9 +33,6 @@ function rowToWeatherForecast(row: WeatherCacheRow): WeatherForecast {
   };
 }
 
-// Write queue to serialize database operations and prevent transaction conflicts
-let writeQueue: Promise<void> = Promise.resolve();
-
 /**
  * Weather repository for SQLite cache operations
  */
@@ -52,7 +44,7 @@ export const weatherRepository = {
    * Returns null if not cached or expired
    */
   async getCached(lat: number, lon: number): Promise<WeatherForecast | null> {
-    const cacheKey = getCacheKey(lat, lon);
+    const cacheKey = getCoordinateCacheKey(lat, lon);
     const now = new Date().toISOString();
 
     const row = await databaseService.queryFirst<WeatherCacheRow>(
@@ -73,7 +65,7 @@ export const weatherRepository = {
    */
   async cache(weather: WeatherForecast): Promise<void> {
     const cacheOperation = async (): Promise<void> => {
-      const cacheKey = getCacheKey(weather.latitude, weather.longitude);
+      const cacheKey = getCoordinateCacheKey(weather.latitude, weather.longitude);
       const now = new Date(weather.fetchedAt);
       const expiresAt = new Date(now.getTime() + CACHE_DURATION_MS);
       const fetchedAtStr = now.toISOString();
@@ -104,11 +96,9 @@ export const weatherRepository = {
     };
 
     // Queue the write operation
-    writeQueue = writeQueue.then(cacheOperation).catch((error) => {
+    return writeQueue.enqueue(cacheOperation, (error) => {
       logger.warn('cache', 'Weather cache write error', error);
     });
-
-    return writeQueue;
   },
 
   /**

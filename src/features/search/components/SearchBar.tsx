@@ -9,6 +9,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { useSearchStore } from '../store/searchStore';
+import { colors, spacing, borderRadius } from '../../../shared/design/tokens';
 
 interface SearchBarProps {
   onFocus?: () => void;
@@ -81,7 +82,7 @@ export function SearchBar({ onFocus, onBlur, placeholder = 'Search places...' }:
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.neutral[400]}
         returnKeyType="search"
         autoCapitalize="none"
         autoCorrect={false}
@@ -89,7 +90,7 @@ export function SearchBar({ onFocus, onBlur, placeholder = 'Search places...' }:
       />
 
       {isSearching && (
-        <ActivityIndicator size="small" color="#2196F3" style={styles.loader} />
+        <ActivityIndicator size="small" color={colors.primary[500]} style={styles.loader} />
       )}
 
       {query.length > 0 && !isSearching && (
@@ -105,11 +106,11 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
     height: 48,
-    shadowColor: '#000',
+    shadowColor: colors.neutral[900],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -118,11 +119,11 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   containerFocused: {
-    borderColor: '#2196F3',
+    borderColor: colors.primary[500],
     shadowOpacity: 0.2,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   iconText: {
     fontSize: 18,
@@ -130,18 +131,18 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: colors.neutral[800],
     paddingVertical: 0,
   },
   loader: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   clearButton: {
-    marginLeft: 8,
-    padding: 4,
+    marginLeft: spacing.sm,
+    padding: spacing.xs,
   },
   clearIcon: {
     fontSize: 16,
-    color: '#999',
+    color: colors.neutral[400],
   },
 });

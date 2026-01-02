@@ -50,7 +50,7 @@ function POIFilterBarComponent({
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: colors.neutral[0],
                     borderColor: isSelected ? category.color : colors.neutral[300],
                   },
                 ]}

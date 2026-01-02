@@ -6,20 +6,10 @@ import {
   fetchPOIsProgressively,
   fetchPOIsForViewport,
 } from '../services/overpass.service';
-import { logger } from '../../../shared/utils';
+import { logger, withTimeout, isTimeoutError } from '../../../shared/utils';
 
 // Loading timeout to prevent forever loading (15 seconds)
 const LOADING_TIMEOUT_MS = 15000;
-
-// Helper to wrap promises with timeout
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
-    ),
-  ]);
-}
 
 interface POIState {
   // All loaded POIs
@@ -244,8 +234,8 @@ export const usePOIStore = create<POIState>((set, get) => ({
       );
       get().addPOIs(pois);
       set({ isLoading: false });
-    } catch (error: any) {
-      const errorMessage = error?.message?.includes('timed out')
+    } catch (error: unknown) {
+      const errorMessage = isTimeoutError(error)
         ? 'POI loading timed out. Try zooming in.'
         : 'Failed to load POIs';
       logger.error('store', errorMessage, error);
@@ -274,8 +264,8 @@ export const usePOIStore = create<POIState>((set, get) => ({
         'POI loading timed out'
       );
       set({ isLoading: false });
-    } catch (error: any) {
-      const errorMessage = error?.message?.includes('timed out')
+    } catch (error: unknown) {
+      const errorMessage = isTimeoutError(error)
         ? 'POI loading timed out. Try zooming in.'
         : 'Failed to load POIs';
       logger.error('store', errorMessage, error);
@@ -298,8 +288,8 @@ export const usePOIStore = create<POIState>((set, get) => ({
       );
       get().addPOIs(pois);
       set({ isLoading: false });
-    } catch (error: any) {
-      const errorMessage = error?.message?.includes('timed out')
+    } catch (error: unknown) {
+      const errorMessage = isTimeoutError(error)
         ? 'POI loading timed out. Try zooming in.'
         : 'Failed to load POIs';
       logger.error('store', errorMessage, error);

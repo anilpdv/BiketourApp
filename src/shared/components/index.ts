@@ -13,3 +13,4 @@ export * from './EmptyState';
 export * from './BottomSheet';
 export * from './StatsHeader';
 export * from './ErrorBoundary';
+export * from './LabeledIconButton';

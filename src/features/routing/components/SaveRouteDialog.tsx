@@ -1,6 +1,7 @@
 import React, { useState, memo, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../../shared/design/tokens';
+import { formatDistance } from '../../../shared/utils';
 
 export interface SaveRouteDialogProps {
   visible: boolean;
@@ -47,13 +48,6 @@ export const SaveRouteDialog = memo(function SaveRouteDialog({
     setName('');
     setDescription('');
     onCancel();
-  };
-
-  const formatDistance = (meters: number): string => {
-    if (meters < 1000) {
-      return `${Math.round(meters)} m`;
-    }
-    return `${(meters / 1000).toFixed(1)} km`;
   };
 
   return (

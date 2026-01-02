@@ -9,7 +9,16 @@ import {
   Alert,
 } from 'react-native';
 import { useOfflineStore } from '../store/offlineStore';
-import { formatBytes } from '../services/offlineMap.service';
+import { formatBytes, OfflinePack, OfflinePackStatus } from '../services/offlineMap.service';
+import { colors, spacing, borderRadius } from '../../../shared/design/tokens';
+
+/**
+ * Unified list item type for displaying both downloaded and downloading packs
+ */
+type OfflineListItem = {
+  name: string;
+  status?: OfflinePackStatus;
+};
 
 interface OfflineManagerProps {
   onClose?: () => void;
@@ -57,7 +66,7 @@ export function OfflineManager({ onClose }: OfflineManagerProps) {
     }
   };
 
-  const renderPack = ({ item }: { item: any }) => {
+  const renderPack = ({ item }: { item: OfflineListItem }) => {
     const downloadStatus = downloadingPacks.get(item.name);
     const isDownloading = downloadStatus?.state === 'active';
 
@@ -70,7 +79,7 @@ export function OfflineManager({ onClose }: OfflineManagerProps) {
               ? `Downloading: ${Math.round(downloadStatus.percentage)}%`
               : getStatusText(item.status?.state || 'complete')}
           </Text>
-          {item.status?.completedTileSize > 0 && (
+          {item.status && item.status.completedTileSize > 0 && (
             <Text style={styles.packSize}>
               Size: {formatBytes(item.status.completedTileSize)}
             </Text>
@@ -100,7 +109,7 @@ export function OfflineManager({ onClose }: OfflineManagerProps) {
     status,
   }));
 
-  const allItems = [...downloadingList, ...packs.filter(p => !downloadingPacks.has(p.name))];
+  const allItems: OfflineListItem[] = [...downloadingList, ...packs.filter(p => !downloadingPacks.has(p.name))];
 
   return (
     <View style={styles.container}>
@@ -115,7 +124,7 @@ export function OfflineManager({ onClose }: OfflineManagerProps) {
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2196F3" />
+          <ActivityIndicator size="large" color={colors.primary[500]} />
           <Text style={styles.loadingText}>Loading offline regions...</Text>
         </View>
       ) : allItems.length === 0 ? (
@@ -149,28 +158,28 @@ export function OfflineManager({ onClose }: OfflineManagerProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.neutral[0],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.neutral[200],
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.neutral[800],
   },
   closeButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   closeButtonText: {
     fontSize: 16,
-    color: '#2196F3',
+    color: colors.primary[500],
   },
   loadingContainer: {
     flex: 1,
@@ -178,91 +187,91 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing.md,
     fontSize: 16,
-    color: '#666',
+    color: colors.neutral[600],
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing['3xl'],
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    color: colors.neutral[800],
+    marginBottom: spacing.sm,
   },
   emptyText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.neutral[600],
     textAlign: 'center',
     lineHeight: 20,
   },
   listContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   packItem: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.neutral[50],
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
   packInfo: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   packName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.neutral[800],
+    marginBottom: spacing.xs,
   },
   packStatus: {
     fontSize: 14,
-    color: '#666',
+    color: colors.neutral[600],
   },
   packSize: {
     fontSize: 12,
-    color: '#888',
+    color: colors.neutral[500],
     marginTop: 2,
   },
   progressContainer: {
     height: 6,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: colors.neutral[200],
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#2196F3',
+    backgroundColor: colors.primary[500],
     borderRadius: 3,
   },
   deleteButton: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#ffebee',
-    borderRadius: 6,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.status.errorBg,
+    borderRadius: borderRadius.sm,
   },
   deleteButtonText: {
     fontSize: 14,
-    color: '#d32f2f',
+    color: colors.status.error,
     fontWeight: '600',
   },
   footer: {
-    padding: 16,
+    padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    backgroundColor: '#fafafa',
+    borderTopColor: colors.neutral[200],
+    backgroundColor: colors.neutral[25],
   },
   footerText: {
     fontSize: 13,
-    color: '#666',
+    color: colors.neutral[600],
     textAlign: 'center',
     lineHeight: 18,
   },

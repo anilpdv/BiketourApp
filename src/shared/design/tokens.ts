@@ -39,6 +39,7 @@ export const colors = {
   // Neutral colors (Grays)
   neutral: {
     0: '#ffffff',
+    25: '#fafafa', // Very light gray
     50: '#f5f5f5',
     100: '#f0f0f0',
     200: '#e0e0e0',
@@ -57,7 +58,15 @@ export const colors = {
     warning: '#FF9800',
     error: '#f44336',
     errorLight: '#ff5252',
+    errorBg: '#ffebee', // Light red background
     info: '#2196F3',
+    favorite: '#DC143C', // Crimson for favorites
+    favoriteLight: '#ffe4e8', // Light pink background for active favorites
+  },
+
+  // Primary backgrounds (light variations)
+  primaryBg: {
+    light: '#f0f7ff', // Very light primary blue background
   },
 
   // Feature-specific colors

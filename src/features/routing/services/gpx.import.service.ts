@@ -4,6 +4,18 @@ import { XMLParser } from 'fast-xml-parser';
 import { CustomRoute, Waypoint, Coordinate, RoutePlanningMode } from '../types';
 import { logger } from '../../../shared/utils';
 
+/**
+ * GPX waypoint as parsed from XML by fast-xml-parser
+ */
+interface GPXWaypoint {
+  '@_lat': number;
+  '@_lon': number;
+  name?: string;
+  desc?: string;
+  ele?: number;
+  time?: string;
+}
+
 interface GPXData {
   metadata?: {
     name?: string;
@@ -48,7 +60,7 @@ export function parseGPX(gpxString: string): GPXData {
   const waypoints: Waypoint[] = [];
   if (gpx.wpt) {
     const wptArray = Array.isArray(gpx.wpt) ? gpx.wpt : [gpx.wpt];
-    wptArray.forEach((wpt: any, index: number) => {
+    wptArray.forEach((wpt: GPXWaypoint, index: number) => {
       waypoints.push({
         id: `imported-wp-${index}`,
         latitude: wpt['@_lat'],

@@ -23,7 +23,7 @@ const RETRY_DELAY = 1000; // 1 second
 /**
  * Create an AbortController with timeout
  */
-function createTimeoutController(
+export function createTimeoutController(
   timeoutMs: number,
   existingSignal?: AbortSignal
 ): { controller: AbortController; cleanup: () => void } {
@@ -212,5 +212,27 @@ export async function httpFetch(
       throw error;
     }
     throw ApiError.fromError(error);
+  }
+}
+
+/**
+ * Perform a fetch with timeout and optional external abort signal
+ * Useful for services that need raw Response handling with consistent timeout behavior
+ */
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout: number,
+  externalSignal?: AbortSignal
+): Promise<Response> {
+  const { controller, cleanup } = createTimeoutController(timeout, externalSignal);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    cleanup();
   }
 }

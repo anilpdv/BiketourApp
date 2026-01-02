@@ -69,6 +69,9 @@ export const RouteChipSelector = memo(function RouteChipSelector({
                 showSelectedCheck={false}
                 elevated={!isEnabled}
                 elevation={isEnabled ? 0 : 1}
+                accessibilityLabel={`EuroVelo route ${id}, ${isEnabled ? 'enabled' : 'disabled'}${isSelected ? ', selected' : ''}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected, disabled: false }}
               >
                 EV{id}
               </Chip>

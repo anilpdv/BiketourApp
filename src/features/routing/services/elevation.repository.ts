@@ -1,5 +1,5 @@
 import { databaseService } from '../../../shared/database/database.service';
-import { logger } from '../../../shared/utils';
+import { logger, getCoordinateCacheKey, createWriteQueue } from '../../../shared/utils';
 
 interface ElevationCacheRow {
   cache_key: string;
@@ -13,16 +13,8 @@ interface ElevationCacheRow {
 // Cache duration: 30 days (elevation data is static)
 const CACHE_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
-/**
- * Generate cache key from coordinates
- * Uses 2 decimal precision (~1km)
- */
-function getCacheKey(lat: number, lon: number): string {
-  return `${lat.toFixed(2)},${lon.toFixed(2)}`;
-}
-
 // Write queue to serialize database operations and prevent transaction conflicts
-let writeQueue: Promise<void> = Promise.resolve();
+const writeQueue = createWriteQueue();
 
 /**
  * Elevation repository for SQLite cache operations
@@ -35,7 +27,7 @@ export const elevationRepository = {
    * Returns null if not cached or expired
    */
   async getCached(lat: number, lon: number): Promise<number | null> {
-    const cacheKey = getCacheKey(lat, lon);
+    const cacheKey = getCoordinateCacheKey(lat, lon);
     const now = new Date().toISOString();
 
     const row = await databaseService.queryFirst<ElevationCacheRow>(
@@ -61,7 +53,7 @@ export const elevationRepository = {
       return new Map();
     }
 
-    const cacheKeys = coordinates.map((c) => getCacheKey(c.latitude, c.longitude));
+    const cacheKeys = coordinates.map((c) => getCoordinateCacheKey(c.latitude, c.longitude));
     const uniqueKeys = [...new Set(cacheKeys)];
     const now = new Date().toISOString();
 
@@ -92,7 +84,7 @@ export const elevationRepository = {
    */
   async cache(lat: number, lon: number, elevation: number): Promise<void> {
     const cacheOperation = async (): Promise<void> => {
-      const cacheKey = getCacheKey(lat, lon);
+      const cacheKey = getCoordinateCacheKey(lat, lon);
       const now = new Date();
       const expiresAt = new Date(now.getTime() + CACHE_DURATION_MS);
       const fetchedAtStr = now.toISOString();
@@ -112,11 +104,9 @@ export const elevationRepository = {
     };
 
     // Queue the write operation
-    writeQueue = writeQueue.then(cacheOperation).catch((error) => {
+    return writeQueue.enqueue(cacheOperation, (error) => {
       logger.warn('cache', 'Elevation cache write error', error);
     });
-
-    return writeQueue;
   },
 
   /**
@@ -139,7 +129,7 @@ export const elevationRepository = {
       // Insert in batches using transaction
       await databaseService.transaction(async (db) => {
         for (const item of data) {
-          const cacheKey = getCacheKey(item.latitude, item.longitude);
+          const cacheKey = getCoordinateCacheKey(item.latitude, item.longitude);
 
           await db.runAsync(
             `INSERT INTO elevation_cache (cache_key, latitude, longitude, elevation, fetched_at, expires_at)
@@ -157,11 +147,9 @@ export const elevationRepository = {
     };
 
     // Queue the write operation
-    writeQueue = writeQueue.then(cacheOperation).catch((error) => {
+    return writeQueue.enqueue(cacheOperation, (error) => {
       logger.warn('cache', 'Elevation cache batch write error', error);
     });
-
-    return writeQueue;
   },
 
   /**
@@ -207,5 +195,5 @@ export const elevationRepository = {
   /**
    * Get cache key for a coordinate (exposed for external use)
    */
-  getCacheKey,
+  getCacheKey: getCoordinateCacheKey,
 };

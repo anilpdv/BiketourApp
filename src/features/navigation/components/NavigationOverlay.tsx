@@ -105,6 +105,9 @@ export const NavigationOverlay = memo(function NavigationOverlay({
               pressed && styles.buttonPressed,
             ]}
             onPress={onResume}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Resume navigation"
           >
             <MaterialCommunityIcons name="play" size={20} color={colors.neutral[0]} />
             <Text style={styles.buttonTextLight}>Resume</Text>
@@ -117,6 +120,9 @@ export const NavigationOverlay = memo(function NavigationOverlay({
               pressed && styles.buttonPressed,
             ]}
             onPress={onPause}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Pause navigation"
           >
             <MaterialCommunityIcons name="pause" size={20} color={colors.neutral[700]} />
             <Text style={styles.buttonTextDark}>Pause</Text>
@@ -130,6 +136,9 @@ export const NavigationOverlay = memo(function NavigationOverlay({
             pressed && styles.buttonPressed,
           ]}
           onPress={onStop}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="End navigation"
         >
           <MaterialCommunityIcons name="stop" size={20} color={colors.neutral[0]} />
           <Text style={styles.buttonTextLight}>End</Text>

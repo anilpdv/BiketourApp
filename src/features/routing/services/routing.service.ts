@@ -2,7 +2,7 @@ import { Coordinate, CalculatedRoute, Waypoint, RouteInstruction, RoutingProfile
 import { httpGet } from '../../../shared/api';
 import { API_CONFIG } from '../../../shared/config';
 import { getAccessToken } from '../../../shared/config/mapbox.config';
-import { logger } from '../../../shared/utils';
+import { logger, formatDistance, formatDuration, calculateDistanceMeters } from '../../../shared/utils';
 
 // OSRM API base URL from centralized config
 const OSRM_API = API_CONFIG.routing.baseUrl;
@@ -335,56 +335,20 @@ export async function snapToRoad(
   }
 }
 
-/**
- * Format distance for display
- */
-export function formatDistance(meters: number): string {
-  if (meters < 1000) {
-    return `${Math.round(meters)} m`;
-  }
-  return `${(meters / 1000).toFixed(1)} km`;
-}
-
-/**
- * Format duration for display
- */
-export function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-
-  if (hours === 0) {
-    return `${minutes} min`;
-  }
-  return `${hours}h ${minutes}m`;
-}
-
-/**
- * Calculate straight-line distance between two points (Haversine)
- */
-export function calculateHaversineDistance(
-  point1: Coordinate,
-  point2: Coordinate
-): number {
-  const R = 6371000; // Earth's radius in meters
-  const dLat = ((point2.latitude - point1.latitude) * Math.PI) / 180;
-  const dLon = ((point2.longitude - point1.longitude) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((point1.latitude * Math.PI) / 180) *
-      Math.cos((point2.latitude * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+// formatDistance and formatDuration are imported from shared/utils/formatters.ts
+// calculateDistanceMeters replaces the local calculateHaversineDistance
+// Re-export for backward compatibility
+export { formatDistance, formatDuration };
+export { calculateDistanceMeters as calculateHaversineDistance };
 
 /**
  * Calculate total distance of a path
+ * Uses calculateDistanceMeters from shared geo.utils
  */
 export function calculatePathDistance(path: Coordinate[]): number {
   let total = 0;
   for (let i = 1; i < path.length; i++) {
-    total += calculateHaversineDistance(path[i - 1], path[i]);
+    total += calculateDistanceMeters(path[i - 1], path[i]);
   }
   return total;
 }

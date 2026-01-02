@@ -3,11 +3,9 @@ import { Camera } from '@rnmapbox/maps';
 import type Mapbox from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { ParsedRoute } from '../../routes/types';
+import { MapBounds } from '../../../shared/types';
 
-export interface MapBounds {
-  ne: [number, number];
-  sw: [number, number];
-}
+export { MapBounds } from '../../../shared/types';
 
 export interface CameraSettings {
   centerCoordinate: [number, number];
