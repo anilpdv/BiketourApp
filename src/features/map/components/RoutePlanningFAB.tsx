@@ -42,8 +42,8 @@ export const RoutePlanningFAB = memo(function RoutePlanningFAB({
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    bottom: 100,
-    right: spacing.lg,
+    bottom: 80,
+    left: spacing.lg,
     width: 56,
     height: 56,
     borderRadius: 28,

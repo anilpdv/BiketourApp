@@ -4,10 +4,13 @@ import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, Sym
 import type { MapView as MapViewType } from '@rnmapbox/maps';
 import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
-import { POIDetailSheet, POIDetailSheetRef, POIFilterBar } from '../../src/features/pois';
+import { POIDetailSheet, POIDetailSheetRef } from '../../src/features/pois';
+import { FiltersModal } from '../../src/features/pois/components/FiltersModal';
+import { POIListView } from '../../src/features/pois/components/POIListView';
+import { useFilterStore } from '../../src/features/pois/store/filterStore';
 import { RoutePlanningToolbar, SaveRouteDialog, DraggableWaypointMarker } from '../../src/features/routing';
 import { useActiveNavigation, NavigationOverlay, NavigationStartButton } from '../../src/features/navigation';
-import { SearchBar, SearchResults, SearchResult } from '../../src/features/search';
+import { SearchResults, SearchResult } from '../../src/features/search';
 import { LoadingSpinner, ErrorMessage, ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing } from '../../src/shared/design/tokens';
 import { debounce } from '../../src/shared/utils';
@@ -24,19 +27,34 @@ import {
 
 // Map feature components
 import {
-  MapControls,
   MapStylePicker,
   RouteChipSelector,
   RouteInfoCard,
   TerrainLayer,
   RoutePlanningFAB,
 } from '../../src/features/map/components';
+import { MapHeader } from '../../src/features/map/components/MapHeader';
+import { FilterChipsBar } from '../../src/features/map/components/FilterChipsBar';
+import { MapControlsBottom } from '../../src/features/map/components/MapControlsBottom';
 
 export default function MapScreen() {
   const poiDetailSheetRef = useRef<POIDetailSheetRef>(null);
   const mapRef = useRef<MapViewType>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isListView, setIsListView] = useState(false);
+
+  // Filter store for advanced filtering
+  const {
+    filters: extendedFilters,
+    isModalVisible: isFiltersModalVisible,
+    openModal: openFiltersModal,
+    closeModal: closeFiltersModal,
+    applyFilters,
+    getActiveFilterCount,
+    getQuickFilters,
+    toggleCategory: toggleFilterCategory,
+  } = useFilterStore();
 
   // Custom hooks for state management
   const { location, errorMsg, refreshLocation } = useLocation();
@@ -266,6 +284,56 @@ export default function MapScreen() {
     setIsSearchFocused(false);
   }, [flyTo]);
 
+  // Toggle list/map view
+  const handleToggleView = useCallback(() => {
+    setIsListView((prev) => !prev);
+  }, []);
+
+  // Handle zoom in
+  const handleZoomIn = useCallback(() => {
+    if (cameraRef.current) {
+      cameraRef.current.zoomTo(14, 300);
+    }
+  }, [cameraRef]);
+
+  // Handle zoom out
+  const handleZoomOut = useCallback(() => {
+    if (cameraRef.current) {
+      cameraRef.current.zoomTo(8, 300);
+    }
+  }, [cameraRef]);
+
+  // Handle quick filter toggle
+  const handleToggleQuickFilter = useCallback((filterId: string) => {
+    // Handle category quick filters
+    if (filterId.startsWith('category_')) {
+      const category = filterId.replace('category_', '');
+      toggleFilterCategory(category as any);
+    }
+    // Price and rating filters open the modal
+    if (filterId === 'maxPrice' || filterId === 'minRating') {
+      openFiltersModal();
+    }
+  }, [toggleFilterCategory, openFiltersModal]);
+
+  // Handle POI selection from list
+  const handleSelectPOIFromList = useCallback((poi: any) => {
+    selectPOI(poi);
+    poiDetailSheetRef.current?.present(poi);
+    // Optionally switch to map view to show location
+  }, [selectPOI]);
+
+  // Handle toggle favorite from list
+  const handleToggleFavoriteFromList = useCallback((poi: any) => {
+    // Toggle favorite via POI store
+    // The usePOIDisplay hook should have this functionality
+  }, []);
+
+  // Handle refresh POIs in list
+  const handleRefreshPOIs = useCallback(() => {
+    // Trigger POI refresh
+  }, []);
+
   // Get loaded route IDs for chip selector
   const loadedRouteIds = routes.map(r => r.euroVeloId);
 
@@ -441,17 +509,28 @@ export default function MapScreen() {
         ))}
       </MapView>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <SearchBar
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-          placeholder="Search location..."
-        />
-        {isSearchFocused && (
+      {/* Map Header with Search and List Toggle */}
+      <MapHeader
+        isListView={isListView}
+        onToggleView={handleToggleView}
+        onSearchFocus={() => setIsSearchFocused(true)}
+        onSearchBlur={() => setIsSearchFocused(false)}
+      />
+
+      {/* Search Results (when focused) */}
+      {isSearchFocused && (
+        <View style={styles.searchResultsContainer}>
           <SearchResults onSelectResult={handleSelectSearchResult} />
-        )}
-      </View>
+        </View>
+      )}
+
+      {/* Filter Chips Bar */}
+      <FilterChipsBar
+        onOpenFilters={openFiltersModal}
+        activeFilterCount={getActiveFilterCount()}
+        quickFilters={getQuickFilters()}
+        onToggleQuickFilter={handleToggleQuickFilter}
+      />
 
       {/* Route Chip Selector */}
       <RouteChipSelector
@@ -463,30 +542,16 @@ export default function MapScreen() {
         onToggleRoute={toggleRoute}
       />
 
-      {/* POI Filter Bar */}
-      {showPOIs && (
-        <View style={styles.poiFilterContainer}>
-          <POIFilterBar
-            selectedCategories={filters.categories}
-            onToggleCategory={toggleCategory}
-            poiCounts={poiCounts}
-            isLoading={poisLoading}
-          />
-        </View>
+      {/* Map Controls Bottom - only show in map view */}
+      {!isListView && (
+        <MapControlsBottom
+          hasLocation={!!location}
+          onCenterOnLocation={handleCenterOnLocation}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onOpenLayers={openStylePicker}
+        />
       )}
-
-      {/* Map Controls */}
-      <MapControls
-        showPOIs={showPOIs}
-        show3DTerrain={show3DTerrain}
-        show3DBuildings={show3DBuildings}
-        hasLocation={!!location}
-        onTogglePOIs={togglePOIs}
-        onToggle3DTerrain={toggle3DTerrain}
-        onToggle3DBuildings={toggle3DBuildings}
-        onOpenStylePicker={openStylePicker}
-        onCenterOnLocation={handleCenterOnLocation}
-      />
 
       {/* Map Style Picker */}
       <MapStylePicker
@@ -571,6 +636,35 @@ export default function MapScreen() {
         </View>
       )}
 
+      {/* POI List View - shown when in list mode */}
+      {isListView && (
+        <POIListView
+          pois={filteredPOIs}
+          userLocation={
+            location
+              ? {
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                }
+              : null
+          }
+          onSelectPOI={handleSelectPOIFromList}
+          onToggleFavorite={handleToggleFavoriteFromList}
+          favoriteIds={favoriteIds}
+          isLoading={poisLoading}
+          onRefresh={handleRefreshPOIs}
+        />
+      )}
+
+      {/* Filters Modal */}
+      <FiltersModal
+        visible={isFiltersModalVisible}
+        onClose={closeFiltersModal}
+        onApply={applyFilters}
+        currentFilters={extendedFilters}
+        resultCount={filteredPOIs.length}
+      />
+
       {/* POI Detail Sheet */}
       <POIDetailSheet
         ref={poiDetailSheetRef}
@@ -591,18 +685,12 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  poiFilterContainer: {
-    position: 'absolute',
-    top: 55,
-    left: 0,
-    right: 0,
-    zIndex: 1,
-  },
   errorContainer: {
     position: 'absolute',
-    top: spacing.xl,
+    top: 160,
     left: spacing.xl,
     right: spacing.xl,
+    zIndex: 5,
   },
   toolbarContainer: {
     position: 'absolute',
@@ -611,11 +699,11 @@ const styles = StyleSheet.create({
     right: spacing.lg,
     zIndex: 10,
   },
-  searchContainer: {
+  searchResultsContainer: {
     position: 'absolute',
-    top: spacing.xl,
+    top: 115,
     left: spacing.lg,
     right: spacing.lg,
-    zIndex: 20,
+    zIndex: 25,
   },
 });

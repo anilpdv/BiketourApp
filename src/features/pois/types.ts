@@ -1,5 +1,6 @@
 // POI category types
 export type POICategory =
+  // Existing bike-touring categories
   | 'campsite'
   | 'drinking_water'
   | 'bike_shop'
@@ -9,7 +10,16 @@ export type POICategory =
   | 'guest_house'
   | 'shelter'
   | 'supermarket'
-  | 'restaurant';
+  | 'restaurant'
+  // New camping-focused categories
+  | 'motorhome_spot'
+  | 'service_area'
+  | 'wild_camping'
+  | 'caravan_site'
+  | 'picnic_site'
+  | 'toilet'
+  | 'shower'
+  | 'laundry';
 
 // POI from OpenStreetMap
 export interface POI {
@@ -58,6 +68,32 @@ export interface POIFilterState {
   categories: POICategory[];
   maxDistance: number; // km from route
   showOnMap: boolean;
+}
+
+// Extended filter state for advanced filtering UI
+export interface POIFilterStateExtended extends POIFilterState {
+  maxPrice: number | null; // Max price per night (null = no limit)
+  minRating: number | null; // Minimum rating (null = no filter)
+  hasElectricity: boolean | null; // Electric hookup
+  hasWifi: boolean | null; // WiFi available
+  isPetFriendly: boolean | null; // Pets allowed
+  isOpenNow: boolean | null; // Currently open
+}
+
+// Category grouping for UI organization
+export interface POICategoryGroup {
+  id: string;
+  name: string;
+  icon: string;
+  categories: POICategory[];
+}
+
+// Quick filter chip configuration
+export interface QuickFilter {
+  id: string;
+  label: string;
+  isActive: boolean;
+  icon?: string;
 }
 
 // Extended POI with favorite status

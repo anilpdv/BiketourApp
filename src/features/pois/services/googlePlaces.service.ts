@@ -21,16 +21,29 @@ const rateLimiter = createRateLimiter(API_CONFIG.googlePlaces.rateLimit);
 
 // Map POI categories to Google Places types
 const CATEGORY_TYPE_MAP: Record<POICategory, string> = {
+  // Camping-focused categories
   campsite: 'campground',
+  motorhome_spot: 'rv_park',
+  caravan_site: 'rv_park',
+  wild_camping: 'park',
+  // Services categories
+  service_area: 'gas_station',
   drinking_water: 'point_of_interest',
-  bike_shop: 'bicycle_store',
-  bike_repair: 'bicycle_store',
+  toilet: 'point_of_interest',
+  shower: 'point_of_interest',
+  laundry: 'laundry',
+  // Accommodation categories
   hotel: 'lodging',
   hostel: 'lodging',
   guest_house: 'lodging',
   shelter: 'park',
-  supermarket: 'supermarket',
+  // Bike categories
+  bike_shop: 'bicycle_store',
+  bike_repair: 'bicycle_store',
+  // Food categories
   restaurant: 'restaurant',
+  supermarket: 'supermarket',
+  picnic_site: 'park',
 };
 
 /**

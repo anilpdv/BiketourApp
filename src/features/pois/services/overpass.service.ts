@@ -39,43 +39,86 @@ function getBboxKey(bbox: BoundingBox, categories?: POICategory[]): string {
 // POI category configurations
 // All categories are disabled by default - only explicitly selected categories are fetched
 export const POI_CATEGORIES: POICategoryConfig[] = [
+  // Camping-focused categories (primary)
   {
     id: 'campsite',
     name: 'Campsites',
     icon: 'tent',
-    color: '#4CAF50',
+    color: '#228B22',
     osmQuery: 'tourism=camp_site',
+    enabled: false,
+  },
+  {
+    id: 'motorhome_spot',
+    name: 'Motorhome Spots',
+    icon: 'caravan',
+    color: '#6B5B95',
+    osmQuery: 'tourism=caravan_site',
+    enabled: false,
+  },
+  {
+    id: 'caravan_site',
+    name: 'Caravan Sites',
+    icon: 'rv-truck',
+    color: '#FF6B35',
+    osmQuery: 'tourism=caravan_site',
+    enabled: false,
+  },
+  {
+    id: 'wild_camping',
+    name: 'Wild Camping',
+    icon: 'pine-tree',
+    color: '#2D5016',
+    osmQuery: 'tourism=camp_pitch',
+    enabled: false,
+  },
+  // Services categories
+  {
+    id: 'service_area',
+    name: 'Service Areas',
+    icon: 'gas-station',
+    color: '#45B7D1',
+    osmQuery: 'amenity=sanitary_dump_station',
     enabled: false,
   },
   {
     id: 'drinking_water',
     name: 'Drinking Water',
     icon: 'water',
-    color: '#2196F3',
+    color: '#1E90FF',
     osmQuery: 'amenity=drinking_water',
     enabled: false,
   },
   {
-    id: 'bike_shop',
-    name: 'Bike Shops',
-    icon: 'bicycle',
-    color: '#FF9800',
-    osmQuery: 'shop=bicycle',
+    id: 'toilet',
+    name: 'Toilets',
+    icon: 'toilet',
+    color: '#7A8B8B',
+    osmQuery: 'amenity=toilets',
     enabled: false,
   },
   {
-    id: 'bike_repair',
-    name: 'Repair Stations',
-    icon: 'wrench',
-    color: '#9C27B0',
-    osmQuery: 'amenity=bicycle_repair_station',
+    id: 'shower',
+    name: 'Showers',
+    icon: 'shower',
+    color: '#4ECDC4',
+    osmQuery: 'amenity=shower',
     enabled: false,
   },
+  {
+    id: 'laundry',
+    name: 'Laundry',
+    icon: 'washing-machine',
+    color: '#FFE66D',
+    osmQuery: 'shop=laundry',
+    enabled: false,
+  },
+  // Accommodation categories
   {
     id: 'hotel',
     name: 'Hotels',
     icon: 'hotel',
-    color: '#3F51B5',
+    color: '#9370DB',
     osmQuery: 'tourism=hotel',
     enabled: false,
   },
@@ -83,7 +126,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     id: 'hostel',
     name: 'Hostels',
     icon: 'bed',
-    color: '#009688',
+    color: '#20B2AA',
     osmQuery: 'tourism=hostel',
     enabled: false,
   },
@@ -91,7 +134,7 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     id: 'guest_house',
     name: 'Guest Houses',
     icon: 'home',
-    color: '#795548',
+    color: '#DEB887',
     osmQuery: 'tourism=guest_house',
     enabled: false,
   },
@@ -99,24 +142,50 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     id: 'shelter',
     name: 'Shelters',
     icon: 'shelter',
-    color: '#607D8B',
+    color: '#8B4513',
     osmQuery: 'amenity=shelter',
+    enabled: false,
+  },
+  // Bike categories
+  {
+    id: 'bike_shop',
+    name: 'Bike Shops',
+    icon: 'bicycle',
+    color: '#FF6347',
+    osmQuery: 'shop=bicycle',
+    enabled: false,
+  },
+  {
+    id: 'bike_repair',
+    name: 'Repair Stations',
+    icon: 'wrench',
+    color: '#FF8C00',
+    osmQuery: 'amenity=bicycle_repair_station',
+    enabled: false,
+  },
+  // Food categories
+  {
+    id: 'restaurant',
+    name: 'Restaurants',
+    icon: 'utensils',
+    color: '#DC143C',
+    osmQuery: 'amenity=restaurant',
     enabled: false,
   },
   {
     id: 'supermarket',
     name: 'Supermarkets',
     icon: 'cart',
-    color: '#795548',
+    color: '#32CD32',
     osmQuery: 'shop=supermarket',
     enabled: false,
   },
   {
-    id: 'restaurant',
-    name: 'Restaurants',
-    icon: 'utensils',
-    color: '#E91E63',
-    osmQuery: 'amenity=restaurant',
+    id: 'picnic_site',
+    name: 'Picnic Sites',
+    icon: 'table-picnic',
+    color: '#98D8C8',
+    osmQuery: 'leisure=picnic_table',
     enabled: false,
   },
 ];
@@ -169,16 +238,33 @@ function buildMultiCategoryQuery(
 
 // Determine POI category from OSM tags
 function getCategoryFromTags(tags: Record<string, string>): POICategory | null {
+  // Camping-focused categories
   if (tags.tourism === 'camp_site') return 'campsite';
+  if (tags.tourism === 'caravan_site') return 'motorhome_spot'; // Map to motorhome_spot
+  if (tags.tourism === 'camp_pitch') return 'wild_camping';
+
+  // Services categories
+  if (tags.amenity === 'sanitary_dump_station') return 'service_area';
   if (tags.amenity === 'drinking_water') return 'drinking_water';
-  if (tags.shop === 'bicycle') return 'bike_shop';
-  if (tags.amenity === 'bicycle_repair_station') return 'bike_repair';
+  if (tags.amenity === 'toilets') return 'toilet';
+  if (tags.amenity === 'shower') return 'shower';
+  if (tags.shop === 'laundry') return 'laundry';
+
+  // Accommodation categories
   if (tags.tourism === 'hotel') return 'hotel';
   if (tags.tourism === 'hostel') return 'hostel';
   if (tags.tourism === 'guest_house') return 'guest_house';
   if (tags.amenity === 'shelter') return 'shelter';
-  if (tags.shop === 'supermarket') return 'supermarket';
+
+  // Bike categories
+  if (tags.shop === 'bicycle') return 'bike_shop';
+  if (tags.amenity === 'bicycle_repair_station') return 'bike_repair';
+
+  // Food categories
   if (tags.amenity === 'restaurant') return 'restaurant';
+  if (tags.shop === 'supermarket') return 'supermarket';
+  if (tags.leisure === 'picnic_table') return 'picnic_site';
+
   return null;
 }
 

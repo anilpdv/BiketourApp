@@ -93,10 +93,10 @@ export const RouteChipSelector = memo(function RouteChipSelector({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 15,
     left: 0,
     right: 0,
-    zIndex: 1,
+    zIndex: 2,
   },
   scrollContent: {
     paddingHorizontal: spacing.sm,

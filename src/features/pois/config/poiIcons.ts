@@ -11,6 +11,7 @@ import { POICategory } from '../types';
 
 // Category colors (used for circle backgrounds)
 export const CATEGORY_COLORS: Record<POICategory, string> = {
+  // Existing categories
   campsite: '#228B22', // Forest Green
   drinking_water: '#1E90FF', // Dodger Blue
   bike_shop: '#FF6347', // Tomato
@@ -21,6 +22,15 @@ export const CATEGORY_COLORS: Record<POICategory, string> = {
   shelter: '#8B4513', // Saddle Brown
   supermarket: '#32CD32', // Lime Green
   restaurant: '#DC143C', // Crimson
+  // New camping-focused categories
+  motorhome_spot: '#6B5B95', // Purple
+  service_area: '#45B7D1', // Teal
+  wild_camping: '#2D5016', // Dark Green
+  caravan_site: '#FF6B35', // Orange
+  picnic_site: '#98D8C8', // Mint
+  toilet: '#7A8B8B', // Gray
+  shower: '#4ECDC4', // Cyan
+  laundry: '#FFE66D', // Yellow
 };
 
 // Map POI categories to Mapbox Maki icon names
@@ -36,6 +46,15 @@ export const CATEGORY_TO_MAKI_ICON: Record<POICategory, string> = {
   shelter: 'shelter',
   supermarket: 'grocery',
   restaurant: 'restaurant',
+  // New categories
+  motorhome_spot: 'car',
+  service_area: 'fuel',
+  wild_camping: 'park',
+  caravan_site: 'campsite',
+  picnic_site: 'picnic-site',
+  toilet: 'toilet',
+  shower: 'water',
+  laundry: 'laundry',
 };
 
 // MaterialCommunityIcons names for UI components
@@ -50,6 +69,15 @@ export const CATEGORY_TO_VECTOR_ICON: Record<POICategory, string> = {
   shelter: 'home-roof',
   supermarket: 'cart',
   restaurant: 'silverware-fork-knife',
+  // New categories
+  motorhome_spot: 'caravan',
+  service_area: 'gas-station',
+  wild_camping: 'pine-tree',
+  caravan_site: 'rv-truck',
+  picnic_site: 'table-picnic',
+  toilet: 'toilet',
+  shower: 'shower',
+  laundry: 'washing-machine',
 };
 
 // Fallback emoji icons (used if vector icons unavailable)
@@ -64,6 +92,15 @@ export const CATEGORY_TO_EMOJI: Record<POICategory, string> = {
   shelter: '🏕️',
   supermarket: '🛒',
   restaurant: '🍽️',
+  // New categories
+  motorhome_spot: '🚐',
+  service_area: '⛽',
+  wild_camping: '🌲',
+  caravan_site: '🚙',
+  picnic_site: '🧺',
+  toilet: '🚻',
+  shower: '🚿',
+  laundry: '🧺',
 };
 
 // Category display names
@@ -78,6 +115,15 @@ export const CATEGORY_NAMES: Record<POICategory, string> = {
   shelter: 'Shelter',
   supermarket: 'Supermarket',
   restaurant: 'Restaurant',
+  // New categories
+  motorhome_spot: 'Motorhome Spot',
+  service_area: 'Service Area',
+  wild_camping: 'Wild Camping',
+  caravan_site: 'Caravan Site',
+  picnic_site: 'Picnic Site',
+  toilet: 'Toilet',
+  shower: 'Shower',
+  laundry: 'Laundry',
 };
 
 /**
@@ -97,14 +143,27 @@ export function getCategoryIcon(category: POICategory) {
  * All POI categories in display order
  */
 export const ALL_CATEGORIES: POICategory[] = [
+  // Camping-focused (primary)
   'campsite',
+  'motorhome_spot',
+  'caravan_site',
+  'wild_camping',
+  // Services
+  'service_area',
   'drinking_water',
-  'bike_shop',
-  'bike_repair',
+  'toilet',
+  'shower',
+  'laundry',
+  // Accommodation
   'hotel',
   'hostel',
   'guest_house',
   'shelter',
-  'supermarket',
+  // Bike
+  'bike_shop',
+  'bike_repair',
+  // Food
   'restaurant',
+  'supermarket',
+  'picnic_site',
 ];

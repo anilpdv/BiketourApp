@@ -28,6 +28,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Map',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="map-outline" size={size} color={color} />
           ),
