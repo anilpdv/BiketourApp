@@ -56,6 +56,27 @@ const ROUTE_NAMES: Record<number, string> = {
   19: 'Meuse Cycle Route',
 };
 
+// Route metadata for UI display
+const ROUTE_METADATA: Record<number, { distance: string; countries: number }> = {
+  1:  { distance: '11,150 km', countries: 6 },
+  2:  { distance: '5,500 km', countries: 8 },
+  3:  { distance: '5,300 km', countries: 7 },
+  4:  { distance: '5,100 km', countries: 11 },
+  5:  { distance: '3,200 km', countries: 5 },
+  6:  { distance: '4,450 km', countries: 10 },
+  7:  { distance: '7,700 km', countries: 7 },
+  8:  { distance: '7,500 km', countries: 11 },
+  9:  { distance: '2,050 km', countries: 9 },
+  10: { distance: '9,000 km', countries: 9 },
+  11: { distance: '5,984 km', countries: 9 },
+  12: { distance: '5,932 km', countries: 7 },
+  13: { distance: '10,400 km', countries: 20 },
+  14: { distance: '1,125 km', countries: 5 },
+  15: { distance: '1,500 km', countries: 4 },
+  17: { distance: '1,115 km', countries: 2 },
+  19: { distance: '1,050 km', countries: 3 },
+};
+
 // GPX file imports - we import them as assets
 // Asset type from expo-asset is used at runtime
 const GPX_ASSETS: Record<string, number> = {
@@ -268,4 +289,9 @@ export const ROUTE_CONFIGS: EuroVeloRoute[] = EUROVELO_ROUTE_IDS.map((id) => ({
 
 export function getRouteConfig(routeId: string): EuroVeloRoute | undefined {
   return ROUTE_CONFIGS.find((r) => r.id === routeId);
+}
+
+// Get route metadata for UI display
+export function getRouteMetadata(euroVeloId: number): { distance: string; countries: number } {
+  return ROUTE_METADATA[euroVeloId] || { distance: 'N/A', countries: 0 };
 }

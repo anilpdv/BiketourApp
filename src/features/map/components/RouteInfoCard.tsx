@@ -59,7 +59,7 @@ export const RouteInfoCard = memo(function RouteInfoCard({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: spacing.xl,
+    bottom: 100,
     left: spacing.lg,
     right: spacing.lg,
     backgroundColor: colors.neutral[0],

@@ -28,11 +28,12 @@ import {
 // Map feature components
 import {
   MapStylePicker,
-  RouteChipSelector,
   RouteInfoCard,
   TerrainLayer,
   RoutePlanningFAB,
 } from '../../src/features/map/components';
+import { EuroVeloRoutesButton } from '../../src/features/routes/components/EuroVeloRoutesButton';
+import { EuroVeloRoutesModal } from '../../src/features/routes/components/EuroVeloRoutesModal';
 import { MapHeader } from '../../src/features/map/components/MapHeader';
 import { FilterChipsBar } from '../../src/features/map/components/FilterChipsBar';
 import { MapControlsBottom } from '../../src/features/map/components/MapControlsBottom';
@@ -43,6 +44,7 @@ export default function MapScreen() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isListView, setIsListView] = useState(false);
+  const [showRoutesModal, setShowRoutesModal] = useState(false);
 
   // Filter store for advanced filtering
   const {
@@ -532,11 +534,18 @@ export default function MapScreen() {
         onToggleQuickFilter={handleToggleQuickFilter}
       />
 
-      {/* Route Chip Selector */}
-      <RouteChipSelector
+      {/* EuroVelo Routes Button */}
+      <EuroVeloRoutesButton
+        activeCount={enabledRouteIds.length}
+        onPress={() => setShowRoutesModal(true)}
+      />
+
+      {/* EuroVelo Routes Modal */}
+      <EuroVeloRoutesModal
+        visible={showRoutesModal}
+        onClose={() => setShowRoutesModal(false)}
         availableRouteIds={getAvailableRouteIds()}
         enabledRouteIds={enabledRouteIds}
-        selectedRouteId={selectedRouteId}
         loadedRouteIds={loadedRouteIds}
         isLoading={routesLoading}
         onToggleRoute={toggleRoute}

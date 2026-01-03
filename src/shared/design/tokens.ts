@@ -8,32 +8,32 @@
 // =============================================================================
 
 export const colors = {
-  // Primary brand colors (Blue - used for active states, links, primary actions)
+  // Primary brand colors (Green - cycling/outdoor theme)
   primary: {
-    50: '#e3f2fd',
-    100: '#bbdefb',
-    200: '#90caf9',
-    300: '#64b5f6',
-    400: '#42a5f5',
-    500: '#2196F3', // Main primary
-    600: '#1e88e5',
-    700: '#1976d2',
-    800: '#1565c0',
-    900: '#0d47a1',
-  },
-
-  // Secondary colors (Green - success, cycling theme)
-  secondary: {
     50: '#e8f5e9',
     100: '#c8e6c9',
     200: '#a5d6a7',
     300: '#81c784',
     400: '#66bb6a',
-    500: '#4CAF50', // Main secondary
+    500: '#4CAF50', // Main primary
     600: '#43a047',
     700: '#388e3c',
     800: '#2e7d32',
     900: '#1b5e20',
+  },
+
+  // Secondary colors (Blue - info, links)
+  secondary: {
+    50: '#e3f2fd',
+    100: '#bbdefb',
+    200: '#90caf9',
+    300: '#64b5f6',
+    400: '#42a5f5',
+    500: '#2196F3', // Main secondary
+    600: '#1e88e5',
+    700: '#1976d2',
+    800: '#1565c0',
+    900: '#0d47a1',
   },
 
   // Neutral colors (Grays)
@@ -59,14 +59,14 @@ export const colors = {
     error: '#f44336',
     errorLight: '#ff5252',
     errorBg: '#ffebee', // Light red background
-    info: '#2196F3',
+    info: '#4CAF50', // Green to match primary
     favorite: '#DC143C', // Crimson for favorites
     favoriteLight: '#ffe4e8', // Light pink background for active favorites
   },
 
   // Primary backgrounds (light variations)
   primaryBg: {
-    light: '#f0f7ff', // Very light primary blue background
+    light: '#f0fff4', // Very light primary green background
   },
 
   // Feature-specific colors

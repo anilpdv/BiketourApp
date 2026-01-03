@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   filtersButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.secondary[700],
+    backgroundColor: colors.primary[700],
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: typography.fontSizes.sm,
     fontWeight: typography.fontWeights.bold,
-    color: colors.secondary[700],
+    color: colors.primary[700],
   },
 });
 

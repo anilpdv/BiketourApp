@@ -95,7 +95,7 @@ export const MapControlsBottom = memo(function MapControlsBottom({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 100,
     right: spacing.lg,
     zIndex: 5,
     gap: spacing.sm,
