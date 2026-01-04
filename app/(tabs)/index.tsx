@@ -180,7 +180,7 @@ export default function MapScreen() {
     });
   }, []);
 
-  // Load POIs after download completes - refresh current viewport
+  // Load POIs after download completes - refresh current viewport and focus on a POI
   useEffect(() => {
     if (downloadCompletedRegion) {
       logger.info('offline', 'Download completed, refreshing POIs for current viewport', {
@@ -200,10 +200,23 @@ export default function MapScreen() {
         togglePOIs();
       }
 
+      // After short delay, focus on a POI so user sees the downloaded content
+      setTimeout(() => {
+        if (filteredPOIs.length > 0) {
+          const firstPOI = filteredPOIs[0];
+          logger.info('offline', 'Focusing on first POI after download', {
+            poi: firstPOI.name,
+            lat: firstPOI.latitude,
+            lon: firstPOI.longitude,
+          });
+          flyTo([firstPOI.longitude, firstPOI.latitude], 14);
+        }
+      }, 500);
+
       // Clear the completion flag
       clearDownloadCompletedRegion();
     }
-  }, [downloadCompletedRegion, loadPOIsForBounds, currentBounds, showPOIs, togglePOIs, clearDownloadCompletedRegion]);
+  }, [downloadCompletedRegion, loadPOIsForBounds, currentBounds, showPOIs, togglePOIs, clearDownloadCompletedRegion, filteredPOIs, flyTo]);
 
   // Auto-prompt for POI download when viewing new region
   // Uses map viewport center (where user is looking), not GPS location

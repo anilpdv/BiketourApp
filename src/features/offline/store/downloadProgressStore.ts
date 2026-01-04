@@ -145,6 +145,9 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
         await onDownloadComplete();
       }
 
+      // Keep showing 100% progress for a moment so user sees completion
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       set({
         isDownloading: false,
         currentDownload: null,
