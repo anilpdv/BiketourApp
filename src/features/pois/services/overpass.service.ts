@@ -6,7 +6,8 @@ import {
   OverpassResponse,
   OverpassElement,
 } from '../types';
-import { poiRepository } from './poi.repository';
+// Use WatermelonDB repository for native thread performance
+import { poiRepositoryWM as poiRepository } from './poi.repository.watermelon';
 import {
   createRateLimiter,
   calculateHaversineDistance,
@@ -210,8 +211,8 @@ function buildOverpassQuery(bbox: BoundingBox, category: POICategoryConfig): str
   `;
 }
 
-// Build query for multiple categories
-function buildMultiCategoryQuery(
+// Build query for multiple categories (exported for bulk downloads)
+export function buildMultiCategoryQuery(
   bbox: BoundingBox,
   categories: POICategoryConfig[]
 ): string {
@@ -275,7 +276,8 @@ const ESSENTIAL_TAGS = [
   'fee', 'capacity', 'addr:street', 'addr:city', 'description'
 ];
 
-function parseOverpassResponse(response: OverpassResponse): POI[] {
+// Parse Overpass response to POIs (exported for bulk downloads)
+export function parseOverpassResponse(response: OverpassResponse): POI[] {
   const pois: POI[] = [];
 
   for (const element of response.elements) {
@@ -557,17 +559,54 @@ export async function fetchPOIsProgressively(
 /**
  * Fetch POIs for only the uncached tiles in a viewport
  * This is more efficient than fetching the entire bounding box
+ *
+ * IMPORTANT: Downloaded POIs are ALWAYS included regardless of category filters.
+ * This ensures users can see their offline POIs even if they change filter settings.
  */
 export async function fetchPOIsForViewport(
   bbox: BoundingBox,
   categories?: POICategory[],
+  showPOIs: boolean = true,  // Controls whether to fetch API POIs (downloaded always fetched)
   onProgress?: (loaded: number, total: number) => void,
   onChunkComplete?: (pois: POI[]) => void  // NEW: Show POIs as they load
 ): Promise<POI[]> {
   const startTime = Date.now();
-  logger.info('poi', 'fetchPOIsForViewport START', { bbox, categories });
+  logger.info('poi', 'fetchPOIsForViewport START', { bbox, categories, showPOIs });
 
   const allPOIs: POI[] = [];
+
+  // ALWAYS get downloaded POIs first - they bypass category filters
+  // Downloaded POIs should always be visible to the user
+  const downloadedPOIs = await poiRepository.getDownloadedPOIsInBounds(bbox);
+  logger.info('poi', '[DIAGNOSTIC] Downloaded POIs retrieved', {
+    count: downloadedPOIs.length,
+    sample: downloadedPOIs.slice(0, 3).map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      isDownloaded: p.isDownloaded,
+      lat: p.latitude,
+      lon: p.longitude,
+    })),
+    bbox,
+  });
+  if (downloadedPOIs.length > 0) {
+    logger.info('poi', 'Downloaded POIs found (always visible)', {
+      count: downloadedPOIs.length,
+      elapsed: Date.now() - startTime,
+    });
+    allPOIs.push(...downloadedPOIs);
+  }
+
+  // If showPOIs is false, return ONLY downloaded POIs (skip API fetching)
+  // Downloaded POIs are always visible since user explicitly downloaded them
+  if (!showPOIs) {
+    logger.info('poi', 'showPOIs is false - returning downloaded POIs only', {
+      count: allPOIs.length,
+      elapsed: Date.now() - startTime,
+    });
+    return allPOIs;
+  }
 
   // Get uncached tiles
   const uncachedTiles = await poiRepository.getUncachedTiles(bbox);
@@ -576,42 +615,59 @@ export async function fetchPOIsForViewport(
     elapsed: Date.now() - startTime,
   });
 
-  // OPTIMIZATION: If too many tiles needed, skip API and return cached only
+  // OPTIMIZATION: If too many tiles needed, skip API and return cached/downloaded only
   // This prevents slow/hung requests when zoomed out too far
   const MAX_TILES = 20;
   if (uncachedTiles.length > MAX_TILES) {
-    logger.warn('poi', 'Too many tiles - returning cached only (zoom in for more)', {
+    logger.warn('poi', 'Too many tiles - returning cached/downloaded only (zoom in for more)', {
       tilesNeeded: uncachedTiles.length,
       maxAllowed: MAX_TILES,
     });
     const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
+    // Filter cached by category, but downloaded (already added) are unfiltered
     if (categories && categories.length > 0) {
-      return cachedPOIs.filter(poi => categories.includes(poi.category));
+      const filteredCached = cachedPOIs.filter(poi => categories.includes(poi.category));
+      allPOIs.push(...filteredCached);
+    } else {
+      allPOIs.push(...cachedPOIs);
     }
-    return cachedPOIs;
+    // Deduplicate (downloaded takes priority)
+    const uniquePOIs = new Map<string, POI>();
+    for (const poi of allPOIs) {
+      uniquePOIs.set(poi.id, poi);
+    }
+    return Array.from(uniquePOIs.values());
   }
 
-  // If all tiles are cached, just return from cache
+  // If all tiles are cached, return from cache
   if (uncachedTiles.length === 0) {
     logger.info('poi', 'All tiles CACHED - fetching from DB');
     const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
-    logger.info('poi', 'Cache returned', {
+    logger.info('poi', 'Cached POIs returned', {
       count: cachedPOIs.length,
       elapsed: Date.now() - startTime,
     });
+    // Filter cached by category, but downloaded (already added) are unfiltered
     if (categories && categories.length > 0) {
-      const filtered = cachedPOIs.filter(poi => categories.includes(poi.category));
-      logger.info('poi', 'Filtered cached POIs', {
-        before: cachedPOIs.length,
-        after: filtered.length,
-        elapsed: Date.now() - startTime,
-      });
-      return filtered;
+      const filteredCached = cachedPOIs.filter(poi => categories.includes(poi.category));
+      allPOIs.push(...filteredCached);
+    } else {
+      allPOIs.push(...cachedPOIs);
     }
-    return cachedPOIs;
+    // Deduplicate (downloaded takes priority)
+    const uniquePOIs = new Map<string, POI>();
+    for (const poi of allPOIs) {
+      uniquePOIs.set(poi.id, poi);
+    }
+    logger.info('poi', 'Final POIs after dedup', {
+      total: uniquePOIs.size,
+      downloaded: downloadedPOIs.length,
+      elapsed: Date.now() - startTime,
+    });
+    return Array.from(uniquePOIs.values());
   }
 
-  // Get cached POIs first - filter by categories since cache stores all POIs
+  // Get cached POIs (filter by category)
   logger.info('poi', 'Getting cached POIs for partial coverage');
   const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
   if (categories && categories.length > 0) {

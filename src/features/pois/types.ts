@@ -32,6 +32,7 @@ export interface POI {
   tags: Record<string, string>;
   distanceFromUser?: number;
   distanceAlongRoute?: number;
+  isDownloaded?: boolean; // true if POI was downloaded for offline use
 }
 
 // POI category configuration

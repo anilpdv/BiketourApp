@@ -12,6 +12,7 @@ interface POIRow {
   tags_json: string | null;
   fetched_at: string;
   expires_at: string;
+  is_downloaded?: number; // 1 if downloaded for offline, 0 or null otherwise
 }
 
 interface FavoriteRow {
@@ -100,6 +101,7 @@ function rowToPOI(row: POIRow): POI {
     latitude: row.latitude,
     longitude: row.longitude,
     tags: row.tags_json ? JSON.parse(row.tags_json) : {},
+    isDownloaded: row.is_downloaded === 1,
   };
 }
 
@@ -129,12 +131,14 @@ export const poiRepository = {
 
   /**
    * Get POIs from cache within a bounding box
+   * Includes is_downloaded flag for each POI
    */
   async getPOIsInBounds(bbox: BoundingBox): Promise<POI[]> {
     const now = new Date().toISOString();
 
     const rows = await databaseService.query<POIRow>(
-      `SELECT * FROM pois
+      `SELECT id, type, category, name, latitude, longitude, tags_json, fetched_at, expires_at, is_downloaded
+       FROM pois
        WHERE latitude >= ? AND latitude <= ?
          AND longitude >= ? AND longitude <= ?
          AND expires_at > ?`,
@@ -474,5 +478,92 @@ export const poiRepository = {
       [poiId]
     );
     return result?.user_note ?? null;
+  },
+
+  // ==================== Downloaded POI Operations ====================
+
+  /**
+   * Get downloaded (permanent) POIs within bounds
+   * Downloaded POIs have is_downloaded = 1 and never expire
+   */
+  async getDownloadedPOIsInBounds(bbox: BoundingBox): Promise<POI[]> {
+    const rows = await databaseService.query<POIRow>(
+      `SELECT id, type, category, name, latitude, longitude, tags_json, fetched_at, expires_at, is_downloaded
+       FROM pois
+       WHERE is_downloaded = 1
+         AND latitude >= ? AND latitude <= ?
+         AND longitude >= ? AND longitude <= ?`,
+      [bbox.south, bbox.north, bbox.west, bbox.east]
+    );
+
+    return rows.map(rowToPOI);
+  },
+
+  /**
+   * Check if area has any downloaded POIs
+   */
+  async hasDownloadedPOIsInBounds(bbox: BoundingBox): Promise<boolean> {
+    const result = await databaseService.queryFirst<{ count: number }>(
+      `SELECT COUNT(*) as count FROM pois
+       WHERE is_downloaded = 1
+         AND latitude >= ? AND latitude <= ?
+         AND longitude >= ? AND longitude <= ?
+       LIMIT 1`,
+      [bbox.south, bbox.north, bbox.west, bbox.east]
+    );
+
+    return (result?.count ?? 0) > 0;
+  },
+
+  /**
+   * Get POIs in bounds with preference for downloaded
+   * Returns downloaded POIs first (instant), then cached POIs
+   */
+  async getPOIsInBoundsWithDownloadPriority(bbox: BoundingBox): Promise<POI[]> {
+    const now = new Date().toISOString();
+
+    // Query both downloaded and cached POIs, with downloaded ones marked
+    const rows = await databaseService.query<POIRow>(
+      `SELECT id, type, category, name, latitude, longitude, tags_json, fetched_at, expires_at, is_downloaded
+       FROM pois
+       WHERE latitude >= ? AND latitude <= ?
+         AND longitude >= ? AND longitude <= ?
+         AND (is_downloaded = 1 OR expires_at > ?)
+       ORDER BY is_downloaded DESC`,
+      [bbox.south, bbox.north, bbox.west, bbox.east, now]
+    );
+
+    // Deduplicate by ID, preferring downloaded
+    const poiMap = new Map<string, POI>();
+    for (const row of rows) {
+      if (!poiMap.has(row.id) || row.is_downloaded === 1) {
+        poiMap.set(row.id, rowToPOI(row));
+      }
+    }
+
+    return Array.from(poiMap.values());
+  },
+
+  /**
+   * Get downloaded POI count by category in bounds
+   */
+  async getDownloadedPOICountsByCategory(
+    bbox: BoundingBox
+  ): Promise<Record<POICategory, number>> {
+    const rows = await databaseService.query<{ category: string; count: number }>(
+      `SELECT category, COUNT(*) as count FROM pois
+       WHERE is_downloaded = 1
+         AND latitude >= ? AND latitude <= ?
+         AND longitude >= ? AND longitude <= ?
+       GROUP BY category`,
+      [bbox.south, bbox.north, bbox.west, bbox.east]
+    );
+
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      counts[row.category] = row.count;
+    }
+
+    return counts as Record<POICategory, number>;
   },
 };

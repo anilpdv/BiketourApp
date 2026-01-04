@@ -6,11 +6,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   usePOIStore,
-  selectPOIsInViewport,
   POI,
   POICategory,
   BoundingBox,
 } from '../../pois';
+import { useFilterStore } from '../../pois/store/filterStore';
+import { logger } from '../../../shared/utils';
 
 // Throttle delay for filtered POI updates (ms)
 const FILTER_UPDATE_THROTTLE = 100;
@@ -34,15 +35,55 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
 
   // Use Zustand selectors for granular subscriptions
   const pois = usePOIStore((state) => state.pois);
-  const filters = usePOIStore((state) => state.filters);
+  // Read categories from filterStore (single source of truth for filters)
+  const filterCategories = useFilterStore((state) => state.filters.categories);
 
   // Calculate filtered POIs (immediate, for internal use)
+  // IMPORTANT: Downloaded POIs bypass category filters - they are always visible
   const filteredPOIs = useMemo(() => {
+    logger.info('poi', '[DIAGNOSTIC] Filtering POIs', {
+      totalPOIs: pois.length,
+      downloadedPOIs: pois.filter(p => p.isDownloaded).length,
+      filterCategories: filterCategories.length,
+      hasViewportBounds: !!viewportBounds,
+    });
+
+    // Filter by selected categories, but ALWAYS include downloaded POIs
+    const categoryFiltered = pois.filter(
+      (poi) => poi.isDownloaded || filterCategories.includes(poi.category)
+    );
+
+    logger.info('poi', '[DIAGNOSTIC] After category filter', {
+      categoryFiltered: categoryFiltered.length,
+      downloadedInFiltered: categoryFiltered.filter(p => p.isDownloaded).length,
+    });
+
+    // If no viewport bounds, return category-filtered POIs
     if (!viewportBounds) {
-      return pois.filter((poi) => filters.categories.includes(poi.category));
+      logger.info('poi', '[DIAGNOSTIC] Final filtered POIs (no viewport)', {
+        count: categoryFiltered.length,
+        downloadedInFinal: categoryFiltered.filter(p => p.isDownloaded).length,
+      });
+      return categoryFiltered;
     }
-    return selectPOIsInViewport(viewportBounds)(usePOIStore.getState());
-  }, [viewportBounds, pois, filters.categories]);
+
+    // Filter by viewport bounds
+    const viewportFiltered = categoryFiltered.filter(
+      (poi) =>
+        poi.latitude >= viewportBounds.south &&
+        poi.latitude <= viewportBounds.north &&
+        poi.longitude >= viewportBounds.west &&
+        poi.longitude <= viewportBounds.east
+    );
+
+    logger.info('poi', '[DIAGNOSTIC] Final filtered POIs (with viewport)', {
+      count: viewportFiltered.length,
+      downloadedInFinal: viewportFiltered.filter(p => p.isDownloaded).length,
+      viewportBounds,
+    });
+
+    return viewportFiltered;
+  }, [viewportBounds, pois, filterCategories]);
 
   // Throttle updates to prevent constant re-renders during pan
   // Skip throttle on first render with data for instant display

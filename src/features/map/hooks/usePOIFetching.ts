@@ -67,15 +67,13 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
         isFetching: isFetchingRef.current,
       });
 
-      if (!showPOIs) {
-        logger.warn('poi', 'BLOCKED: showPOIs is false');
-        return;
-      }
-
-      if (categories.length === 0) {
-        logger.warn('poi', 'BLOCKED: no categories selected');
-        return;
-      }
+      // Downloaded POIs should always be loaded, regardless of showPOIs
+      // The showPOIs flag only controls whether API POIs are fetched
+      logger.info('poi', 'Loading POIs for bounds', {
+        categories: categories.length,
+        showPOIs,
+        alwaysIncludeDownloaded: true,
+      });
 
       // Don't start new fetch if one is already in progress
       if (isFetchingRef.current) {
@@ -109,9 +107,12 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
         }
 
         // Progressive display: Show POIs as each chunk completes
+        // Pass showPOIs to control whether API POIs are fetched
+        // Downloaded POIs are ALWAYS fetched regardless of showPOIs
         const viewportPOIs = await fetchPOIsForViewport(
           bbox,
           categories,
+          showPOIs, // Controls whether to fetch API POIs
           undefined, // onProgress
           (chunkPOIs) => {
             if (!signal.aborted) {
@@ -134,6 +135,8 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
         // Final add for any remaining POIs
         addPOIs(viewportPOIs);
         logger.info('poi', 'All POIs added to store', {
+          total: viewportPOIs.length,
+          downloadedCount: viewportPOIs.filter(p => p.isDownloaded).length,
           totalElapsed: Date.now() - startTime,
         });
       } catch (error: unknown) {
@@ -155,7 +158,9 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
     [showPOIs, categories, addPOIs, setPOIsLoading, onBoundsUpdate]
   );
 
-  // Auto-trigger POI load when POIs enabled or categories change
+  // Auto-trigger POI load when showPOIs changes or categories change
+  // Downloaded POIs are ALWAYS loaded (regardless of showPOIs)
+  // API POIs are only loaded when showPOIs is true
   useEffect(() => {
     logger.info('poi', 'Auto-trigger effect fired', {
       showPOIs,
@@ -164,7 +169,9 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
       hasBounds: !!lastBoundsRef.current,
     });
 
-    if (showPOIs && categories.length > 0 && lastBoundsRef.current) {
+    // Always load when we have bounds - downloaded POIs will be fetched
+    // API POIs controlled by showPOIs flag inside fetchPOIsForViewport
+    if (lastBoundsRef.current) {
       logger.info('poi', '>>> Calling loadPOIsForBounds from auto-trigger');
       loadPOIsForBounds(lastBoundsRef.current);
     }

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import {
   List,
   Switch,
@@ -7,14 +7,49 @@ import {
   Text,
   Divider,
   useTheme,
+  IconButton,
+  Button,
 } from 'react-native-paper';
 import { colors, spacing, borderRadius } from '../../src/shared/design/tokens';
+import { usePOIDownloadStore } from '../../src/features/offline/store/poiDownloadStore';
+import { formatBytes } from '../../src/features/offline/services/poiDownload.service';
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const [offlineMode, setOfflineMode] = React.useState(false);
   const [showWeather, setShowWeather] = React.useState(true);
   const [showPOIs, setShowPOIs] = React.useState(true);
+
+  // POI download store
+  const {
+    downloadedRegions,
+    isLoadingRegions,
+    totalPOIs,
+    totalSizeBytes,
+    loadDownloadedRegions,
+    deleteRegion,
+  } = usePOIDownloadStore();
+
+  // Load downloaded regions on mount
+  useEffect(() => {
+    loadDownloadedRegions();
+  }, [loadDownloadedRegions]);
+
+  // Handle delete region with confirmation
+  const handleDeleteRegion = useCallback((regionId: string, regionName: string) => {
+    Alert.alert(
+      'Delete Region',
+      `Are you sure you want to delete "${regionName}"? This will remove all downloaded POIs for this area.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteRegion(regionId),
+        },
+      ]
+    );
+  }, [deleteRegion]);
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -90,6 +125,58 @@ export default function SettingsScreen() {
         </List.Section>
       </Surface>
 
+      {/* Downloaded POIs Section */}
+      <Surface style={styles.section} elevation={1}>
+        <List.Section>
+          <List.Subheader style={styles.sectionTitle}>Downloaded POIs</List.Subheader>
+
+          {/* Summary */}
+          <List.Item
+            title="Total Downloaded"
+            description={`${totalPOIs.toLocaleString()} POIs • ${formatBytes(totalSizeBytes)}`}
+            left={(props) => <List.Icon {...props} icon="database" />}
+          />
+          <Divider />
+
+          {/* Loading indicator */}
+          {isLoadingRegions && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <Text style={{ marginLeft: spacing.sm }}>Loading regions...</Text>
+            </View>
+          )}
+
+          {/* Downloaded regions list */}
+          {!isLoadingRegions && downloadedRegions.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <Text style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}>
+                No downloaded POI regions yet.{'\n'}
+                Download POIs when you visit a new area.
+              </Text>
+            </View>
+          )}
+
+          {!isLoadingRegions && downloadedRegions.map((region) => (
+            <React.Fragment key={region.id}>
+              <List.Item
+                title={region.name}
+                description={`${region.poiCount.toLocaleString()} POIs • ${formatBytes(region.sizeBytes)} • ${region.radiusKm}km radius`}
+                left={(props) => <List.Icon {...props} icon="map-marker-radius" />}
+                right={() => (
+                  <IconButton
+                    icon="delete-outline"
+                    iconColor={theme.colors.error}
+                    size={20}
+                    onPress={() => handleDeleteRegion(region.id, region.name)}
+                  />
+                )}
+              />
+              <Divider />
+            </React.Fragment>
+          ))}
+        </List.Section>
+      </Surface>
+
       <Surface style={styles.section} elevation={1}>
         <List.Section>
           <List.Subheader style={styles.sectionTitle}>About</List.Subheader>
@@ -136,6 +223,16 @@ const styles = StyleSheet.create({
   },
   downloadItem: {
     backgroundColor: colors.neutral[50],
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  emptyContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
   },
   footer: {
     alignItems: 'center',

@@ -2,7 +2,7 @@
 export const DB_NAME = 'biketoureurope.db';
 
 // Schema version for migrations
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 // SQL statements for creating tables
 export const CREATE_TABLES = {
@@ -78,7 +78,8 @@ export const CREATE_TABLES = {
       longitude REAL NOT NULL,
       tags_json TEXT,
       fetched_at TEXT NOT NULL,
-      expires_at TEXT NOT NULL
+      expires_at TEXT NOT NULL,
+      is_downloaded INTEGER DEFAULT 0
     )
   `,
 
@@ -156,6 +157,25 @@ export const CREATE_TABLES = {
       expires_at TEXT NOT NULL
     )
   `,
+
+  // POI downloaded regions - tracks offline POI downloads
+  poiDownloadedRegions: `
+    CREATE TABLE IF NOT EXISTS poi_downloaded_regions (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      center_lat REAL NOT NULL,
+      center_lon REAL NOT NULL,
+      radius_km REAL NOT NULL,
+      min_lat REAL NOT NULL,
+      max_lat REAL NOT NULL,
+      min_lon REAL NOT NULL,
+      max_lon REAL NOT NULL,
+      poi_count INTEGER NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      downloaded_at TEXT NOT NULL,
+      categories_json TEXT NOT NULL
+    )
+  `,
 };
 
 // Indexes for better performance
@@ -221,6 +241,24 @@ export const CREATE_INDEXES = {
     CREATE INDEX IF NOT EXISTS idx_elevation_cache_expires
     ON elevation_cache(expires_at)
   `,
+
+  // POI downloaded regions indexes
+  poiDownloadedRegionsLocation: `
+    CREATE INDEX IF NOT EXISTS idx_poi_downloaded_regions_location
+    ON poi_downloaded_regions(center_lat, center_lon)
+  `,
+
+  // POI is_downloaded index for filtering downloaded vs cached
+  poisDownloaded: `
+    CREATE INDEX IF NOT EXISTS idx_pois_downloaded
+    ON pois(is_downloaded)
+  `,
+
+  // Compound index for downloaded POIs in viewport
+  poisDownloadedLocation: `
+    CREATE INDEX IF NOT EXISTS idx_pois_downloaded_location
+    ON pois(is_downloaded, category, latitude, longitude)
+  `,
 };
 
 // All tables in order of creation
@@ -237,6 +275,7 @@ export const ALL_TABLES = [
   CREATE_TABLES.euroveloCacheSegments,
   CREATE_TABLES.weatherCache,
   CREATE_TABLES.elevationCache,
+  CREATE_TABLES.poiDownloadedRegions,
 ];
 
 // All indexes

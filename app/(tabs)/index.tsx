@@ -8,12 +8,16 @@ import { POIDetailSheet, POIDetailSheetRef } from '../../src/features/pois';
 import { FiltersModal } from '../../src/features/pois/components/FiltersModal';
 import { POIListView } from '../../src/features/pois/components/POIListView';
 import { useFilterStore } from '../../src/features/pois/store/filterStore';
+import { usePOIDownloadStore } from '../../src/features/offline/store/poiDownloadStore';
+import { debugDatabasePOIs } from '../../src/features/offline/services/poiDownload.service';
+import { POIDownloadPrompt } from '../../src/features/offline/components/POIDownloadPrompt';
+import { POIDownloadProgress } from '../../src/features/offline/components/POIDownloadProgress';
 import { RoutePlanningToolbar, SaveRouteDialog, DraggableWaypointMarker } from '../../src/features/routing';
 import { useActiveNavigation, NavigationOverlay, NavigationStartButton } from '../../src/features/navigation';
 import { SearchResults, SearchResult } from '../../src/features/search';
 import { LoadingSpinner, ErrorMessage, ErrorBoundary } from '../../src/shared/components';
 import { colors, spacing } from '../../src/shared/design/tokens';
-import { debounce } from '../../src/shared/utils';
+import { debounce, logger } from '../../src/shared/utils';
 
 // Map feature hooks
 import {
@@ -45,6 +49,7 @@ export default function MapScreen() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isListView, setIsListView] = useState(false);
   const [showRoutesModal, setShowRoutesModal] = useState(false);
+  const [mapCenter, setMapCenter] = useState<{lat: number; lon: number} | null>(null);
 
   // Filter store for advanced filtering
   const {
@@ -57,6 +62,21 @@ export default function MapScreen() {
     getQuickFilters,
     toggleCategory: toggleFilterCategory,
   } = useFilterStore();
+
+  // POI download store for offline downloads
+  const {
+    showPrompt: showDownloadPrompt,
+    isDownloading,
+    currentRegion,
+    downloadCompletedRegion,
+    checkShouldPromptForRegion,
+    showRegionDownloadPrompt,
+    hideDownloadPrompt,
+    dismissRegion,
+    startRegionDownload,
+    loadDownloadedRegions,
+    clearDownloadCompletedRegion,
+  } = usePOIDownloadStore();
 
   // Custom hooks for state management
   const { location, errorMsg, refreshLocation } = useLocation();
@@ -122,8 +142,19 @@ export default function MapScreen() {
     selectPOI,
   } = usePOIDisplay(location, enabledRoutes);
 
+  // Diagnostic logging for POI rendering state
+  useEffect(() => {
+    logger.info('poi', '[DIAGNOSTIC] POI rendering state', {
+      showPOIs,
+      poiGeoJSONFeatures: poiGeoJSON.features.length,
+      filteredPOIsCount: filteredPOIs.length,
+      poisLoading,
+    });
+  }, [showPOIs, poiGeoJSON.features.length, filteredPOIs.length, poisLoading]);
+
   const {
     cameraRef,
+    currentBounds,
     initialCameraSettings,
     handleCameraChanged: baseCameraChanged,
     flyTo,
@@ -132,6 +163,86 @@ export default function MapScreen() {
 
   // Active navigation
   const navigation = useActiveNavigation();
+
+  // Load downloaded regions on mount
+  useEffect(() => {
+    loadDownloadedRegions();
+  }, [loadDownloadedRegions]);
+
+  // Debug: Check database content on mount to verify POI location
+  useEffect(() => {
+    debugDatabasePOIs().then(result => {
+      logger.info('poi', '[DEBUG] Database content', result);
+    });
+  }, []);
+
+  // Auto-pan to downloaded region after download completes
+  useEffect(() => {
+    if (downloadCompletedRegion) {
+      logger.info('offline', 'Auto-panning to downloaded region', {
+        region: downloadCompletedRegion.displayName,
+        bounds: downloadCompletedRegion.boundingBox,
+      });
+
+      // Calculate center of the downloaded region
+      const center = [
+        (downloadCompletedRegion.boundingBox.east + downloadCompletedRegion.boundingBox.west) / 2,
+        (downloadCompletedRegion.boundingBox.north + downloadCompletedRegion.boundingBox.south) / 2,
+      ];
+
+      // Pan to the downloaded region
+      flyTo(center as [number, number], 10);
+
+      // Clear the flag after panning
+      clearDownloadCompletedRegion();
+    }
+  }, [downloadCompletedRegion, flyTo, clearDownloadCompletedRegion]);
+
+  // Auto-prompt for POI download when viewing new region
+  // Uses map viewport center (where user is looking), not GPS location
+  useEffect(() => {
+    if (!mapCenter) return;
+
+    let timer: ReturnType<typeof setTimeout>;
+    let isCancelled = false;
+
+    const checkAndPrompt = async () => {
+      // Delay to let user settle in the area first
+      timer = setTimeout(async () => {
+        if (isCancelled) return;
+
+        const result = await checkShouldPromptForRegion(
+          mapCenter.lat,
+          mapCenter.lon
+        );
+
+        // DEBUG: Track prompt state flow
+        console.log('[DEBUG] Region check result:', {
+          shouldPrompt: result.shouldPrompt,
+          region: result.region?.displayName,
+          showDownloadPrompt,
+        });
+
+        if (result.shouldPrompt && result.region) {
+          console.log('[DEBUG] Calling showRegionDownloadPrompt for:', result.region.displayName);
+          // Show region-based download prompt
+          showRegionDownloadPrompt(result.region);
+        } else {
+          console.log('[DEBUG] NOT showing prompt. Reason:', {
+            hasShouldPrompt: result.shouldPrompt,
+            hasRegion: !!result.region,
+          });
+        }
+      }, 2000); // 2 second delay before checking region
+    };
+
+    checkAndPrompt();
+
+    return () => {
+      isCancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [mapCenter?.lat, mapCenter?.lon, checkShouldPromptForRegion, showRegionDownloadPrompt]);
 
   // Stable ref for loadPOIsForBounds - prevents debounce reset on every render
   const loadPOIsRef = useRef(loadPOIsForBounds);
@@ -177,15 +288,22 @@ export default function MapScreen() {
       sw: state.properties.bounds.sw as [number, number],
     };
 
+    // Calculate and update map center for region detection
+    const centerLat = (bounds.ne[1] + bounds.sw[1]) / 2;
+    const centerLon = (bounds.ne[0] + bounds.sw[0]) / 2;
+    setMapCenter({ lat: centerLat, lon: centerLon });
+
     // Always update viewport bounds for filtering (shows only POIs in view)
     updateViewportBounds(bounds);
 
-    // Load NEW POIs only when zoomed in enough (DEBOUNCED)
+    // Load POIs when zoomed in enough (DEBOUNCED)
+    // Always load - downloaded POIs will always be fetched
+    // API POIs will only be fetched when showPOIs is true
     const latDelta = bounds.ne[1] - bounds.sw[1];
-    if (latDelta < 0.5 && showPOIs) {
+    if (latDelta < 0.5) {
       debouncedLoadPOIs(bounds);
     }
-  }, [baseCameraChanged, debouncedLoadPOIs, updateViewportBounds, showPOIs]);
+  }, [baseCameraChanged, debouncedLoadPOIs, updateViewportBounds]);
 
   // Handle POI press from map
   const handlePOIShapePress = useCallback((event: any) => {
@@ -336,6 +454,26 @@ export default function MapScreen() {
     // Trigger POI refresh
   }, []);
 
+  // Handle POI download from prompt (region-based)
+  const handleStartPOIDownload = useCallback(async () => {
+    if (!currentRegion) return;
+    await startRegionDownload(currentRegion);
+  }, [currentRegion, startRegionDownload]);
+
+  // Handle dismiss download prompt (region-based)
+  const handleDismissDownload = useCallback(() => {
+    if (currentRegion) {
+      dismissRegion(currentRegion.displayName);
+    } else {
+      hideDownloadPrompt();
+    }
+  }, [currentRegion, dismissRegion, hideDownloadPrompt]);
+
+  // Handle download progress complete
+  const handleDownloadComplete = useCallback(() => {
+    hideDownloadPrompt();
+  }, [hideDownloadPrompt]);
+
   // Get loaded route IDs for chip selector
   const loadedRouteIds = routes.map(r => r.euroVeloId);
 
@@ -406,8 +544,9 @@ export default function MapScreen() {
           </ShapeSource>
         )}
 
-        {/* POIs with clustering */}
-        {showPOIs && poiGeoJSON.features.length > 0 && (
+        {/* POIs with clustering - always render if there are features */}
+        {/* Downloaded POIs always visible, API POIs only when showPOIs is true */}
+        {poiGeoJSON.features.length > 0 && (
           <ShapeSource
             id="pois"
             shape={poiGeoJSON}
@@ -679,6 +818,20 @@ export default function MapScreen() {
         ref={poiDetailSheetRef}
         onClose={handlePOISheetClose}
         userLocation={location ? { latitude: location.coords.latitude, longitude: location.coords.longitude } : null}
+      />
+
+      {/* POI Download Prompt */}
+      <POIDownloadPrompt
+        visible={showDownloadPrompt}
+        region={currentRegion}
+        onClose={handleDismissDownload}
+        onDownload={handleStartPOIDownload}
+      />
+
+      {/* POI Download Progress */}
+      <POIDownloadProgress
+        visible={isDownloading}
+        onComplete={handleDownloadComplete}
       />
     </View>
     </ErrorBoundary>

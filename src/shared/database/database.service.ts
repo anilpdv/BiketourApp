@@ -47,17 +47,13 @@ class DatabaseService {
       // Enable foreign keys
       await this.db.execAsync('PRAGMA foreign_keys = ON;');
 
-      // Create tables
+      // Create tables FIRST
       for (const sql of ALL_TABLES) {
         await this.db.execAsync(sql);
       }
 
-      // Create indexes
-      for (const sql of ALL_INDEXES) {
-        await this.db.execAsync(sql);
-      }
-
-      // Check/update schema version
+      // Check/update schema version and run migrations BEFORE indexes
+      // This ensures new columns are added before indexes that reference them
       const versionResult = await this.db.getFirstAsync<{ version: number }>(
         'SELECT version FROM schema_version LIMIT 1'
       );
@@ -72,12 +68,45 @@ class DatabaseService {
         await this.runMigrations(versionResult.version, SCHEMA_VERSION);
       }
 
+      // Ensure schema integrity before creating indexes
+      // This repairs corrupted states where version is correct but columns are missing
+      await this.ensureSchemaIntegrity();
+
+      // Create indexes AFTER migrations and schema repair (so new columns exist)
+      for (const sql of ALL_INDEXES) {
+        await this.db.execAsync(sql);
+      }
+
       this.initialized = true;
       logger.info('database', 'Database initialized successfully');
     } catch (error) {
       logger.error('database', 'Database initialization failed', error);
       throw error;
     }
+  }
+
+  /**
+   * Ensure schema integrity - fix any missing columns
+   * This handles corrupted database states where version is correct but schema is incomplete
+   */
+  private async ensureSchemaIntegrity(): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not opened');
+    }
+
+    // Check if is_downloaded column exists in pois table
+    const columns = await this.db.getAllAsync<{ name: string }>(
+      "PRAGMA table_info(pois)"
+    );
+    const columnNames = columns.map(c => c.name);
+
+    if (!columnNames.includes('is_downloaded')) {
+      logger.info('database', 'Repairing schema: adding missing is_downloaded column');
+      await this.db.execAsync('ALTER TABLE pois ADD COLUMN is_downloaded INTEGER DEFAULT 0');
+    }
+
+    // Ensure poi_downloaded_regions table exists
+    await this.db.execAsync(CREATE_TABLES.poiDownloadedRegions);
   }
 
   /**
@@ -135,6 +164,28 @@ class DatabaseService {
       // Create elevation cache table and index
       await this.db.execAsync(CREATE_TABLES.elevationCache);
       await this.db.execAsync(CREATE_INDEXES.elevationCacheExpiry);
+    }
+
+    // Migration from v5 to v6: Add offline POI download support
+    if (fromVersion < 6) {
+      logger.info('database', 'Running migration v5 -> v6: Adding offline POI download support');
+
+      // Create poi_downloaded_regions table
+      await this.db.execAsync(CREATE_TABLES.poiDownloadedRegions);
+
+      // Add is_downloaded column to pois table if it doesn't exist
+      // (Column may already exist if table was created with v6 schema)
+      try {
+        await this.db.execAsync('ALTER TABLE pois ADD COLUMN is_downloaded INTEGER DEFAULT 0');
+      } catch {
+        // Column likely already exists - this is fine
+        logger.info('database', 'is_downloaded column already exists');
+      }
+
+      // Create indexes for downloaded POIs (IF NOT EXISTS handles duplicates)
+      await this.db.execAsync(CREATE_INDEXES.poiDownloadedRegionsLocation);
+      await this.db.execAsync(CREATE_INDEXES.poisDownloaded);
+      await this.db.execAsync(CREATE_INDEXES.poisDownloadedLocation);
     }
 
     // Update version after migrations

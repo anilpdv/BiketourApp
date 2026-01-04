@@ -99,9 +99,18 @@ export const usePOIStore = create<POIState>((set, get) => ({
   addPOIs: (newPOIs) => {
     const { pois, poiIds, poisByCategory } = get();
 
+    logger.info('poi', '[DIAGNOSTIC] addPOIs called', {
+      newPOIsCount: newPOIs.length,
+      downloadedInNew: newPOIs.filter(p => p.isDownloaded).length,
+      existingPOIsCount: pois.length,
+    });
+
     // Filter using existing Set - O(1) per lookup instead of O(n)
     const uniqueNew = newPOIs.filter((p) => !poiIds.has(p.id));
-    if (uniqueNew.length === 0) return; // Early exit if no new POIs
+    if (uniqueNew.length === 0) {
+      logger.info('poi', '[DIAGNOSTIC] No unique POIs to add (all duplicates)');
+      return; // Early exit if no new POIs
+    }
 
     // Add new IDs to Set
     for (const poi of uniqueNew) {
@@ -123,10 +132,18 @@ export const usePOIStore = create<POIState>((set, get) => ({
       newByCategory.set(category, [...existing, ...batch]);
     }
 
+    const updatedPOIs = [...pois, ...uniqueNew];
+
     set({
-      pois: [...pois, ...uniqueNew],
+      pois: updatedPOIs,
       poiIds, // Mutated in place for performance
       poisByCategory: newByCategory,
+    });
+
+    logger.info('poi', '[DIAGNOSTIC] POIs after merge', {
+      totalPOIs: updatedPOIs.length,
+      downloadedPOIs: updatedPOIs.filter(p => p.isDownloaded).length,
+      addedCount: uniqueNew.length,
     });
   },
 
@@ -282,7 +299,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const pois = await withTimeout(
-        fetchPOIsForViewport(bbox, categories, onProgress),
+        fetchPOIsForViewport(bbox, categories, true, onProgress),  // Always fetch API POIs when called from store
         LOADING_TIMEOUT_MS,
         'POI loading timed out'
       );

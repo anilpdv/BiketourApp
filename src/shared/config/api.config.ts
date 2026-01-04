@@ -33,7 +33,7 @@ export const API_CONFIG = {
     // Using kumi.systems - faster alternative to overpass-api.de
     baseUrl: 'https://overpass.kumi.systems/api/interpreter',
     timeout: 10000, // 10s timeout (reduced from 30s)
-    rateLimit: 500, // 2 requests per second (with debouncing, this is safe)
+    rateLimit: 100, // 10 requests per second (kumi.systems can handle this)
   },
 
   googlePlaces: {

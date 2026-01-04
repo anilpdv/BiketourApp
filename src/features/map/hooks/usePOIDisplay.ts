@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import type { FeatureCollection, Point } from 'geojson';
 import * as Location from 'expo-location';
 import { usePOIStore, POI, POICategory, BoundingBox } from '../../pois';
+import { useFilterStore } from '../../pois/store/filterStore';
 import { logger } from '../../../shared/utils';
 import { ParsedRoute } from '../../routes/types';
 import { MapBounds } from '../../../shared/types';
@@ -42,12 +43,17 @@ export function usePOIDisplay(
 
   // Use Zustand selectors for granular subscriptions
   const pois = usePOIStore((state) => state.pois);
-  const filters = usePOIStore((state) => state.filters);
   const isLoading = usePOIStore((state) => state.isLoading);
   const favoriteIds = usePOIStore((state) => state.favoriteIds);
   const selectPOI = usePOIStore((state) => state.selectPOI);
-  const toggleCategory = usePOIStore((state) => state.toggleCategory);
   const loadFavorites = usePOIStore((state) => state.loadFavorites);
+
+  // Use filterStore for filter state (single source of truth)
+  const filterCategories = useFilterStore((state) => state.filters.categories);
+  const toggleCategory = useFilterStore((state) => state.toggleCategory);
+
+  // Create compatible filters object for return value
+  const filters = { categories: filterCategories };
 
   // Load favorites on mount
   useEffect(() => {
@@ -68,7 +74,7 @@ export function usePOIDisplay(
   // Compose fetching hook
   const { loadPOIsForBounds, lastBoundsRef } = usePOIFetching({
     showPOIs,
-    categories: filters.categories,
+    categories: filterCategories,  // Use filterStore categories
     onBoundsUpdate: setViewportBounds,
   });
 
@@ -81,18 +87,18 @@ export function usePOIDisplay(
       logger.info('poi', 'togglePOIs state change', {
         oldValue: prev,
         newValue,
-        categoriesCount: filters.categories.length,
+        categoriesCount: filterCategories.length,
         hasBounds: !!lastBoundsRef.current,
       });
       // Auto-select useful categories when enabling POIs
-      if (newValue && filters.categories.length === 0) {
+      if (newValue && filterCategories.length === 0) {
         logger.info('poi', 'Auto-selecting campsite category');
         const defaultCategories: POICategory[] = ['campsite'];
         defaultCategories.forEach((cat) => toggleCategory(cat));
       }
       return newValue;
     });
-  }, [filters.categories.length, toggleCategory, lastBoundsRef]);
+  }, [filterCategories.length, toggleCategory, lastBoundsRef]);
 
   // Update viewport bounds for filtering (called on camera changes)
   const updateViewportBounds = useCallback(
