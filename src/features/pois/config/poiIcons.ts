@@ -1,4 +1,8 @@
 import { POICategory } from '../types';
+import {
+  CATEGORY_TO_GROUP,
+  getCategoryGroupColor,
+} from './poiGroupColors';
 
 /**
  * POI Icon Configuration
@@ -152,6 +156,8 @@ export const CATEGORY_NAMES: Record<POICategory, string> = {
 export function getCategoryIcon(category: POICategory) {
   return {
     color: CATEGORY_COLORS[category] || '#666666',
+    group: CATEGORY_TO_GROUP[category],
+    groupColor: getCategoryGroupColor(category),
     makiIcon: CATEGORY_TO_MAKI_ICON[category] || 'marker',
     vectorIcon: CATEGORY_TO_VECTOR_ICON[category] || 'map-marker',
     emoji: CATEGORY_TO_EMOJI[category] || '📍',

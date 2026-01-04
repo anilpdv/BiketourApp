@@ -1,9 +1,10 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { PointAnnotation } from '@rnmapbox/maps';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { MarkerView } from '@rnmapbox/maps';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { POI } from '../types';
 import { getCategoryIcon } from '../config/poiIcons';
+import { getCategoryGroupColor } from '../config/poiGroupColors';
 import { colors } from '../../../shared/design/tokens';
 
 interface POIMarkerProps {
@@ -12,33 +13,35 @@ interface POIMarkerProps {
   isSelected?: boolean;
 }
 
+/**
+ * POI Marker using MarkerView (supports nested Views, unlike PointAnnotation)
+ * Renders droplet-shaped pins with category icons
+ */
 function POIMarkerComponent({ poi, onPress, isSelected = false }: POIMarkerProps) {
   const iconConfig = getCategoryIcon(poi.category);
+  const groupColor = getCategoryGroupColor(poi.category);
 
   return (
-    <PointAnnotation
-      id={poi.id}
+    <MarkerView
       coordinate={[poi.longitude, poi.latitude]}
-      onSelected={() => onPress(poi)}
-      anchor={{ x: 0.5, y: 0.5 }}
+      anchor={{ x: 0.5, y: 1 }}
+      allowOverlap={true}
     >
-      <View style={[styles.markerContainer, isSelected && styles.markerSelected]}>
-        <View style={[styles.markerBackground, { backgroundColor: iconConfig.color }]}>
-          <MaterialCommunityIcons
-            name={iconConfig.vectorIcon}
-            size={18}
-            color={colors.neutral[0]}
-          />
-        </View>
-        {poi.name && isSelected && (
-          <View style={styles.labelContainer}>
-            <Text style={styles.labelText} numberOfLines={1}>
-              {poi.name}
-            </Text>
+      <Pressable onPress={() => onPress(poi)}>
+        <View style={[styles.markerContainer, isSelected && styles.markerSelected]}>
+          {/* Pin body */}
+          <View style={[styles.pinBody, { backgroundColor: groupColor }]}>
+            <MaterialCommunityIcons
+              name={iconConfig.vectorIcon}
+              size={18}
+              color={colors.neutral[0]}
+            />
           </View>
-        )}
-      </View>
-    </PointAnnotation>
+          {/* Pin pointer */}
+          <View style={[styles.pinPointer, { borderTopColor: groupColor }]} />
+        </View>
+      </Pressable>
+    </MarkerView>
   );
 }
 
@@ -55,39 +58,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   markerSelected: {
-    transform: [{ scale: 1.2 }],
+    transform: [{ scale: 1.15 }],
   },
-  markerBackground: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  pinBody: {
+    width: 30,
+    height: 34,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.neutral[0],
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 4,
-    borderWidth: 2,
-    borderColor: colors.neutral[0],
+    shadowRadius: 4,
+    elevation: 5,
   },
-  labelContainer: {
-    backgroundColor: colors.neutral[0],
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginTop: 4,
-    maxWidth: 120,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  labelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    textAlign: 'center',
+  pinPointer: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    marginTop: -2,
   },
 });

@@ -2,105 +2,79 @@ import React, { memo } from 'react';
 import { ShapeSource, CircleLayer, SymbolLayer } from '@rnmapbox/maps';
 import type { FeatureCollection, Point } from 'geojson';
 import { colors } from '../../../shared/design/tokens';
-import type { ShapeSourcePressEvent } from './RouteLayer';
+import { POI } from '../../pois';
+import { POIMarker } from '../../pois/components/POIMarker';
 
 export interface POILayerProps {
   visible: boolean;
+  pois: POI[];
   poiGeoJSON: FeatureCollection<Point>;
-  onPOIPress: (event: ShapeSourcePressEvent) => void;
+  onPOIPress: (poi: POI) => void;
 }
 
 /**
  * Map layer for rendering POIs with clustering
+ * Uses POIMarker (PointAnnotation) for individual POIs with droplet-shaped pins
+ * Uses CircleLayer for cluster visualization
  */
 export const POILayer = memo(function POILayer({
   visible,
+  pois,
   poiGeoJSON,
   onPOIPress,
 }: POILayerProps) {
-  if (!visible || poiGeoJSON.features.length === 0) {
+  if (!visible) {
     return null;
   }
 
   return (
-    <ShapeSource
-      id="pois"
-      shape={poiGeoJSON}
-      cluster
-      clusterRadius={50}
-      clusterMaxZoomLevel={14}
-      onPress={onPOIPress}
-    >
-      {/* Cluster circles */}
-      <CircleLayer
+    <>
+      {/* Cluster circles using ShapeSource */}
+      <ShapeSource
         id="poi-clusters"
-        filter={['has', 'point_count']}
-        style={{
-          circleColor: colors.primary[500],
-          circleRadius: [
-            'step',
-            ['get', 'point_count'],
-            20, // Base radius
-            10, 25, // 10+ points
-            50, 30, // 50+ points
-            100, 35, // 100+ points
-          ],
-          circleOpacity: 0.9,
-          circleStrokeColor: colors.neutral[0],
-          circleStrokeWidth: 2,
-        }}
-      />
+        shape={poiGeoJSON}
+        cluster
+        clusterRadius={50}
+        clusterMaxZoomLevel={14}
+      >
+        {/* Cluster circles */}
+        <CircleLayer
+          id="poi-cluster-circles"
+          filter={['has', 'point_count']}
+          style={{
+            circleColor: colors.primary[600],
+            circleRadius: [
+              'step',
+              ['get', 'point_count'],
+              18,
+              10, 22,
+              50, 26,
+              100, 30,
+            ],
+            circleOpacity: 0.95,
+            circleStrokeColor: colors.neutral[0],
+            circleStrokeWidth: 3,
+          }}
+        />
 
-      {/* Cluster count text */}
-      <SymbolLayer
-        id="poi-cluster-count"
-        filter={['has', 'point_count']}
-        style={{
-          textField: ['get', 'point_count_abbreviated'],
-          textSize: 14,
-          textColor: colors.neutral[0],
-          textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-          textAllowOverlap: true,
-        }}
-      />
+        {/* Cluster count text */}
+        <SymbolLayer
+          id="poi-cluster-count"
+          filter={['has', 'point_count']}
+          style={{
+            textField: ['get', 'point_count_abbreviated'],
+            textSize: 13,
+            textColor: colors.neutral[0],
+            textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+            textAllowOverlap: true,
+          }}
+        />
+      </ShapeSource>
 
-      {/* Individual POI markers */}
-      <CircleLayer
-        id="poi-unclustered"
-        filter={['!', ['has', 'point_count']]}
-        style={{
-          circleColor: ['get', 'color'],
-          circleRadius: 12,
-          circleOpacity: 0.9,
-          circleStrokeColor: colors.neutral[0],
-          circleStrokeWidth: 2,
-        }}
-      />
-
-      {/* POI emoji icons */}
-      <SymbolLayer
-        id="poi-emoji"
-        filter={['!', ['has', 'point_count']]}
-        style={{
-          textField: ['get', 'emoji'],
-          textSize: 14,
-          textAllowOverlap: true,
-          textOffset: [0, 0],
-        }}
-      />
-
-      {/* Favorite indicator */}
-      <CircleLayer
-        id="poi-favorite-indicator"
-        filter={['all', ['!', ['has', 'point_count']], ['get', 'isFavorite']]}
-        style={{
-          circleColor: colors.status.warning,
-          circleRadius: 6,
-          circleTranslate: [10, -10],
-          circleStrokeColor: colors.neutral[0],
-          circleStrokeWidth: 1,
-        }}
-      />
-    </ShapeSource>
+      {/* Individual POI markers using PointAnnotation */}
+      {pois.map(poi => (
+        <POIMarker key={poi.id} poi={poi} onPress={onPOIPress} />
+      ))}
+    </>
   );
 });

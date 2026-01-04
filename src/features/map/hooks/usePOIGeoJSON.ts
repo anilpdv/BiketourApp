@@ -11,12 +11,19 @@ import {
   CATEGORY_TO_MAKI_ICON,
   CATEGORY_TO_EMOJI,
 } from '../../pois/config/poiIcons';
+import {
+  CATEGORY_TO_GROUP,
+  getCategoryGroupColor,
+  POIGroupKey,
+} from '../../pois/config/poiGroupColors';
 
 export interface POIFeatureProperties {
   id: string;
   name: string;
   category: POICategory;
   color: string;
+  group: POIGroupKey;
+  groupColor: string;
   makiIcon: string;
   emoji: string;
   isFavorite: boolean;
@@ -47,6 +54,8 @@ export function usePOIGeoJSON(
         name: poi.name || '',
         category: poi.category,
         color: CATEGORY_COLORS[poi.category] || '#666',
+        group: CATEGORY_TO_GROUP[poi.category],
+        groupColor: getCategoryGroupColor(poi.category),
         makiIcon: CATEGORY_TO_MAKI_ICON[poi.category] || 'marker',
         emoji: CATEGORY_TO_EMOJI[poi.category] || '📍',
         isFavorite,

@@ -35,6 +35,7 @@ import {
   RouteInfoCard,
   TerrainLayer,
   RoutePlanningFAB,
+  POILayer,
 } from '../../src/features/map/components';
 import { EuroVeloRoutesButton } from '../../src/features/routes/components/EuroVeloRoutesButton';
 import { EuroVeloRoutesModal } from '../../src/features/routes/components/EuroVeloRoutesModal';
@@ -550,73 +551,13 @@ export default function MapScreen() {
           </ShapeSource>
         )}
 
-        {/* POIs with clustering - always render if there are features */}
-        {/* Downloaded POIs always visible, API POIs only when showPOIs is true */}
-        {poiGeoJSON.features.length > 0 && (
-          <ShapeSource
-            id="pois"
-            shape={poiGeoJSON}
-            cluster
-            clusterRadius={40}
-            clusterMaxZoomLevel={14}
-            onPress={handlePOIShapePress}
-          >
-            <CircleLayer
-              id="poi-clusters"
-              filter={['has', 'point_count']}
-              style={{
-                circleColor: colors.primary[500],
-                circleRadius: ['step', ['get', 'point_count'], 15, 10, 20, 25, 25, 50, 30],
-                circleOpacity: 0.9,
-                circleStrokeWidth: 2,
-                circleStrokeColor: colors.neutral[0],
-              }}
-            />
-            <SymbolLayer
-              id="poi-cluster-count"
-              filter={['has', 'point_count']}
-              style={{
-                textField: ['get', 'point_count_abbreviated'],
-                textSize: 12,
-                textColor: colors.neutral[0],
-                textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-              }}
-            />
-            <CircleLayer
-              id="poi-points"
-              filter={['!', ['has', 'point_count']]}
-              style={{
-                circleColor: ['get', 'color'],
-                circleRadius: 18,
-                circleStrokeWidth: 3,
-                circleStrokeColor: colors.neutral[0],
-                circleOpacity: 0.95,
-              }}
-            />
-            <SymbolLayer
-              id="poi-icons"
-              filter={['!', ['has', 'point_count']]}
-              style={{
-                iconImage: ['get', 'makiIcon'],
-                iconSize: 1.2,
-                iconColor: colors.neutral[0],
-                iconAllowOverlap: true,
-                iconIgnorePlacement: true,
-              }}
-            />
-            <SymbolLayer
-              id="poi-favorite-badge"
-              filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'isFavorite'], true]]}
-              style={{
-                textField: '❤️',
-                textSize: 10,
-                textOffset: [1.2, -1.2],
-                textAnchor: 'center',
-                textAllowOverlap: true,
-              }}
-            />
-          </ShapeSource>
-        )}
+        {/* POIs with clustering - droplet-shaped pin markers */}
+        <POILayer
+          visible={filteredPOIs.length > 0}
+          pois={filteredPOIs}
+          poiGeoJSON={poiGeoJSON}
+          onPOIPress={selectPOI}
+        />
 
         {/* Planned Route Line with Casing */}
         {isPlanning && plannedRouteGeoJSON && (

@@ -19,3 +19,4 @@ export * from './utils/poiTagParser';
 
 // Config
 export * from './config/poiIcons';
+export * from './config/poiGroupColors';
