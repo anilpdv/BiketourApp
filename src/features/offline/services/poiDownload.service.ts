@@ -7,7 +7,6 @@
 import { POI, POICategory, BoundingBox, OverpassResponse } from '../../pois/types';
 import {
   POI_CATEGORIES,
-  fetchPOIs,
   buildMultiCategoryQuery,
   parseOverpassResponse,
 } from '../../pois/services/overpass.service';
@@ -16,31 +15,44 @@ import { logger } from '../../../shared/utils';
 import { fetchWithTimeout } from '../../../shared/api/httpClient';
 import { API_CONFIG } from '../../../shared/config';
 
-// No write queue needed - WatermelonDB handles concurrency on native thread
+// Import from extracted modules
+import {
+  calculateBoundsFromRadius,
+  getTilesCoveringBounds,
+  getTilesCoveringBoundsForDownload,
+  shouldUseSingleQueryMode,
+  getRegionSizeKm,
+  generateRegionName,
+  generateRegionId,
+  BULK_DOWNLOAD_TILE_SIZE,
+} from './downloadBounds.service';
+import {
+  estimateDownload,
+  estimateDownloadForBounds,
+  DownloadEstimate,
+} from './downloadEstimation.service';
 
-// Grid size for tile-based downloading (0.2 degrees = ~22km at equator)
-const DOWNLOAD_TILE_SIZE = 0.2;
-
-// Larger tiles for bulk downloads - bypasses rate limiter (1.0° ≈ 111km)
-// Increased from 0.5° for fewer API calls = faster downloads
-const BULK_DOWNLOAD_TILE_SIZE = 1.0;
-
-// Delay between API requests to respect rate limits (ms)
-// Set to 0 since the rate limiter handles throttling
-const REQUEST_DELAY_MS = 0;
+// Re-export for backwards compatibility
+export {
+  calculateBoundsFromRadius,
+  getTilesCoveringBounds,
+  getTilesCoveringBoundsForDownload,
+  generateRegionName,
+  generateRegionId,
+} from './downloadBounds.service';
+export {
+  estimateDownload,
+  estimateDownloadForBounds,
+  DownloadEstimate,
+} from './downloadEstimation.service';
 
 // Maximum concurrent tile downloads
 // kumi.systems has no rate limits - can handle more parallelism
 const MAX_CONCURRENT_DOWNLOADS = 8;
 
-// Estimated bytes per POI (for size estimation)
-const BYTES_PER_POI_ESTIMATE = 500;
-
-// Maximum region size for single-query mode (in degrees)
-// Regions smaller than this use ONE API call instead of tile-by-tile
-// 3.0° ≈ 330km - conservative threshold to avoid Overpass timeout on large regions
-// (Bavaria at 4.87° × 3.29° was timing out with 6.0° threshold)
-const SINGLE_QUERY_MAX_SIZE_DEG = 3.0;
+// Delay between API requests to respect rate limits (ms)
+// Set to 0 since the rate limiter handles throttling
+const REQUEST_DELAY_MS = 0;
 
 // Database row interfaces removed - now using WatermelonDB models
 
@@ -91,97 +103,7 @@ export interface DownloadedRegion {
   categories: POICategory[];
 }
 
-export interface DownloadEstimate {
-  estimatedPOIs: number;
-  estimatedSizeBytes: number;
-  tilesRequired: number;
-}
-
-/**
- * Generate a unique region ID
- */
-function generateRegionId(): string {
-  return `region_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-}
-
-/**
- * Calculate bounding box from center point and radius
- */
-function calculateBoundsFromRadius(
-  centerLat: number,
-  centerLon: number,
-  radiusKm: number
-): BoundingBox {
-  // Earth's radius in km
-  const earthRadius = 6371;
-
-  // Calculate latitude offset (same at all longitudes)
-  const latOffset = (radiusKm / earthRadius) * (180 / Math.PI);
-
-  // Calculate longitude offset (varies with latitude)
-  const lonOffset =
-    (radiusKm / (earthRadius * Math.cos((centerLat * Math.PI) / 180))) *
-    (180 / Math.PI);
-
-  return {
-    south: centerLat - latOffset,
-    north: centerLat + latOffset,
-    west: centerLon - lonOffset,
-    east: centerLon + lonOffset,
-  };
-}
-
-/**
- * Get tiles covering a bounding box
- */
-function getTilesCoveringBounds(bounds: BoundingBox): BoundingBox[] {
-  const tiles: BoundingBox[] = [];
-
-  const minLatTile = Math.floor(bounds.south / DOWNLOAD_TILE_SIZE) * DOWNLOAD_TILE_SIZE;
-  const maxLatTile = Math.ceil(bounds.north / DOWNLOAD_TILE_SIZE) * DOWNLOAD_TILE_SIZE;
-  const minLonTile = Math.floor(bounds.west / DOWNLOAD_TILE_SIZE) * DOWNLOAD_TILE_SIZE;
-  const maxLonTile = Math.ceil(bounds.east / DOWNLOAD_TILE_SIZE) * DOWNLOAD_TILE_SIZE;
-
-  for (let lat = minLatTile; lat < maxLatTile; lat += DOWNLOAD_TILE_SIZE) {
-    for (let lon = minLonTile; lon < maxLonTile; lon += DOWNLOAD_TILE_SIZE) {
-      tiles.push({
-        south: lat,
-        north: lat + DOWNLOAD_TILE_SIZE,
-        west: lon,
-        east: lon + DOWNLOAD_TILE_SIZE,
-      });
-    }
-  }
-
-  return tiles;
-}
-
-/**
- * Get larger tiles for bulk downloads (uses BULK_DOWNLOAD_TILE_SIZE)
- * Fewer, larger tiles = fewer API calls = faster downloads
- */
-function getTilesCoveringBoundsForDownload(bounds: BoundingBox): BoundingBox[] {
-  const tiles: BoundingBox[] = [];
-  const tileSize = BULK_DOWNLOAD_TILE_SIZE;
-
-  const minLat = Math.floor(bounds.south / tileSize) * tileSize;
-  const maxLat = Math.ceil(bounds.north / tileSize) * tileSize;
-  const minLon = Math.floor(bounds.west / tileSize) * tileSize;
-  const maxLon = Math.ceil(bounds.east / tileSize) * tileSize;
-
-  for (let lat = minLat; lat < maxLat; lat += tileSize) {
-    for (let lon = minLon; lon < maxLon; lon += tileSize) {
-      tiles.push({
-        south: lat,
-        north: lat + tileSize,
-        west: lon,
-        east: lon + tileSize,
-      });
-    }
-  }
-
-  return tiles;
-}
+// DownloadEstimate is re-exported from downloadEstimation.service.ts
 
 /**
  * Fetch POIs for a tile WITHOUT rate limiting (for bulk downloads only)
@@ -253,52 +175,8 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Generate auto-name for region based on coordinates
- */
-function generateRegionName(centerLat: number, centerLon: number): string {
-  const latDir = centerLat >= 0 ? 'N' : 'S';
-  const lonDir = centerLon >= 0 ? 'E' : 'W';
-  return `Area ${Math.abs(centerLat).toFixed(1)}${latDir}, ${Math.abs(centerLon).toFixed(1)}${lonDir}`;
-}
-
-// rowToPOI function removed - now using WatermelonDB models
-
-/**
- * Estimate download size for an area (radius-based)
- */
-export async function estimateDownload(
-  centerLat: number,
-  centerLon: number,
-  radiusKm: number,
-  categories: POICategory[]
-): Promise<DownloadEstimate> {
-  const bounds = calculateBoundsFromRadius(centerLat, centerLon, radiusKm);
-  return estimateDownloadForBounds(bounds, categories);
-}
-
-/**
- * Estimate download size for a bounding box (region-based)
- */
-export async function estimateDownloadForBounds(
-  bounds: BoundingBox,
-  categories: POICategory[]
-): Promise<DownloadEstimate> {
-  const tiles = getTilesCoveringBounds(bounds);
-
-  // Rough estimation based on area and urban density
-  // Urban areas: ~50 POIs per tile, Rural: ~10 POIs per tile
-  // Average: ~25 POIs per tile for all categories
-  const avgPOIsPerTile = 25 * (categories.length / POI_CATEGORIES.length);
-  const estimatedPOIs = Math.round(tiles.length * avgPOIsPerTile);
-  const estimatedSizeBytes = estimatedPOIs * BYTES_PER_POI_ESTIMATE;
-
-  return {
-    estimatedPOIs,
-    estimatedSizeBytes,
-    tilesRequired: tiles.length,
-  };
-}
+// generateRegionName, estimateDownload, estimateDownloadForBounds
+// are re-exported from extracted modules above
 
 /**
  * Download POIs for an area
@@ -332,9 +210,8 @@ export async function downloadPOIsForArea(
   const bounds = boundingBox || calculateBoundsFromRadius(centerLat, centerLon, radiusKm);
 
   // Check if region is small enough for single-query mode (FAST!)
-  const regionWidth = bounds.east - bounds.west;
-  const regionHeight = bounds.north - bounds.south;
-  const useSingleQuery = regionWidth < SINGLE_QUERY_MAX_SIZE_DEG && regionHeight < SINGLE_QUERY_MAX_SIZE_DEG;
+  const useSingleQuery = shouldUseSingleQueryMode(bounds);
+  const regionSize = getRegionSizeKm(bounds);
 
   // For single query, we treat it as 1 tile; otherwise use tile-based
   const tiles = useSingleQuery ? [bounds] : getTilesCoveringBoundsForDownload(bounds);
@@ -342,7 +219,7 @@ export async function downloadPOIsForArea(
 
   logger.info('offline', `Downloading POIs`, {
     mode: useSingleQuery ? 'SINGLE_QUERY (fast)' : `TILE_BASED (${totalTiles} tiles)`,
-    regionSize: `${(regionWidth * 111).toFixed(0)}km x ${(regionHeight * 111).toFixed(0)}km`,
+    regionSize: `${regionSize.widthKm}km x ${regionSize.heightKm}km`,
   });
 
   // Progress reporting

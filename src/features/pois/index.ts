@@ -6,7 +6,7 @@ export * from './services/overpass.service';
 export { poiRepository } from './services/poi.repository';
 
 // Store
-export { usePOIStore, selectFilteredPOIs, selectPOIsByCategory, selectNearestPOI, selectPOIsInViewport } from './store/poiStore';
+export { usePOIStore, selectPOIsByCategory, selectNearestPOI } from './store/poiStore';
 
 // Components
 export { POIMarker } from './components/POIMarker';

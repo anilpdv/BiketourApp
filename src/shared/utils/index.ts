@@ -6,3 +6,5 @@ export * from './cache.utils';
 export * from './async.utils';
 export * from './error.utils';
 export * from './formatters';
+export * from './tileGrid.utils';
+export * from './downloadPhase.utils';

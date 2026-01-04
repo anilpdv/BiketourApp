@@ -4,7 +4,7 @@ import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, Sym
 import type { MapView as MapViewType } from '@rnmapbox/maps';
 import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
-import { POIDetailSheet, POIDetailSheetRef } from '../../src/features/pois';
+import { POIDetailSheet, POIDetailSheetRef, usePOIStore } from '../../src/features/pois';
 import { FiltersModal } from '../../src/features/pois/components/FiltersModal';
 import { POIListView } from '../../src/features/pois/components/POIListView';
 import { useFilterStore } from '../../src/features/pois/store/filterStore';
@@ -470,16 +470,17 @@ export default function MapScreen() {
     poiDetailSheetRef.current?.present(poi);
   }, [selectPOI]);
 
-  // Handle toggle favorite from list
+  // Handle toggle favorite from list - uses POI store directly
   const handleToggleFavoriteFromList = useCallback((poi: any) => {
-    // Toggle favorite via POI store
-    // The usePOIDisplay hook should have this functionality
+    usePOIStore.getState().toggleFavorite(poi);
   }, []);
 
-  // Handle refresh POIs in list
+  // Handle refresh POIs in list - triggers POI reload for current bounds
   const handleRefreshPOIs = useCallback(() => {
-    // Trigger POI refresh
-  }, []);
+    if (currentBounds) {
+      loadPOIsForBounds(currentBounds);
+    }
+  }, [currentBounds, loadPOIsForBounds]);
 
   // Handle POI download from prompt (region-based)
   const handleStartPOIDownload = useCallback(async () => {

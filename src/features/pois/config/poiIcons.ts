@@ -154,9 +154,14 @@ export const CATEGORY_NAMES: Record<POICategory, string> = {
  * Get the icon configuration for a POI category
  */
 export function getCategoryIcon(category: POICategory) {
+  // Validate category exists in mappings (helps identify invalid data)
+  if (__DEV__ && !CATEGORY_COLORS[category]) {
+    console.warn(`[POI] Unknown category: "${category}" - using fallback styling`);
+  }
+
   return {
     color: CATEGORY_COLORS[category] || '#666666',
-    group: CATEGORY_TO_GROUP[category],
+    group: CATEGORY_TO_GROUP[category] || 'services',
     groupColor: getCategoryGroupColor(category),
     makiIcon: CATEGORY_TO_MAKI_ICON[category] || 'marker',
     vectorIcon: CATEGORY_TO_VECTOR_ICON[category] || 'map-marker',

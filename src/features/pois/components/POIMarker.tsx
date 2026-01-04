@@ -4,7 +4,6 @@ import { MarkerView } from '@rnmapbox/maps';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { POI } from '../types';
 import { getCategoryIcon } from '../config/poiIcons';
-import { getCategoryGroupColor } from '../config/poiGroupColors';
 import { colors } from '../../../shared/design/tokens';
 
 interface POIMarkerProps {
@@ -19,18 +18,17 @@ interface POIMarkerProps {
  */
 function POIMarkerComponent({ poi, onPress, isSelected = false }: POIMarkerProps) {
   const iconConfig = getCategoryIcon(poi.category);
-  const groupColor = getCategoryGroupColor(poi.category);
 
   return (
     <MarkerView
       coordinate={[poi.longitude, poi.latitude]}
       anchor={{ x: 0.5, y: 1 }}
-      allowOverlap={true}
+      allowOverlap={false}
     >
       <Pressable onPress={() => onPress(poi)}>
         <View style={[styles.markerContainer, isSelected && styles.markerSelected]}>
           {/* Pin body */}
-          <View style={[styles.pinBody, { backgroundColor: groupColor }]}>
+          <View style={[styles.pinBody, { backgroundColor: iconConfig.groupColor }]}>
             <MaterialCommunityIcons
               name={iconConfig.vectorIcon}
               size={22}
@@ -38,7 +36,7 @@ function POIMarkerComponent({ poi, onPress, isSelected = false }: POIMarkerProps
             />
           </View>
           {/* Pin pointer */}
-          <View style={[styles.pinPointer, { borderTopColor: groupColor }]} />
+          <View style={[styles.pinPointer, { borderTopColor: iconConfig.groupColor }]} />
         </View>
       </Pressable>
     </MarkerView>

@@ -14,65 +14,13 @@ import POIModel from '../../../shared/database/watermelon/models/POI';
 import POICacheTileModel from '../../../shared/database/watermelon/models/POICacheTile';
 import DownloadedRegionModel from '../../../shared/database/watermelon/models/DownloadedRegion';
 import { POI, POICategory, BoundingBox } from '../types';
-import { logger } from '../../../shared/utils';
+import { logger, getTileKey, getTilesCoveringBbox, Tile } from '../../../shared/utils';
 
 // Cache duration: 24 hours
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000;
 
 // Downloaded POIs never expire (10 years)
 const DOWNLOAD_EXPIRY_MS = 10 * 365 * 24 * 60 * 60 * 1000;
-
-// Grid size for tile keys (in degrees) - approximately 22km at equator
-const TILE_SIZE = 0.2;
-
-/**
- * Generate a tile key from bounding box coordinates
- */
-function getTileKey(bbox: BoundingBox): string {
-  const minLatTile = Math.floor(bbox.south / TILE_SIZE);
-  const maxLatTile = Math.floor(bbox.north / TILE_SIZE);
-  const minLonTile = Math.floor(bbox.west / TILE_SIZE);
-  const maxLonTile = Math.floor(bbox.east / TILE_SIZE);
-  return `${minLatTile}_${maxLatTile}_${minLonTile}_${maxLonTile}`;
-}
-
-/**
- * Represents a single tile in the grid
- */
-interface Tile {
-  south: number;
-  north: number;
-  west: number;
-  east: number;
-  key: string;
-}
-
-/**
- * Get all tiles that cover a given bounding box
- */
-function getTilesCoveringBbox(bbox: BoundingBox): Tile[] {
-  const tiles: Tile[] = [];
-
-  const minLatTile = Math.floor(bbox.south / TILE_SIZE) * TILE_SIZE;
-  const maxLatTile = Math.ceil(bbox.north / TILE_SIZE) * TILE_SIZE;
-  const minLonTile = Math.floor(bbox.west / TILE_SIZE) * TILE_SIZE;
-  const maxLonTile = Math.ceil(bbox.east / TILE_SIZE) * TILE_SIZE;
-
-  for (let lat = minLatTile; lat < maxLatTile; lat += TILE_SIZE) {
-    for (let lon = minLonTile; lon < maxLonTile; lon += TILE_SIZE) {
-      const tile: Tile = {
-        south: lat,
-        north: lat + TILE_SIZE,
-        west: lon,
-        east: lon + TILE_SIZE,
-        key: getTileKey({ south: lat, north: lat + TILE_SIZE, west: lon, east: lon + TILE_SIZE }),
-      };
-      tiles.push(tile);
-    }
-  }
-
-  return tiles;
-}
 
 /**
  * Convert WatermelonDB POI model to POI type

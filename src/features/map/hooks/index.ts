@@ -18,6 +18,19 @@ export type { UseWeatherIntegrationReturn } from './useWeatherIntegration';
 export { usePOIDisplay } from './usePOIDisplay';
 export type { UsePOIDisplayReturn, MapBounds } from './usePOIDisplay';
 
+// Focused POI hooks (can be used independently)
+export { usePOIVisibility } from './usePOIVisibility';
+export type { UsePOIVisibilityReturn } from './usePOIVisibility';
+
+export { usePOISelection } from './usePOISelection';
+export type { UsePOISelectionReturn } from './usePOISelection';
+
+export { usePOIFiltering } from './usePOIFiltering';
+export type { UsePOIFilteringReturn } from './usePOIFiltering';
+
+export { usePOIFetching } from './usePOIFetching';
+export type { UsePOIFetchingReturn, UsePOIFetchingOptions } from './usePOIFetching';
+
 export { useMapCamera } from './useMapCamera';
 export type { UseMapCameraReturn, CameraSettings } from './useMapCamera';
 

@@ -6,16 +6,8 @@
 import { useMemo, useCallback, useRef } from 'react';
 import type { Feature, FeatureCollection, Point } from 'geojson';
 import { POI, POICategory } from '../../pois';
-import {
-  CATEGORY_COLORS,
-  CATEGORY_TO_MAKI_ICON,
-  CATEGORY_TO_EMOJI,
-} from '../../pois/config/poiIcons';
-import {
-  CATEGORY_TO_GROUP,
-  getCategoryGroupColor,
-  POIGroupKey,
-} from '../../pois/config/poiGroupColors';
+import { getCategoryIcon } from '../../pois/config/poiIcons';
+import type { POIGroupKey } from '../../pois/config/poiGroupColors';
 
 export interface POIFeatureProperties {
   id: string;
@@ -46,25 +38,28 @@ export function usePOIGeoJSON(
 
   // Create a single POI feature (memoized helper)
   const createPOIFeature = useCallback(
-    (poi: POI, isFavorite: boolean): Feature<Point, POIFeatureProperties> => ({
-      type: 'Feature' as const,
-      id: poi.id,
-      properties: {
+    (poi: POI, isFavorite: boolean): Feature<Point, POIFeatureProperties> => {
+      const styling = getCategoryIcon(poi.category);
+      return {
+        type: 'Feature' as const,
         id: poi.id,
-        name: poi.name || '',
-        category: poi.category,
-        color: CATEGORY_COLORS[poi.category] || '#666',
-        group: CATEGORY_TO_GROUP[poi.category],
-        groupColor: getCategoryGroupColor(poi.category),
-        makiIcon: CATEGORY_TO_MAKI_ICON[poi.category] || 'marker',
-        emoji: CATEGORY_TO_EMOJI[poi.category] || '📍',
-        isFavorite,
-      },
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [poi.longitude, poi.latitude],
-      },
-    }),
+        properties: {
+          id: poi.id,
+          name: poi.name || '',
+          category: poi.category,
+          color: styling.color,
+          group: styling.group,
+          groupColor: styling.groupColor,
+          makiIcon: styling.makiIcon,
+          emoji: styling.emoji,
+          isFavorite,
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [poi.longitude, poi.latitude],
+        },
+      };
+    },
     []
   );
 

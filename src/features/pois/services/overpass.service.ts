@@ -1,11 +1,4 @@
-import {
-  POI,
-  POICategory,
-  POICategoryConfig,
-  BoundingBox,
-  OverpassResponse,
-  OverpassElement,
-} from '../types';
+import { POI, POICategory, POICategoryConfig, BoundingBox, OverpassResponse } from '../types';
 // Use WatermelonDB repository for native thread performance
 import { poiRepositoryWM as poiRepository } from './poi.repository.watermelon';
 import {
@@ -20,6 +13,16 @@ import {
 } from '../../../shared/utils';
 import { API_CONFIG } from '../../../shared/config';
 import { fetchWithTimeout } from '../../../shared/api/httpClient';
+
+// Import from split modules
+import { POI_CATEGORIES, getCategoryConfigs } from '../config/poiCategoryConfig';
+import { buildMultiCategoryQuery } from './overpass.query';
+import { parseOverpassResponse } from './overpass.parser';
+
+// Re-export for backwards compatibility
+export { POI_CATEGORIES } from '../config/poiCategoryConfig';
+export { buildMultiCategoryQuery } from './overpass.query';
+export { parseOverpassResponse, getCategoryFromTags } from './overpass.parser';
 
 // Rate limiter for Overpass API
 const rateLimiter = createRateLimiter(API_CONFIG.pois.rateLimit);
@@ -37,307 +40,9 @@ function getBboxKey(bbox: BoundingBox, categories?: POICategory[]): string {
   return `${bbox.south.toFixed(2)}_${bbox.north.toFixed(2)}_${bbox.west.toFixed(2)}_${bbox.east.toFixed(2)}_${categoryStr}`;
 }
 
-// POI category configurations
-// All categories are disabled by default - only explicitly selected categories are fetched
-export const POI_CATEGORIES: POICategoryConfig[] = [
-  // Camping-focused categories (primary)
-  {
-    id: 'campsite',
-    name: 'Campsites',
-    icon: 'tent',
-    color: '#228B22',
-    osmQuery: 'tourism=camp_site',
-    enabled: false,
-  },
-  {
-    id: 'motorhome_spot',
-    name: 'Motorhome Spots',
-    icon: 'caravan',
-    color: '#6B5B95',
-    osmQuery: 'tourism=caravan_site',
-    enabled: false,
-  },
-  {
-    id: 'caravan_site',
-    name: 'Caravan Sites',
-    icon: 'rv-truck',
-    color: '#FF6B35',
-    osmQuery: 'tourism=caravan_site',
-    enabled: false,
-  },
-  {
-    id: 'wild_camping',
-    name: 'Wild Camping',
-    icon: 'pine-tree',
-    color: '#2D5016',
-    osmQuery: 'tourism=camp_pitch',
-    enabled: false,
-  },
-  // Services categories
-  {
-    id: 'service_area',
-    name: 'Service Areas',
-    icon: 'gas-station',
-    color: '#45B7D1',
-    osmQuery: 'amenity=sanitary_dump_station',
-    enabled: false,
-  },
-  {
-    id: 'drinking_water',
-    name: 'Drinking Water',
-    icon: 'water',
-    color: '#1E90FF',
-    osmQuery: 'amenity=drinking_water',
-    enabled: false,
-  },
-  {
-    id: 'toilet',
-    name: 'Toilets',
-    icon: 'toilet',
-    color: '#7A8B8B',
-    osmQuery: 'amenity=toilets',
-    enabled: false,
-  },
-  {
-    id: 'shower',
-    name: 'Showers',
-    icon: 'shower',
-    color: '#4ECDC4',
-    osmQuery: 'amenity=shower',
-    enabled: false,
-  },
-  {
-    id: 'laundry',
-    name: 'Laundry',
-    icon: 'washing-machine',
-    color: '#FFE66D',
-    osmQuery: 'shop=laundry',
-    enabled: false,
-  },
-  // Accommodation categories
-  {
-    id: 'hotel',
-    name: 'Hotels',
-    icon: 'hotel',
-    color: '#9370DB',
-    osmQuery: 'tourism=hotel',
-    enabled: false,
-  },
-  {
-    id: 'hostel',
-    name: 'Hostels',
-    icon: 'bed',
-    color: '#20B2AA',
-    osmQuery: 'tourism=hostel',
-    enabled: false,
-  },
-  {
-    id: 'guest_house',
-    name: 'Guest Houses',
-    icon: 'home',
-    color: '#DEB887',
-    osmQuery: 'tourism=guest_house',
-    enabled: false,
-  },
-  {
-    id: 'shelter',
-    name: 'Shelters',
-    icon: 'shelter',
-    color: '#8B4513',
-    osmQuery: 'amenity=shelter',
-    enabled: false,
-  },
-  // Bike categories
-  {
-    id: 'bike_shop',
-    name: 'Bike Shops',
-    icon: 'bicycle',
-    color: '#FF6347',
-    osmQuery: 'shop=bicycle',
-    enabled: false,
-  },
-  {
-    id: 'bike_repair',
-    name: 'Repair Stations',
-    icon: 'wrench',
-    color: '#FF8C00',
-    osmQuery: 'amenity=bicycle_repair_station',
-    enabled: false,
-  },
-  // Food categories
-  {
-    id: 'restaurant',
-    name: 'Restaurants',
-    icon: 'utensils',
-    color: '#DC143C',
-    osmQuery: 'amenity=restaurant',
-    enabled: false,
-  },
-  {
-    id: 'supermarket',
-    name: 'Supermarkets',
-    icon: 'cart',
-    color: '#32CD32',
-    osmQuery: 'shop=supermarket',
-    enabled: false,
-  },
-  {
-    id: 'picnic_site',
-    name: 'Picnic Sites',
-    icon: 'table-picnic',
-    color: '#98D8C8',
-    osmQuery: 'leisure=picnic_table',
-    enabled: false,
-  },
-  // Emergency categories
-  {
-    id: 'hospital',
-    name: 'Hospitals',
-    icon: 'hospital-box',
-    color: '#E53935',
-    osmQuery: 'amenity=hospital',
-    enabled: false,
-  },
-  {
-    id: 'pharmacy',
-    name: 'Pharmacies',
-    icon: 'pharmacy',
-    color: '#43A047',
-    osmQuery: 'amenity=pharmacy',
-    enabled: false,
-  },
-  {
-    id: 'police',
-    name: 'Police Stations',
-    icon: 'police-badge',
-    color: '#1565C0',
-    osmQuery: 'amenity=police',
-    enabled: false,
-  },
-];
-
 // Wait for rate limit
 async function waitForRateLimit(): Promise<void> {
   await rateLimiter.waitForRateLimit();
-}
-
-// Build Overpass query for a bounding box and category
-function buildOverpassQuery(bbox: BoundingBox, category: POICategoryConfig): string {
-  const { south, west, north, east } = bbox;
-  const [key, value] = category.osmQuery.split('=');
-
-  return `
-    [out:json][timeout:8];
-    (
-      node["${key}"="${value}"](${south},${west},${north},${east});
-      way["${key}"="${value}"](${south},${west},${north},${east});
-    );
-    out center;
-  `;
-}
-
-// Build query for multiple categories (exported for bulk downloads)
-export function buildMultiCategoryQuery(
-  bbox: BoundingBox,
-  categories: POICategoryConfig[]
-): string {
-  const { south, west, north, east } = bbox;
-
-  const queries = categories
-    .map((cat) => {
-      const [key, value] = cat.osmQuery.split('=');
-      return `
-      node["${key}"="${value}"](${south},${west},${north},${east});
-      way["${key}"="${value}"](${south},${west},${north},${east});
-    `;
-    })
-    .join('\n');
-
-  return `
-    [out:json][timeout:25];
-    (
-      ${queries}
-    );
-    out center;
-  `;
-}
-
-// Determine POI category from OSM tags
-function getCategoryFromTags(tags: Record<string, string>): POICategory | null {
-  // Camping-focused categories
-  if (tags.tourism === 'camp_site') return 'campsite';
-  if (tags.tourism === 'caravan_site') return 'motorhome_spot'; // Map to motorhome_spot
-  if (tags.tourism === 'camp_pitch') return 'wild_camping';
-
-  // Services categories
-  if (tags.amenity === 'sanitary_dump_station') return 'service_area';
-  if (tags.amenity === 'drinking_water') return 'drinking_water';
-  if (tags.amenity === 'toilets') return 'toilet';
-  if (tags.amenity === 'shower') return 'shower';
-  if (tags.shop === 'laundry') return 'laundry';
-
-  // Accommodation categories
-  if (tags.tourism === 'hotel') return 'hotel';
-  if (tags.tourism === 'hostel') return 'hostel';
-  if (tags.tourism === 'guest_house') return 'guest_house';
-  if (tags.amenity === 'shelter') return 'shelter';
-
-  // Bike categories
-  if (tags.shop === 'bicycle') return 'bike_shop';
-  if (tags.amenity === 'bicycle_repair_station') return 'bike_repair';
-
-  // Food categories
-  if (tags.amenity === 'restaurant') return 'restaurant';
-  if (tags.shop === 'supermarket') return 'supermarket';
-  if (tags.leisure === 'picnic_table') return 'picnic_site';
-
-  // Emergency categories
-  if (tags.amenity === 'hospital') return 'hospital';
-  if (tags.amenity === 'pharmacy') return 'pharmacy';
-  if (tags.amenity === 'police') return 'police';
-
-  return null;
-}
-
-// Parse Overpass response to POIs
-// Essential tags to keep - reduces memory by ~80%
-const ESSENTIAL_TAGS = [
-  'name', 'website', 'phone', 'email', 'opening_hours',
-  'fee', 'capacity', 'addr:street', 'addr:city', 'description'
-];
-
-// Parse Overpass response to POIs (exported for bulk downloads)
-export function parseOverpassResponse(response: OverpassResponse): POI[] {
-  const pois: POI[] = [];
-
-  for (const element of response.elements) {
-    const tags = element.tags || {};
-    const category = getCategoryFromTags(tags);
-    if (!category) continue;
-
-    // Get coordinates (node has lat/lon, way has center)
-    const lat = element.lat ?? element.center?.lat;
-    const lon = element.lon ?? element.center?.lon;
-    if (lat === undefined || lon === undefined) continue;
-
-    // Strip unnecessary tags - keep only essential ones for memory efficiency
-    const essentialTags: Record<string, string> = {};
-    for (const key of ESSENTIAL_TAGS) {
-      if (tags[key]) essentialTags[key] = tags[key];
-    }
-
-    pois.push({
-      id: `${element.type}/${element.id}`,
-      type: element.type,
-      category,
-      name: tags.name || null,
-      latitude: lat,
-      longitude: lon,
-      tags: essentialTags,
-    });
-  }
-
-  return pois;
 }
 
 // Sleep helper
@@ -364,7 +69,7 @@ export async function fetchPOIs(
 
   await waitForRateLimit();
 
-  const categoriesToFetch = POI_CATEGORIES.filter((c) => categories.includes(c.id));
+  const categoriesToFetch = getCategoryConfigs(categories);
 
   if (categoriesToFetch.length === 0) {
     return [];

@@ -3,7 +3,7 @@
  * Handles POI loading with abort controller and progressive display
  */
 
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   usePOIStore,
   fetchPOIsForViewport,
@@ -154,24 +154,8 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
     [showPOIs, categories, setPOIs, setPOIsLoading, onBoundsUpdate]
   );
 
-  // Auto-trigger POI load when showPOIs changes or categories change
-  // Downloaded POIs are ALWAYS loaded (regardless of showPOIs)
-  // API POIs are only loaded when showPOIs is true
-  useEffect(() => {
-    logger.info('poi', 'Auto-trigger effect fired', {
-      showPOIs,
-      categoriesCount: categories.length,
-      categories,
-      hasBounds: !!lastBoundsRef.current,
-    });
-
-    // Always load when we have bounds - downloaded POIs will be fetched
-    // API POIs controlled by showPOIs flag inside fetchPOIsForViewport
-    if (lastBoundsRef.current) {
-      logger.info('poi', '>>> Calling loadPOIsForBounds from auto-trigger');
-      loadPOIsForBounds(lastBoundsRef.current);
-    }
-  }, [showPOIs, categories, loadPOIsForBounds]);
+  // Note: Auto-trigger removed - caller controls when to fetch
+  // This prevents implicit state changes and race conditions
 
   return {
     loadPOIsForBounds,

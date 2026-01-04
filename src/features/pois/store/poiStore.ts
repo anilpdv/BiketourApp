@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { POI, POICategory, POIFilterState, BoundingBox } from '../types';
+import { POI, POICategory, BoundingBox } from '../types';
 import { poiRepository } from '../services/poi.repository';
 import {
   fetchPOIsWithCache,
@@ -24,9 +24,6 @@ interface POIState {
   // Selected POI for detail view
   selectedPOI: POI | null;
 
-  // Filter state
-  filters: POIFilterState;
-
   // Loading state
   isLoading: boolean;
   error: string | null;
@@ -41,8 +38,6 @@ interface POIState {
   addPOIs: (pois: POI[]) => void;
   clearPOIs: () => void;
   selectPOI: (poi: POI | null) => void;
-  setFilters: (filters: Partial<POIFilterState>) => void;
-  toggleCategory: (category: POICategory) => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
 
@@ -66,18 +61,11 @@ interface POIState {
   ) => Promise<void>;
 }
 
-const defaultFilters: POIFilterState = {
-  categories: [], // Start with no categories enabled - user selects what to show
-  maxDistance: 20,
-  showOnMap: true,
-};
-
 export const usePOIStore = create<POIState>((set, get) => ({
   pois: [],
   poiIds: new Set(),
   poisByCategory: new Map(),
   selectedPOI: null,
-  filters: defaultFilters,
   isLoading: false,
   error: null,
   favoriteIds: new Set(),
@@ -158,21 +146,6 @@ export const usePOIStore = create<POIState>((set, get) => ({
   },
 
   selectPOI: (poi) => set({ selectedPOI: poi }),
-
-  setFilters: (filters) =>
-    set((state) => ({
-      filters: { ...state.filters, ...filters },
-    })),
-
-  toggleCategory: (category) =>
-    set((state) => {
-      const categories = state.filters.categories.includes(category)
-        ? state.filters.categories.filter((c) => c !== category)
-        : [...state.filters.categories, category];
-      return {
-        filters: { ...state.filters, categories },
-      };
-    }),
 
   setLoading: (isLoading) => set({ isLoading }),
 
@@ -317,11 +290,6 @@ export const usePOIStore = create<POIState>((set, get) => ({
 }));
 
 // Selectors
-export const selectFilteredPOIs = (state: POIState): POI[] => {
-  const { pois, filters } = state;
-  return pois.filter((poi) => filters.categories.includes(poi.category));
-};
-
 export const selectPOIsByCategory = (category: POICategory) => (state: POIState): POI[] => {
   return state.poisByCategory.get(category) || [];
 };
@@ -346,22 +314,6 @@ export const selectNearestPOI = (
   }
 
   return nearest;
-};
-
-/**
- * Select POIs within a viewport bounding box
- * Used for memory optimization - only render POIs visible on screen
- */
-export const selectPOIsInViewport = (bbox: BoundingBox) => (state: POIState): POI[] => {
-  const { pois, filters } = state;
-  return pois.filter(
-    (poi) =>
-      filters.categories.includes(poi.category) &&
-      poi.latitude >= bbox.south &&
-      poi.latitude <= bbox.north &&
-      poi.longitude >= bbox.west &&
-      poi.longitude <= bbox.east
-  );
 };
 
 /**

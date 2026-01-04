@@ -21,6 +21,14 @@ import {
   typography,
   shadows,
 } from '../../../shared/design/tokens';
+import {
+  getPhaseIcon,
+  getPhaseColor,
+  formatStatusText,
+  isPhaseFinished,
+  getPhaseConfig,
+  DownloadPhase,
+} from '../../../shared/utils';
 
 interface POIDownloadProgressProps {
   visible: boolean;
@@ -36,61 +44,16 @@ export const POIDownloadProgress = memo(function POIDownloadProgress({
   if (!currentDownload) return null;
 
   const { progress } = currentDownload;
-  const isComplete = progress.phase === 'complete';
-  const isCancelled = progress.phase === 'cancelled';
-  const isError = progress.phase === 'error';
-  const isFinished = isComplete || isCancelled || isError;
+  const phase = progress.phase as DownloadPhase;
+  const isFinished = isPhaseFinished(phase);
+  const phaseConfig = getPhaseConfig(phase);
 
-  const getPhaseIcon = () => {
-    switch (progress.phase) {
-      case 'estimating':
-        return 'timer-sand';
-      case 'downloading':
-        return 'cloud-download';
-      case 'saving':
-        return 'database';
-      case 'complete':
-        return 'check-circle';
-      case 'cancelled':
-        return 'close-circle';
-      case 'error':
-        return 'alert-circle';
-      default:
-        return 'cloud-download';
-    }
-  };
-
-  const getPhaseColor = () => {
-    switch (progress.phase) {
-      case 'complete':
-        return colors.status.success;
-      case 'cancelled':
-        return colors.neutral[500];
-      case 'error':
-        return colors.status.error;
-      default:
-        return colors.primary[500];
-    }
-  };
-
-  const getStatusText = () => {
-    switch (progress.phase) {
-      case 'estimating':
-        return 'Calculating download size...';
-      case 'downloading':
-        return `Downloading POIs (${progress.currentTile}/${progress.totalTiles} tiles)`;
-      case 'saving':
-        return 'Saving to database...';
-      case 'complete':
-        return `Downloaded ${progress.currentPOIs.toLocaleString()} POIs`;
-      case 'cancelled':
-        return 'Download cancelled';
-      case 'error':
-        return 'Download failed';
-      default:
-        return 'Preparing...';
-    }
-  };
+  const statusText = formatStatusText(
+    phase,
+    progress.currentTile,
+    progress.totalTiles,
+    progress.currentPOIs
+  );
 
   return (
     <Modal
@@ -116,29 +79,21 @@ export const POIDownloadProgress = memo(function POIDownloadProgress({
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: getPhaseColor() + '20' },
+                { backgroundColor: phaseConfig.color + '20' },
               ]}
             >
               <MaterialCommunityIcons
-                name={getPhaseIcon()}
+                name={phaseConfig.icon}
                 size={32}
-                color={getPhaseColor()}
+                color={phaseConfig.color}
               />
             </View>
 
             {/* Title */}
-            <Text style={styles.title}>
-              {isComplete
-                ? 'Download Complete'
-                : isCancelled
-                ? 'Download Cancelled'
-                : isError
-                ? 'Download Failed'
-                : 'Downloading POIs...'}
-            </Text>
+            <Text style={styles.title}>{phaseConfig.title}</Text>
 
             {/* Status */}
-            <Text style={styles.statusText}>{getStatusText()}</Text>
+            <Text style={styles.statusText}>{statusText}</Text>
 
             {/* Progress bar */}
             {!isFinished && (

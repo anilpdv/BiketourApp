@@ -1,14 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { FeatureCollection, Point } from 'geojson';
 import * as Location from 'expo-location';
 import { usePOIStore, POI, POICategory, BoundingBox } from '../../pois';
 import { useFilterStore } from '../../pois/store/filterStore';
-import { logger } from '../../../shared/utils';
 import { ParsedRoute } from '../../routes/types';
 import { MapBounds } from '../../../shared/types';
 import { usePOIFiltering } from './usePOIFiltering';
 import { usePOIGeoJSON, POIFeatureProperties } from './usePOIGeoJSON';
 import { usePOIFetching } from './usePOIFetching';
+import { usePOIVisibility } from './usePOIVisibility';
+import { usePOISelection } from './usePOISelection';
 
 export { MapBounds } from '../../../shared/types';
 
@@ -33,19 +34,20 @@ export interface UsePOIDisplayReturn {
 
 /**
  * Hook for managing POI display and filtering
- * Composes usePOIFiltering, usePOIGeoJSON, and usePOIFetching hooks
+ * Composes focused hooks for visibility, selection, filtering, GeoJSON, and fetching
  */
 export function usePOIDisplay(
   location: Location.LocationObject | null,
   enabledRoutes: ParsedRoute[]
 ): UsePOIDisplayReturn {
-  const [showPOIs, setShowPOIs] = useState(false);
+  // Focused hooks for specific concerns
+  const { showPOIs, togglePOIs } = usePOIVisibility();
+  const { selectPOI, handlePOIPress } = usePOISelection();
 
   // Use Zustand selectors for granular subscriptions
   const pois = usePOIStore((state) => state.pois);
   const isLoading = usePOIStore((state) => state.isLoading);
   const favoriteIds = usePOIStore((state) => state.favoriteIds);
-  const selectPOI = usePOIStore((state) => state.selectPOI);
   const loadFavorites = usePOIStore((state) => state.loadFavorites);
 
   // Use filterStore for filter state (single source of truth)
@@ -74,24 +76,9 @@ export function usePOIDisplay(
   // Compose fetching hook
   const { loadPOIsForBounds, lastBoundsRef } = usePOIFetching({
     showPOIs,
-    categories: filterCategories,  // Use filterStore categories
+    categories: filterCategories,
     onBoundsUpdate: setViewportBounds,
   });
-
-  // Toggle POI visibility
-  const togglePOIs = useCallback(() => {
-    logger.info('poi', '=== TOGGLE POIs PRESSED ===');
-    const willEnable = !showPOIs;
-    logger.info('poi', 'togglePOIs state change', {
-      oldValue: showPOIs,
-      newValue: willEnable,
-      categoriesCount: filterCategories.length,
-      hasBounds: !!lastBoundsRef.current,
-    });
-
-    // Update local state - user must select categories manually
-    setShowPOIs(willEnable);
-  }, [showPOIs, filterCategories.length, lastBoundsRef]);
 
   // Update viewport bounds for filtering (called on camera changes)
   const updateViewportBounds = useCallback(
@@ -108,14 +95,6 @@ export function usePOIDisplay(
       setViewportBounds(bbox);
     },
     [lastBoundsRef, setViewportBounds]
-  );
-
-  // Handle POI press
-  const handlePOIPress = useCallback(
-    (poi: POI) => {
-      selectPOI(poi);
-    },
-    [selectPOI]
   );
 
   return {
