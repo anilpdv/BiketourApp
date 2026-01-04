@@ -65,6 +65,7 @@ export const FilterChipsBar = memo(function FilterChipsBar({
             label={filter.label}
             isActive={filter.isActive}
             icon={filter.icon}
+            count={filter.count}
             onPress={() => onToggleQuickFilter(filter.id)}
           />
         ))}

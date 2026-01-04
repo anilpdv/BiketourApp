@@ -99,6 +99,7 @@ export interface QuickFilter {
   label: string;
   isActive: boolean;
   icon?: string;
+  count?: number; // POI count for this filter category
 }
 
 // Extended POI with favorite status

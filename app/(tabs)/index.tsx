@@ -61,6 +61,7 @@ export default function MapScreen() {
     applyFilters,
     getActiveFilterCount,
     getQuickFilters,
+    getQuickFiltersWithCounts,
     toggleCategory: toggleFilterCategory,
   } = useFilterStore();
 
@@ -676,7 +677,7 @@ export default function MapScreen() {
       <FilterChipsBar
         onOpenFilters={openFiltersModal}
         activeFilterCount={getActiveFilterCount()}
-        quickFilters={getQuickFilters()}
+        quickFilters={getQuickFiltersWithCounts(poiCounts)}
         onToggleQuickFilter={handleToggleQuickFilter}
       />
 

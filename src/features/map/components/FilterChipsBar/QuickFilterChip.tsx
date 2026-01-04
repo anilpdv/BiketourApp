@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   colors,
@@ -13,6 +13,7 @@ interface QuickFilterChipProps {
   label: string;
   isActive: boolean;
   icon?: string;
+  count?: number;
   onPress: () => void;
 }
 
@@ -20,6 +21,7 @@ export const QuickFilterChip = memo(function QuickFilterChip({
   label,
   isActive,
   icon,
+  count,
   onPress,
 }: QuickFilterChipProps) {
   return (
@@ -29,7 +31,7 @@ export const QuickFilterChip = memo(function QuickFilterChip({
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityState={{ selected: isActive }}
-      accessibilityLabel={`${label} filter${isActive ? ', selected' : ''}`}
+      accessibilityLabel={`${label} filter${count !== undefined ? `, ${count} POIs` : ''}${isActive ? ', selected' : ''}`}
     >
       {icon && (
         <MaterialCommunityIcons
@@ -40,6 +42,11 @@ export const QuickFilterChip = memo(function QuickFilterChip({
         />
       )}
       <Text style={[styles.label, isActive && styles.labelActive]}>{label}</Text>
+      {count !== undefined && count > 0 && (
+        <View style={styles.countBadge}>
+          <Text style={styles.countText}>{count}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 });
@@ -71,6 +78,21 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     color: colors.secondary[700],
+  },
+  countBadge: {
+    backgroundColor: colors.primary[600],
+    borderRadius: borderRadius.full,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  countText: {
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.neutral[0],
   },
 });
 

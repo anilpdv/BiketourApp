@@ -74,6 +74,7 @@ interface FilterStoreState {
   // Computed values
   getActiveFilterCount: () => number;
   getQuickFilters: () => QuickFilter[];
+  getQuickFiltersWithCounts: (poiCounts: Record<POICategory, number>) => QuickFilter[];
 }
 
 export const useFilterStore = create<FilterStoreState>((set, get) => ({
@@ -203,7 +204,8 @@ export const useFilterStore = create<FilterStoreState>((set, get) => ({
     const { filters } = get();
     let count = 0;
 
-    if (filters.categories.length > 0) count += 1;
+    // Count each category individually (not as one filter type)
+    count += filters.categories.length;
     if (filters.maxPrice !== null) count += 1;
     if (filters.minRating !== null) count += 1;
     if (filters.hasElectricity !== null) count += 1;
@@ -237,12 +239,49 @@ export const useFilterStore = create<FilterStoreState>((set, get) => ({
       });
     }
 
-    // Category quick filters (show first 2 selected)
-    filters.categories.slice(0, 2).forEach((category) => {
+    // Category quick filters (show ALL selected)
+    filters.categories.forEach((category) => {
       quickFilters.push({
         id: `category_${category}`,
         label: category.replace(/_/g, ' '),
         isActive: true,
+      });
+    });
+
+    return quickFilters;
+  },
+
+  getQuickFiltersWithCounts: (poiCounts) => {
+    const { filters } = get();
+    const quickFilters: QuickFilter[] = [];
+
+    // Max price quick filter
+    if (filters.maxPrice !== null) {
+      quickFilters.push({
+        id: 'maxPrice',
+        label: `Max €${filters.maxPrice}`,
+        isActive: true,
+      });
+    }
+
+    // Rating quick filter
+    if (filters.minRating !== null) {
+      quickFilters.push({
+        id: 'minRating',
+        label: `${filters.minRating}+`,
+        isActive: true,
+        icon: 'star',
+      });
+    }
+
+    // Category quick filters with counts (show ALL selected)
+    filters.categories.forEach((category) => {
+      const count = poiCounts[category] || 0;
+      quickFilters.push({
+        id: `category_${category}`,
+        label: category.replace(/_/g, ' '),
+        isActive: true,
+        count,
       });
     });
 
