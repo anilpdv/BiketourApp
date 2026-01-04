@@ -41,6 +41,12 @@ export const POI_CATEGORY_GROUPS: POICategoryGroup[] = [
     icon: 'silverware-fork-knife',
     categories: ['restaurant', 'supermarket', 'picnic_site'],
   },
+  {
+    id: 'emergency',
+    name: 'Emergency',
+    icon: 'medical-bag',
+    categories: ['hospital', 'pharmacy', 'police'],
+  },
 ];
 
 /**

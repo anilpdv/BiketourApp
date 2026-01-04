@@ -11,7 +11,7 @@ export type POICategory =
   | 'shelter'
   | 'supermarket'
   | 'restaurant'
-  // New camping-focused categories
+  // Camping-focused categories
   | 'motorhome_spot'
   | 'service_area'
   | 'wild_camping'
@@ -19,7 +19,11 @@ export type POICategory =
   | 'picnic_site'
   | 'toilet'
   | 'shower'
-  | 'laundry';
+  | 'laundry'
+  // Emergency categories
+  | 'hospital'
+  | 'pharmacy'
+  | 'police';
 
 // POI from OpenStreetMap
 export interface POI {

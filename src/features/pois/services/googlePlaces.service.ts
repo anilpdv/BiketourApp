@@ -44,6 +44,10 @@ const CATEGORY_TYPE_MAP: Record<POICategory, string> = {
   restaurant: 'restaurant',
   supermarket: 'supermarket',
   picnic_site: 'park',
+  // Emergency categories
+  hospital: 'hospital',
+  pharmacy: 'pharmacy',
+  police: 'police',
 };
 
 /**

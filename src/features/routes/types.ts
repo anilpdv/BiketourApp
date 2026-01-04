@@ -81,3 +81,64 @@ export interface GPXData {
   };
   tracks: GPXTrack[];
 }
+
+// Surface type for route segments
+export type SurfaceType = 'paved' | 'gravel' | 'unpaved' | 'unknown';
+
+// Surface segment with coordinates
+export interface SurfaceSegment {
+  surface: SurfaceType;
+  coordinates: [number, number][]; // [lon, lat] pairs for GeoJSON
+  startIndex: number;
+  endIndex: number;
+}
+
+// Surface data for a route
+export interface RouteSurfaceData {
+  routeId: string;
+  segments: SurfaceSegment[];
+  summary: {
+    paved: number;    // percentage
+    gravel: number;
+    unpaved: number;
+    unknown: number;
+  };
+}
+
+// Surface colors for map display
+export const SURFACE_COLORS: Record<SurfaceType, string> = {
+  paved: '#4CAF50',    // Green - smooth riding
+  gravel: '#FF9800',   // Orange - caution
+  unpaved: '#795548',  // Brown - rough
+  unknown: '#9E9E9E',  // Gray - no data
+};
+
+// OSM surface tag to SurfaceType mapping
+export const SURFACE_TAG_MAP: Record<string, SurfaceType> = {
+  // Paved surfaces
+  asphalt: 'paved',
+  paved: 'paved',
+  concrete: 'paved',
+  'concrete:plates': 'paved',
+  'concrete:lanes': 'paved',
+  paving_stones: 'paved',
+  sett: 'paved',
+  cobblestone: 'paved',
+  metal: 'paved',
+  wood: 'paved',
+  // Gravel/compacted surfaces
+  gravel: 'gravel',
+  fine_gravel: 'gravel',
+  compacted: 'gravel',
+  pebblestone: 'gravel',
+  // Unpaved surfaces
+  unpaved: 'unpaved',
+  dirt: 'unpaved',
+  earth: 'unpaved',
+  ground: 'unpaved',
+  grass: 'unpaved',
+  sand: 'unpaved',
+  mud: 'unpaved',
+  clay: 'unpaved',
+  rock: 'unpaved',
+};

@@ -14,4 +14,5 @@ export default class POICacheTileModel extends Model {
   @field('max_lon') maxLon!: number;
   @field('fetched_at') fetchedAt!: number;
   @field('expires_at') expiresAt!: number;
+  @text('categories') categories?: string;  // Comma-separated fetched categories (e.g., "campsite,hospital,pharmacy") - nullable for old tiles
 }

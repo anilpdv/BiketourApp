@@ -22,7 +22,7 @@ export const CATEGORY_COLORS: Record<POICategory, string> = {
   shelter: '#8B4513', // Saddle Brown
   supermarket: '#32CD32', // Lime Green
   restaurant: '#DC143C', // Crimson
-  // New camping-focused categories
+  // Camping-focused categories
   motorhome_spot: '#6B5B95', // Purple
   service_area: '#45B7D1', // Teal
   wild_camping: '#2D5016', // Dark Green
@@ -31,6 +31,10 @@ export const CATEGORY_COLORS: Record<POICategory, string> = {
   toilet: '#7A8B8B', // Gray
   shower: '#4ECDC4', // Cyan
   laundry: '#FFE66D', // Yellow
+  // Emergency categories
+  hospital: '#E53935', // Red
+  pharmacy: '#43A047', // Green
+  police: '#1565C0', // Blue
 };
 
 // Map POI categories to Mapbox Maki icon names
@@ -46,7 +50,7 @@ export const CATEGORY_TO_MAKI_ICON: Record<POICategory, string> = {
   shelter: 'shelter',
   supermarket: 'grocery',
   restaurant: 'restaurant',
-  // New categories
+  // Camping categories
   motorhome_spot: 'car',
   service_area: 'fuel',
   wild_camping: 'park',
@@ -55,6 +59,10 @@ export const CATEGORY_TO_MAKI_ICON: Record<POICategory, string> = {
   toilet: 'toilet',
   shower: 'water',
   laundry: 'laundry',
+  // Emergency categories
+  hospital: 'hospital',
+  pharmacy: 'pharmacy',
+  police: 'police',
 };
 
 // MaterialCommunityIcons names for UI components
@@ -69,7 +77,7 @@ export const CATEGORY_TO_VECTOR_ICON: Record<POICategory, string> = {
   shelter: 'home-roof',
   supermarket: 'cart',
   restaurant: 'silverware-fork-knife',
-  // New categories
+  // Camping categories
   motorhome_spot: 'caravan',
   service_area: 'gas-station',
   wild_camping: 'pine-tree',
@@ -78,6 +86,10 @@ export const CATEGORY_TO_VECTOR_ICON: Record<POICategory, string> = {
   toilet: 'toilet',
   shower: 'shower',
   laundry: 'washing-machine',
+  // Emergency categories
+  hospital: 'hospital-box',
+  pharmacy: 'pharmacy',
+  police: 'police-badge',
 };
 
 // Fallback emoji icons (used if vector icons unavailable)
@@ -92,7 +104,7 @@ export const CATEGORY_TO_EMOJI: Record<POICategory, string> = {
   shelter: '🏕️',
   supermarket: '🛒',
   restaurant: '🍽️',
-  // New categories
+  // Camping categories
   motorhome_spot: '🚐',
   service_area: '⛽',
   wild_camping: '🌲',
@@ -101,6 +113,10 @@ export const CATEGORY_TO_EMOJI: Record<POICategory, string> = {
   toilet: '🚻',
   shower: '🚿',
   laundry: '🧺',
+  // Emergency categories
+  hospital: '🏥',
+  pharmacy: '💊',
+  police: '🚔',
 };
 
 // Category display names
@@ -115,7 +131,7 @@ export const CATEGORY_NAMES: Record<POICategory, string> = {
   shelter: 'Shelter',
   supermarket: 'Supermarket',
   restaurant: 'Restaurant',
-  // New categories
+  // Camping categories
   motorhome_spot: 'Motorhome Spot',
   service_area: 'Service Area',
   wild_camping: 'Wild Camping',
@@ -124,6 +140,10 @@ export const CATEGORY_NAMES: Record<POICategory, string> = {
   toilet: 'Toilet',
   shower: 'Shower',
   laundry: 'Laundry',
+  // Emergency categories
+  hospital: 'Hospital',
+  pharmacy: 'Pharmacy',
+  police: 'Police Station',
 };
 
 /**
@@ -166,4 +186,8 @@ export const ALL_CATEGORIES: POICategory[] = [
   'restaurant',
   'supermarket',
   'picnic_site',
+  // Emergency
+  'hospital',
+  'pharmacy',
+  'police',
 ];

@@ -165,13 +165,15 @@ export const poiRepositoryWM = {
   /**
    * Save POIs to cache (batch insert - FAST on native thread!)
    * No write queue needed - WatermelonDB handles concurrency
+   * Categories parameter tracks which POI categories were fetched for this tile
    */
-  async savePOIs(pois: POI[], bbox: BoundingBox): Promise<void> {
+  async savePOIs(pois: POI[], bbox: BoundingBox, categories?: POICategory[]): Promise<void> {
     if (pois.length === 0) return;
 
     const now = Date.now();
     const expiresAt = now + CACHE_DURATION_MS;
     const tileKey = getTileKey(bbox);
+    const categoriesStr = categories?.sort().join(',') || '';
 
     await database.write(async () => {
       // Check for existing POIs to update vs create
@@ -227,9 +229,14 @@ export const poiRepositoryWM = {
 
       let tileOperation: POICacheTileModel;
       if (existingTiles.length > 0) {
+        // Merge new categories with existing ones
+        const existingCategories = existingTiles[0].categories?.split(',').filter(Boolean) || [];
+        const mergedCategories = [...new Set([...existingCategories, ...(categories || [])])].sort().join(',');
+
         tileOperation = existingTiles[0].prepareUpdate((record) => {
           record.fetchedAt = now;
           record.expiresAt = expiresAt;
+          record.categories = mergedCategories;
         });
       } else {
         tileOperation = tilesCollection.prepareCreate((record) => {
@@ -240,6 +247,7 @@ export const poiRepositoryWM = {
           record.maxLon = bbox.east;
           record.fetchedAt = now;
           record.expiresAt = expiresAt;
+          record.categories = categoriesStr;
         });
       }
 
@@ -320,11 +328,13 @@ export const poiRepositoryWM = {
 
   /**
    * Mark a tile as cached (even if empty)
+   * Categories parameter tracks which POI categories were fetched for this tile
    */
-  async markTileAsCached(bbox: BoundingBox): Promise<void> {
+  async markTileAsCached(bbox: BoundingBox, categories?: POICategory[]): Promise<void> {
     const now = Date.now();
     const expiresAt = now + CACHE_DURATION_MS;
     const tileKey = getTileKey(bbox);
+    const categoriesStr = categories?.sort().join(',') || '';
 
     await database.write(async () => {
       const existingTiles = await tilesCollection
@@ -332,9 +342,14 @@ export const poiRepositoryWM = {
         .fetch();
 
       if (existingTiles.length > 0) {
+        // Merge new categories with existing ones
+        const existingCategories = existingTiles[0].categories?.split(',').filter(Boolean) || [];
+        const mergedCategories = [...new Set([...existingCategories, ...(categories || [])])].sort().join(',');
+
         await existingTiles[0].update((record) => {
           record.fetchedAt = now;
           record.expiresAt = expiresAt;
+          record.categories = mergedCategories;
         });
       } else {
         await tilesCollection.create((record) => {
@@ -345,6 +360,7 @@ export const poiRepositoryWM = {
           record.maxLon = bbox.east;
           record.fetchedAt = now;
           record.expiresAt = expiresAt;
+          record.categories = categoriesStr;
         });
       }
     });
@@ -406,8 +422,9 @@ export const poiRepositoryWM = {
 
   /**
    * Get only the tiles that are NOT cached for a bounding box
+   * Now category-aware: returns tiles that haven't fetched ALL requested categories
    */
-  async getUncachedTiles(bbox: BoundingBox): Promise<BoundingBox[]> {
+  async getUncachedTiles(bbox: BoundingBox, categories?: POICategory[]): Promise<BoundingBox[]> {
     const tiles = getTilesCoveringBbox(bbox);
     if (tiles.length === 0) return [];
 
@@ -424,10 +441,30 @@ export const poiRepositoryWM = {
       )
       .fetch();
 
-    const cachedKeys = new Set(cachedTiles.map((t) => t.tileKey));
+    // Build a map of tile_key -> cached categories
+    const cachedTileMap = new Map<string, Set<string>>();
+    for (const tile of cachedTiles) {
+      const tileCategories = tile.categories?.split(',').filter(Boolean) || [];
+      cachedTileMap.set(tile.tileKey, new Set(tileCategories));
+    }
 
+    // Return tiles that either:
+    // 1. Are not cached at all
+    // 2. Don't have ALL of the requested categories (new tiles only)
     return tiles
-      .filter((t) => !cachedKeys.has(t.key))
+      .filter((t) => {
+        const cachedCategories = cachedTileMap.get(t.key);
+        if (!cachedCategories) {
+          // Tile not in cache at all - needs fetch
+          return true;
+        }
+        if (!categories || categories.length === 0) {
+          // No specific categories requested, tile is cached
+          return false;
+        }
+        // Check if ANY requested category is missing from cached categories
+        return categories.some((cat) => !cachedCategories.has(cat));
+      })
       .map((t) => ({
         south: t.south,
         north: t.north,

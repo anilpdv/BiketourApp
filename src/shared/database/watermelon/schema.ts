@@ -5,7 +5,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 1,
+  version: 2,
   tables: [
     // POIs table - stores all points of interest
     tableSchema({
@@ -45,6 +45,7 @@ export const schema = appSchema({
         { name: 'max_lon', type: 'number' },
         { name: 'fetched_at', type: 'number' },
         { name: 'expires_at', type: 'number' },
+        { name: 'categories', type: 'string', isOptional: true },  // Comma-separated fetched categories
       ],
     }),
 

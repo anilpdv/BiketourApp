@@ -189,6 +189,31 @@ export const POI_CATEGORIES: POICategoryConfig[] = [
     osmQuery: 'leisure=picnic_table',
     enabled: false,
   },
+  // Emergency categories
+  {
+    id: 'hospital',
+    name: 'Hospitals',
+    icon: 'hospital-box',
+    color: '#E53935',
+    osmQuery: 'amenity=hospital',
+    enabled: false,
+  },
+  {
+    id: 'pharmacy',
+    name: 'Pharmacies',
+    icon: 'pharmacy',
+    color: '#43A047',
+    osmQuery: 'amenity=pharmacy',
+    enabled: false,
+  },
+  {
+    id: 'police',
+    name: 'Police Stations',
+    icon: 'police-badge',
+    color: '#1565C0',
+    osmQuery: 'amenity=police',
+    enabled: false,
+  },
 ];
 
 // Wait for rate limit
@@ -265,6 +290,11 @@ function getCategoryFromTags(tags: Record<string, string>): POICategory | null {
   if (tags.amenity === 'restaurant') return 'restaurant';
   if (tags.shop === 'supermarket') return 'supermarket';
   if (tags.leisure === 'picnic_table') return 'picnic_site';
+
+  // Emergency categories
+  if (tags.amenity === 'hospital') return 'hospital';
+  if (tags.amenity === 'pharmacy') return 'pharmacy';
+  if (tags.amenity === 'police') return 'police';
 
   return null;
 }
@@ -490,9 +520,9 @@ export async function fetchPOIsWithCache(
       // Not cached - fetch from Overpass API (already filtered by query)
       const freshPOIs = await fetchPOIs(bbox, categories);
 
-      // Save to cache (async, don't block return)
+      // Save to cache with categories tracking (async, don't block return)
       if (freshPOIs.length > 0) {
-        poiRepository.savePOIs(freshPOIs, bbox).catch((error) => {
+        poiRepository.savePOIs(freshPOIs, bbox, categories).catch((error) => {
           logger.warn('cache', 'Failed to cache POIs', error);
         });
       }
@@ -544,9 +574,9 @@ export async function fetchPOIsProgressively(
     // 3. Fetch fresh data in background (already filtered by query)
     const freshPOIs = await fetchPOIs(bbox, categories);
 
-    // 4. Save to cache
+    // 4. Save to cache with categories tracking
     if (freshPOIs.length > 0) {
-      await poiRepository.savePOIs(freshPOIs, bbox);
+      await poiRepository.savePOIs(freshPOIs, bbox, categories);
     }
 
     // 5. Notify with fresh data (no need to filter - fetchPOIs already did)
@@ -608,8 +638,8 @@ export async function fetchPOIsForViewport(
     return allPOIs;
   }
 
-  // Get uncached tiles
-  const uncachedTiles = await poiRepository.getUncachedTiles(bbox);
+  // Get uncached tiles (now category-aware - tiles missing requested categories are considered uncached)
+  const uncachedTiles = await poiRepository.getUncachedTiles(bbox, categories);
   logger.info('poi', 'Tiles check complete', {
     uncachedTiles: uncachedTiles.length,
     elapsed: Date.now() - startTime,
@@ -714,14 +744,14 @@ export async function fetchPOIsForViewport(
         try {
           const freshPOIs = await fetchPOIs(tile, categories, tileController.signal);
 
-          // Always mark tile as cached (prevents refetch loop for empty regions)
-          poiRepository.markTileAsCached(tile).catch((error) => {
+          // Always mark tile as cached with categories (prevents refetch loop for empty regions)
+          poiRepository.markTileAsCached(tile, categories).catch((error) => {
             logger.warn('cache', 'Failed to mark tile as cached', error);
           });
 
-          // Save POIs if any were found
+          // Save POIs if any were found (with categories tracking)
           if (freshPOIs.length > 0) {
-            poiRepository.savePOIs(freshPOIs, tile).catch((error) => {
+            poiRepository.savePOIs(freshPOIs, tile, categories).catch((error) => {
               logger.warn('cache', 'Failed to cache tile POIs', error);
             });
           }
@@ -733,8 +763,8 @@ export async function fetchPOIsForViewport(
             logger.warn('poi', 'Tile timeout - skipping slow region', {
               tile: `${tile.south.toFixed(2)},${tile.west.toFixed(2)}`,
             });
-            // Mark timed out tiles as cached with short duration to prevent immediate refetch
-            poiRepository.markTileAsCached(tile).catch(() => {});
+            // Mark timed out tiles as cached with categories to prevent immediate refetch
+            poiRepository.markTileAsCached(tile, categories).catch(() => {});
           } else {
             logger.warn('api', 'Failed to fetch tile', error);
           }
@@ -943,9 +973,9 @@ export async function fetchPOIsForRouteProgressively(
           // Cache is stale or missing - fetch fresh data
           const freshPOIs = await fetchPOIs(boundingBox, categories);
 
-          // Cache the results (async, don't block)
+          // Cache the results with categories tracking (async, don't block)
           if (freshPOIs.length > 0) {
-            poiRepository.savePOIs(freshPOIs, boundingBox).catch((error) => {
+            poiRepository.savePOIs(freshPOIs, boundingBox, categories).catch((error) => {
               logger.warn('cache', 'Failed to cache segment POIs', error);
             });
           }
