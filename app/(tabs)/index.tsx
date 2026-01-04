@@ -178,7 +178,7 @@ export default function MapScreen() {
     });
   }, []);
 
-  // Auto-pan to downloaded region after download completes
+  // Auto-pan to downloaded region after download completes AND load POIs
   useEffect(() => {
     if (downloadCompletedRegion) {
       logger.info('offline', 'Auto-panning to downloaded region', {
@@ -195,10 +195,24 @@ export default function MapScreen() {
       // Pan to the downloaded region
       flyTo(center as [number, number], 10);
 
+      // Force POI reload with downloaded region's bounds
+      // This ensures POIs appear immediately after download, not waiting for camera animation
+      const downloadedBounds = {
+        sw: [downloadCompletedRegion.boundingBox.west, downloadCompletedRegion.boundingBox.south] as [number, number],
+        ne: [downloadCompletedRegion.boundingBox.east, downloadCompletedRegion.boundingBox.north] as [number, number],
+      };
+      loadPOIsForBounds(downloadedBounds);
+
+      // Auto-enable POI visibility after download so user sees their downloaded POIs
+      if (!showPOIs) {
+        logger.info('offline', 'Auto-enabling POI visibility after download');
+        togglePOIs();
+      }
+
       // Clear the flag after panning
       clearDownloadCompletedRegion();
     }
-  }, [downloadCompletedRegion, flyTo, clearDownloadCompletedRegion]);
+  }, [downloadCompletedRegion, flyTo, loadPOIsForBounds, showPOIs, togglePOIs, clearDownloadCompletedRegion]);
 
   // Auto-prompt for POI download when viewing new region
   // Uses map viewport center (where user is looking), not GPS location
@@ -450,6 +464,12 @@ export default function MapScreen() {
     // Optionally switch to map view to show location
   }, [selectPOI]);
 
+  // Handle POI marker press on map
+  const handlePOIMarkerPress = useCallback((poi: any) => {
+    selectPOI(poi);
+    poiDetailSheetRef.current?.present(poi);
+  }, [selectPOI]);
+
   // Handle toggle favorite from list
   const handleToggleFavoriteFromList = useCallback((poi: any) => {
     // Toggle favorite via POI store
@@ -556,7 +576,7 @@ export default function MapScreen() {
           visible={filteredPOIs.length > 0}
           pois={filteredPOIs}
           poiGeoJSON={poiGeoJSON}
-          onPOIPress={selectPOI}
+          onPOIPress={handlePOIMarkerPress}
         />
 
         {/* Planned Route Line with Casing */}

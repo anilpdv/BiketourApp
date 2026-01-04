@@ -79,26 +79,19 @@ export function usePOIDisplay(
   });
 
   // Toggle POI visibility
-  // Auto-selects default categories when enabling POIs if none selected
   const togglePOIs = useCallback(() => {
     logger.info('poi', '=== TOGGLE POIs PRESSED ===');
-    setShowPOIs((prev) => {
-      const newValue = !prev;
-      logger.info('poi', 'togglePOIs state change', {
-        oldValue: prev,
-        newValue,
-        categoriesCount: filterCategories.length,
-        hasBounds: !!lastBoundsRef.current,
-      });
-      // Auto-select useful categories when enabling POIs
-      if (newValue && filterCategories.length === 0) {
-        logger.info('poi', 'Auto-selecting campsite category');
-        const defaultCategories: POICategory[] = ['campsite'];
-        defaultCategories.forEach((cat) => toggleCategory(cat));
-      }
-      return newValue;
+    const willEnable = !showPOIs;
+    logger.info('poi', 'togglePOIs state change', {
+      oldValue: showPOIs,
+      newValue: willEnable,
+      categoriesCount: filterCategories.length,
+      hasBounds: !!lastBoundsRef.current,
     });
-  }, [filterCategories.length, toggleCategory, lastBoundsRef]);
+
+    // Update local state - user must select categories manually
+    setShowPOIs(willEnable);
+  }, [showPOIs, filterCategories.length, lastBoundsRef]);
 
   // Update viewport bounds for filtering (called on camera changes)
   const updateViewportBounds = useCallback(

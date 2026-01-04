@@ -16,6 +16,10 @@ import { logger } from '../../../shared/utils';
 // Throttle delay for filtered POI updates (ms)
 const FILTER_UPDATE_THROTTLE = 100;
 
+// Maximum number of markers to render to prevent Yoga layout crash
+// MarkerView creates React Native Views, which can overwhelm the layout engine
+const MAX_RENDERED_MARKERS = 200;
+
 export interface UsePOIFilteringReturn {
   filteredPOIs: POI[];
   throttledFilteredPOIs: POI[];
@@ -72,7 +76,8 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
       return categoryFiltered;
     }
 
-    // Filter by viewport bounds
+    // Filter by viewport bounds - ALL POIs (including downloaded) must be in viewport
+    // This prevents Yoga layout crash from rendering 36,000+ MarkerView components
     const viewportFiltered = categoryFiltered.filter(
       (poi) =>
         poi.latitude >= viewportBounds.south &&
@@ -86,6 +91,13 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
       downloadedInFinal: viewportFiltered.filter(p => p.isDownloaded).length,
       viewportBounds,
     });
+
+    // Limit number of markers to prevent Yoga layout crash
+    // MarkerView creates React Native Views which can overwhelm the layout engine
+    if (viewportFiltered.length > MAX_RENDERED_MARKERS) {
+      logger.warn('poi', `Limiting markers from ${viewportFiltered.length} to ${MAX_RENDERED_MARKERS}`);
+      return viewportFiltered.slice(0, MAX_RENDERED_MARKERS);
+    }
 
     return viewportFiltered;
   }, [viewportBounds, pois, filterCategories]);

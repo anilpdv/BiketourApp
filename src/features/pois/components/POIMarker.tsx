@@ -33,7 +33,7 @@ function POIMarkerComponent({ poi, onPress, isSelected = false }: POIMarkerProps
           <View style={[styles.pinBody, { backgroundColor: groupColor }]}>
             <MaterialCommunityIcons
               name={iconConfig.vectorIcon}
-              size={18}
+              size={22}
               color={colors.neutral[0]}
             />
           </View>
@@ -61,9 +61,9 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.15 }],
   },
   pinBody: {
-    width: 30,
-    height: 34,
-    borderRadius: 6,
+    width: 36,
+    height: 40,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -77,9 +77,9 @@ const styles = StyleSheet.create({
   pinPointer: {
     width: 0,
     height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 8,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 10,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     marginTop: -2,

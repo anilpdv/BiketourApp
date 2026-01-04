@@ -43,8 +43,8 @@ function mapBoundsToBBox(bounds: MapBounds): BoundingBox {
 export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingReturn {
   const { showPOIs, categories, onBoundsUpdate } = options;
 
-  // Store actions
-  const addPOIs = usePOIStore((state) => state.addPOIs);
+  // Store actions - use setPOIs for game-style loading (replace, not accumulate)
+  const setPOIs = usePOIStore((state) => state.setPOIs);
   const setPOIsLoading = usePOIStore((state) => state.setLoading);
 
   // AbortController for cancelling pending POI requests
@@ -106,7 +106,7 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
           return;
         }
 
-        // Progressive display: Show POIs as each chunk completes
+        // Game-style loading: fetch POIs for current viewport only
         // Pass showPOIs to control whether API POIs are fetched
         // Downloaded POIs are ALWAYS fetched regardless of showPOIs
         const viewportPOIs = await fetchPOIsForViewport(
@@ -114,12 +114,7 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
           categories,
           showPOIs, // Controls whether to fetch API POIs
           undefined, // onProgress
-          (chunkPOIs) => {
-            if (!signal.aborted) {
-              addPOIs(chunkPOIs);
-              logger.info('poi', 'Chunk POIs added to store', { count: chunkPOIs.length });
-            }
-          }
+          undefined  // No chunk callback - we replace all at once
         );
 
         logger.info('poi', 'fetchPOIsForViewport returned', {
@@ -132,9 +127,10 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
           return;
         }
 
-        // Final add for any remaining POIs
-        addPOIs(viewportPOIs);
-        logger.info('poi', 'All POIs added to store', {
+        // Game-style loading: REPLACE all POIs with just current viewport's POIs
+        // This prevents memory accumulation - only current viewport POIs in memory
+        setPOIs(viewportPOIs);
+        logger.info('poi', 'POIs replaced with viewport POIs (game-style)', {
           total: viewportPOIs.length,
           downloadedCount: viewportPOIs.filter(p => p.isDownloaded).length,
           totalElapsed: Date.now() - startTime,
@@ -155,7 +151,7 @@ export function usePOIFetching(options: UsePOIFetchingOptions): UsePOIFetchingRe
         }
       }
     },
-    [showPOIs, categories, addPOIs, setPOIsLoading, onBoundsUpdate]
+    [showPOIs, categories, setPOIs, setPOIsLoading, onBoundsUpdate]
   );
 
   // Auto-trigger POI load when showPOIs changes or categories change

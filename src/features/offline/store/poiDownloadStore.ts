@@ -91,6 +91,9 @@ interface POIDownloadState {
   downloadCompletedRegion: RegionInfo | null;
   clearDownloadCompletedRegion: () => void;
 
+  // Cooldown: prevent prompt from reappearing immediately after download
+  lastDownloadCompletedAt: number | null;
+
   // Dismissed areas (don't prompt again soon)
   dismissedAreas: DismissedArea[];
   dismissedRegions: string[]; // Region display names that were dismissed
@@ -153,6 +156,7 @@ export const usePOIDownloadStore = create<POIDownloadState>((set, get) => ({
   currentRegion: null,
   isDetectingRegion: false,
   downloadCompletedRegion: null,
+  lastDownloadCompletedAt: null,
   dismissedAreas: [],
   dismissedRegions: [],
   totalPOIs: 0,
@@ -373,7 +377,7 @@ export const usePOIDownloadStore = create<POIDownloadState>((set, get) => ({
   // ==================== Region-based methods ====================
 
   checkShouldPromptForRegion: async (lat, lon) => {
-    const { dismissedRegions, isDownloading, downloadedRegions, isDetectingRegion } = get();
+    const { dismissedRegions, isDownloading, downloadedRegions, isDetectingRegion, lastDownloadCompletedAt } = get();
 
     logger.info('offline', '[DEBUG] checkShouldPromptForRegion called', {
       lat,
@@ -387,6 +391,14 @@ export const usePOIDownloadStore = create<POIDownloadState>((set, get) => ({
     // Don't prompt if already downloading or detecting
     if (isDownloading || isDetectingRegion) {
       logger.info('offline', '[DEBUG] Skip: already downloading or detecting');
+      return { shouldPrompt: false, region: null };
+    }
+
+    // Cooldown: Don't prompt within 5 seconds of completing a download
+    // This prevents the prompt from appearing before POIs are loaded and displayed
+    const COOLDOWN_MS = 5000;
+    if (lastDownloadCompletedAt && (Date.now() - lastDownloadCompletedAt) < COOLDOWN_MS) {
+      logger.info('offline', '[DEBUG] Skip: within download cooldown period');
       return { shouldPrompt: false, region: null };
     }
 
@@ -558,6 +570,7 @@ export const usePOIDownloadStore = create<POIDownloadState>((set, get) => ({
         currentDownload: null,
         currentRegion: null,
         downloadCompletedRegion: region, // Signal download complete for auto-pan
+        lastDownloadCompletedAt: Date.now(), // Cooldown to prevent immediate re-prompt
       });
 
       return result;
