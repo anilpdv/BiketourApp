@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Alert } from 'react-native';
 import type { Feature, FeatureCollection, LineString } from 'geojson';
 import { loadRoute, hasDevelopedVersion } from '../../routes/services/routeLoader.service';
 import { ParsedRoute } from '../../routes/types';
-import { logger } from '../../../shared/utils';
+import { logger, isNetworkError, isTimeoutError } from '../../../shared/utils';
 
 export interface UseRouteManagementReturn {
   routes: ParsedRoute[];
   enabledRouteIds: number[];
   selectedRouteId: number | null;
   isLoading: boolean;
+  error: string | null;
 
   // Derived data
   enabledRoutes: ParsedRoute[];
@@ -30,6 +32,7 @@ export function useRouteManagement(): UseRouteManagementReturn {
   const [enabledRouteIds, setEnabledRouteIds] = useState<number[]>([]);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load routes ON DEMAND when user enables a route
   useEffect(() => {
@@ -43,6 +46,7 @@ export function useRouteManagement(): UseRouteManagementReturn {
 
     (async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const newRoutes: ParsedRoute[] = [];
 
@@ -66,6 +70,17 @@ export function useRouteManagement(): UseRouteManagementReturn {
         setRoutes((prev) => [...prev, ...newRoutes]);
       } catch (error) {
         logger.error('ui', 'Failed to load route', error);
+
+        let errorMessage = 'Unable to load route. Please try again.';
+
+        if (isNetworkError(error)) {
+          errorMessage = 'Unable to load route. Check your connection.';
+        } else if (isTimeoutError(error)) {
+          errorMessage = 'Route loading timed out. The route file may be too large.';
+        }
+
+        setError(errorMessage);
+        Alert.alert('Route Loading Failed', errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -121,22 +136,54 @@ export function useRouteManagement(): UseRouteManagementReturn {
 
   // Convert routes to GeoJSON for Mapbox ShapeSource
   const routeGeoJSON = useMemo((): FeatureCollection<LineString> => {
-    const features: Feature<LineString>[] = sortedRoutes.flatMap((route) =>
-      route.segments.map((segment, segmentIndex) => ({
-        type: 'Feature' as const,
-        id: `${route.id}-seg-${segmentIndex}`,
-        properties: {
-          routeId: route.euroVeloId,
-          variant: route.variant,
-          color: route.color,
-          isSelected: route.euroVeloId === selectedRouteId,
-        },
-        geometry: {
-          type: 'LineString' as const,
-          coordinates: segment.map((p) => [p.longitude, p.latitude]),
-        },
-      }))
-    );
+    const features: Feature<LineString>[] = sortedRoutes.flatMap((route) => {
+      // Validate segments exist and is an array
+      if (!Array.isArray(route.segments)) {
+        logger.warn('ui', 'Route segments is not an array', { routeId: route.id });
+        return [];
+      }
+
+      return route.segments
+        .map((segment, segmentIndex) => {
+          // Validate segment is an array with coordinates
+          if (!Array.isArray(segment) || segment.length === 0) {
+            logger.warn('ui', 'Invalid segment in route', { routeId: route.id, segmentIndex });
+            return null;
+          }
+
+          // Validate all points have valid coordinates
+          const validCoordinates = segment
+            .filter((p) => {
+              if (!p || typeof p.longitude !== 'number' || typeof p.latitude !== 'number') {
+                return false;
+              }
+              return isFinite(p.longitude) && isFinite(p.latitude);
+            })
+            .map((p) => [p.longitude, p.latitude]);
+
+          // Skip segment if no valid coordinates
+          if (validCoordinates.length === 0) {
+            logger.warn('ui', 'Segment has no valid coordinates', { routeId: route.id, segmentIndex });
+            return null;
+          }
+
+          return {
+            type: 'Feature' as const,
+            id: `${route.id}-seg-${segmentIndex}`,
+            properties: {
+              routeId: route.euroVeloId,
+              variant: route.variant,
+              color: route.color,
+              isSelected: route.euroVeloId === selectedRouteId,
+            },
+            geometry: {
+              type: 'LineString' as const,
+              coordinates: validCoordinates,
+            },
+          };
+        })
+        .filter((feature): feature is Feature<LineString> => feature !== null);
+    });
 
     return {
       type: 'FeatureCollection',
@@ -149,6 +196,7 @@ export function useRouteManagement(): UseRouteManagementReturn {
     enabledRouteIds,
     selectedRouteId,
     isLoading,
+    error,
     enabledRoutes,
     selectedRoutes,
     selectedFullRoute,

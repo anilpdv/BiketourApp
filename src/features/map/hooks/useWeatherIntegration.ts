@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { fetchWeather } from '../../weather/services/openMeteo.service';
 import { WeatherForecast } from '../../weather/types';
-import { logger } from '../../../shared/utils';
+import { logger, getUserFriendlyError, isNetworkError, isTimeoutError } from '../../../shared/utils';
 
 export interface UseWeatherIntegrationReturn {
   weather: WeatherForecast | null;
@@ -38,8 +38,19 @@ export function useWeatherIntegration(
       );
       setWeather(weatherData);
     } catch (err) {
-      logger.error('ui', 'Failed to fetch weather', err);
-      setError('Unable to load weather');
+      logger.error('api', 'Failed to load weather', err);
+
+      let errorMessage = 'Unable to load weather data.';
+
+      if (isNetworkError(err)) {
+        errorMessage = 'Weather unavailable - check your connection';
+      } else if (isTimeoutError(err)) {
+        errorMessage = 'Weather service timed out. Try again later.';
+      } else {
+        errorMessage = getUserFriendlyError(err, 'loading weather');
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

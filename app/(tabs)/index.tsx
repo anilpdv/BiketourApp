@@ -305,14 +305,29 @@ export default function MapScreen() {
     baseCameraChanged(state);
 
     if (!state.properties.bounds) return;
+
+    // Validate bounds structure
+    const { ne, sw } = state.properties.bounds;
+    if (!Array.isArray(ne) || !Array.isArray(sw) || ne.length !== 2 || sw.length !== 2) {
+      logger.warn('ui', 'Invalid bounds structure in camera changed');
+      return;
+    }
+
     const bounds = {
-      ne: state.properties.bounds.ne as [number, number],
-      sw: state.properties.bounds.sw as [number, number],
+      ne: ne as [number, number],
+      sw: sw as [number, number],
     };
 
     // Calculate and update map center for region detection
     const centerLat = (bounds.ne[1] + bounds.sw[1]) / 2;
     const centerLon = (bounds.ne[0] + bounds.sw[0]) / 2;
+
+    // Validate center coordinates are finite numbers
+    if (!isFinite(centerLat) || !isFinite(centerLon)) {
+      logger.warn('ui', 'Invalid center coordinates calculated from bounds');
+      return;
+    }
+
     setMapCenter({ lat: centerLat, lon: centerLon });
 
     // Always update viewport bounds for filtering (shows only POIs in view)
@@ -358,9 +373,22 @@ export default function MapScreen() {
 
     const { geometry } = event;
     if (geometry?.coordinates) {
+      const [lon, lat] = geometry.coordinates;
+
+      // Validate coordinates are numbers within valid ranges
+      if (
+        typeof lon !== 'number' || typeof lat !== 'number' ||
+        !isFinite(lon) || !isFinite(lat) ||
+        lon < -180 || lon > 180 ||
+        lat < -90 || lat > 90
+      ) {
+        logger.warn('ui', 'Invalid map press coordinates', { lon, lat });
+        return;
+      }
+
       handleRoutePlanningPress({
-        longitude: geometry.coordinates[0],
-        latitude: geometry.coordinates[1],
+        longitude: lon,
+        latitude: lat,
       });
     }
   }, [isPlanning, handleRoutePlanningPress]);
@@ -422,6 +450,15 @@ export default function MapScreen() {
 
   // Handle search result selection - fly to location
   const handleSelectSearchResult = useCallback((result: SearchResult) => {
+    // Validate search result coordinates
+    if (
+      typeof result.longitude !== 'number' || typeof result.latitude !== 'number' ||
+      !isFinite(result.longitude) || !isFinite(result.latitude)
+    ) {
+      logger.warn('ui', 'Invalid search result coordinates', { result });
+      return;
+    }
+
     flyTo([result.longitude, result.latitude], 15);
     setIsSearchFocused(false);
   }, [flyTo]);

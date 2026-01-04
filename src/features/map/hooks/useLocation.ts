@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
-import { logger } from '../../../shared/utils';
+import { logger, getUserFriendlyError } from '../../../shared/utils';
 
 export interface UseLocationReturn {
   location: Location.LocationObject | null;
@@ -25,7 +25,7 @@ export function useLocation(): UseLocationReturn {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+        setErrorMsg('Location permission denied. Enable it in Settings to center on your location.');
         return;
       }
 
@@ -35,9 +35,17 @@ export function useLocation(): UseLocationReturn {
         mayShowUserSettingsDialog: true,   // Prompt user to enable location
       });
       setLocation(currentLocation);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('ui', 'Failed to get location', error);
-      setErrorMsg('Failed to get current location');
+
+      // Distinguish error types for better user guidance
+      if (error.code === 'E_LOCATION_TIMEOUT') {
+        setErrorMsg('GPS signal not found. Make sure you\'re outdoors or near a window.');
+      } else if (error.code === 'E_LOCATION_UNAVAILABLE') {
+        setErrorMsg('Location unavailable. Check that Location Services are enabled.');
+      } else {
+        setErrorMsg(getUserFriendlyError(error, 'getting your location'));
+      }
     } finally {
       setIsLoading(false);
     }

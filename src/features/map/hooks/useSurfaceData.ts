@@ -11,12 +11,13 @@ import {
   mergeAdjacentSegments,
 } from '../../routes/services/surfaceQuery.service';
 import { surfaceSegmentsToGeoJSON } from '../components/SurfaceLayer';
-import { logger } from '../../../shared/utils';
+import { logger, getUserFriendlyError } from '../../../shared/utils';
 
 export interface UseSurfaceDataReturn {
   surfaceGeoJSON: FeatureCollection<LineString> | null;
   surfaceData: RouteSurfaceData | null;
   isLoading: boolean;
+  error: string | null;
   showSurface: boolean;
   toggleSurface: () => void;
   loadSurfaceForRoute: (route: ParsedRoute) => Promise<void>;
@@ -30,6 +31,7 @@ export function useSurfaceData(): UseSurfaceDataReturn {
   const [surfaceData, setSurfaceData] = useState<RouteSurfaceData | null>(null);
   const [surfaceGeoJSON, setSurfaceGeoJSON] = useState<FeatureCollection<LineString> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showSurface, setShowSurface] = useState(false);
 
   // Cache surface data by route ID
@@ -48,6 +50,7 @@ export function useSurfaceData(): UseSurfaceDataReturn {
     }
 
     setIsLoading(true);
+    setError(null);
     logger.info('surface', 'Loading surface data for route', { routeId: route.id });
 
     try {
@@ -79,6 +82,9 @@ export function useSurfaceData(): UseSurfaceDataReturn {
       });
     } catch (error) {
       logger.warn('surface', 'Failed to load surface data', error);
+      const errorMessage = getUserFriendlyError(error, 'loading surface data');
+      setError(errorMessage);
+      // Don't block - silent degradation
     } finally {
       setIsLoading(false);
     }
@@ -92,12 +98,14 @@ export function useSurfaceData(): UseSurfaceDataReturn {
     setSurfaceData(null);
     setSurfaceGeoJSON(null);
     setShowSurface(false);
+    setError(null);
   }, []);
 
   return {
     surfaceGeoJSON,
     surfaceData,
     isLoading,
+    error,
     showSurface,
     toggleSurface,
     loadSurfaceForRoute,

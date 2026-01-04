@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { ShapeSource, LineLayer } from '@rnmapbox/maps';
 import type { FeatureCollection, LineString, Feature } from 'geojson';
 import { SurfaceSegment, SURFACE_COLORS, SurfaceType } from '../../routes/types';
+import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 
 export interface SurfaceLayerProps {
   surfaceGeoJSON: FeatureCollection<LineString> | null;
@@ -46,47 +47,49 @@ export const SurfaceLayer = memo(function SurfaceLayer({
   }
 
   return (
-    <ShapeSource id="surface-data" shape={surfaceGeoJSON}>
-      {/* Base surface line */}
-      <LineLayer
-        id="surface-line"
-        style={{
-          lineColor: ['get', 'color'],
-          lineWidth: 4,
-          lineOpacity: 0.9,
-          lineCap: 'round',
-          lineJoin: 'round',
-        }}
-      />
+    <ErrorBoundary fallback={null}>
+      <ShapeSource id="surface-data" shape={surfaceGeoJSON}>
+        {/* Base surface line */}
+        <LineLayer
+          id="surface-line"
+          style={{
+            lineColor: ['get', 'color'],
+            lineWidth: 4,
+            lineOpacity: 0.9,
+            lineCap: 'round',
+            lineJoin: 'round',
+          }}
+        />
 
-      {/* Dashed pattern for gravel */}
-      <LineLayer
-        id="surface-gravel-pattern"
-        filter={['==', ['get', 'surface'], 'gravel']}
-        style={{
-          lineColor: '#FFFFFF',
-          lineWidth: 1,
-          lineOpacity: 0.5,
-          lineDasharray: [4, 4],
-          lineCap: 'round',
-        }}
-        aboveLayerID="surface-line"
-      />
+        {/* Dashed pattern for gravel */}
+        <LineLayer
+          id="surface-gravel-pattern"
+          filter={['==', ['get', 'surface'], 'gravel']}
+          style={{
+            lineColor: '#FFFFFF',
+            lineWidth: 1,
+            lineOpacity: 0.5,
+            lineDasharray: [4, 4],
+            lineCap: 'round',
+          }}
+          aboveLayerID="surface-line"
+        />
 
-      {/* Dotted pattern for unpaved */}
-      <LineLayer
-        id="surface-unpaved-pattern"
-        filter={['==', ['get', 'surface'], 'unpaved']}
-        style={{
-          lineColor: '#FFFFFF',
-          lineWidth: 1,
-          lineOpacity: 0.5,
-          lineDasharray: [2, 6],
-          lineCap: 'round',
-        }}
-        aboveLayerID="surface-line"
-      />
-    </ShapeSource>
+        {/* Dotted pattern for unpaved */}
+        <LineLayer
+          id="surface-unpaved-pattern"
+          filter={['==', ['get', 'surface'], 'unpaved']}
+          style={{
+            lineColor: '#FFFFFF',
+            lineWidth: 1,
+            lineOpacity: 0.5,
+            lineDasharray: [2, 6],
+            lineCap: 'round',
+          }}
+          aboveLayerID="surface-line"
+        />
+      </ShapeSource>
+    </ErrorBoundary>
   );
 });
 
