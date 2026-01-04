@@ -374,10 +374,14 @@ export async function fetchPOIsForViewport(
         allPOIs.push(poi);
       }
     }
-    // Deduplicate (downloaded takes priority)
+    // Deduplicate - downloaded POIs always take priority
     const uniquePOIs = new Map<string, POI>();
     for (const poi of allPOIs) {
-      uniquePOIs.set(poi.id, poi);
+      const existing = uniquePOIs.get(poi.id);
+      // Downloaded POIs always win in deduplication
+      if (!existing || poi.isDownloaded) {
+        uniquePOIs.set(poi.id, poi);
+      }
     }
     return Array.from(uniquePOIs.values());
   }
@@ -402,10 +406,14 @@ export async function fetchPOIsForViewport(
         allPOIs.push(poi);
       }
     }
-    // Deduplicate (downloaded takes priority)
+    // Deduplicate - downloaded POIs always take priority
     const uniquePOIs = new Map<string, POI>();
     for (const poi of allPOIs) {
-      uniquePOIs.set(poi.id, poi);
+      const existing = uniquePOIs.get(poi.id);
+      // Downloaded POIs always win in deduplication
+      if (!existing || poi.isDownloaded) {
+        uniquePOIs.set(poi.id, poi);
+      }
     }
     logger.info('poi', 'Final POIs after dedup', {
       total: uniquePOIs.size,
@@ -521,9 +529,14 @@ export async function fetchPOIsForViewport(
 
   // Deduplicate POIs by ID (in case of overlap)
   // All POIs are already filtered - cached filtered when added, fresh filtered by query
+  // Downloaded POIs always take priority to preserve isDownloaded flag
   const uniquePOIs = new Map<string, POI>();
   for (const poi of allPOIs) {
-    uniquePOIs.set(poi.id, poi);
+    const existing = uniquePOIs.get(poi.id);
+    // Downloaded POIs always win in deduplication
+    if (!existing || poi.isDownloaded) {
+      uniquePOIs.set(poi.id, poi);
+    }
   }
 
   logger.info('poi', 'fetchPOIsForViewport COMPLETE', {

@@ -49,6 +49,7 @@ interface DownloadProgressState {
   isDownloading: boolean;
   currentDownload: CurrentDownload | null;
   error: string | null;
+  downloadId: number; // Unique ID to track current download session and detect stale results
 
   // Actions
   startDownload: (
@@ -71,6 +72,7 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
   isDownloading: false,
   currentDownload: null,
   error: null,
+  downloadId: 0,
   onDownloadComplete: undefined,
 
   setOnDownloadComplete: (callback) => {
@@ -78,10 +80,19 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
   },
 
   startDownload: async (centerLat, centerLon, radiusKm, regionName, boundingBox) => {
+    // GUARD: Prevent concurrent downloads (fixes race condition)
+    if (get().isDownloading) {
+      logger.warn('offline', 'Download already in progress, ignoring duplicate start');
+      return null;
+    }
+
+    // Generate unique download ID for this session
+    const thisDownloadId = Date.now();
     const abortController = new AbortController();
 
     set({
       isDownloading: true,
+      downloadId: thisDownloadId,
       error: null,
       currentDownload: {
         regionName: regionName || 'Downloading...',
@@ -92,6 +103,7 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
           percentage: 0,
           currentTile: 0,
           totalTiles: 0,
+          failedTiles: 0,
         },
         abortController,
       },
@@ -106,6 +118,8 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
         regionName,
         boundingBox,
         onProgress: (progress) => {
+          // STALE CHECK: Only update if this is still the current download
+          if (get().downloadId !== thisDownloadId) return;
           set((state) => ({
             currentDownload: state.currentDownload
               ? {
@@ -118,6 +132,12 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
         },
         abortSignal: abortController.signal,
       });
+
+      // STALE CHECK: Verify this download is still the current one
+      if (get().downloadId !== thisDownloadId) {
+        logger.info('offline', 'Download result ignored (superseded by newer download)');
+        return null;
+      }
 
       // Notify completion
       const { onDownloadComplete } = get();
@@ -132,6 +152,11 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
 
       return result;
     } catch (error) {
+      // STALE CHECK: Don't set error state if superseded
+      if (get().downloadId !== thisDownloadId) {
+        return null;
+      }
+
       const isCancelled = error instanceof Error && error.message === 'Download cancelled';
 
       set({

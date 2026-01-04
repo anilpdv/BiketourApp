@@ -4,7 +4,7 @@
  * Supports both region-based (new) and radius-based (legacy) downloads
  */
 
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { usePOIDownloadStore } from '../store/poiDownloadStore';
 import { formatBytes } from '../services/poiDownload.service';
 import { RegionInfo } from '../services/regionDetection.service';
+import { RADIUS_PRESETS } from '../store/downloadPromptStore';
 import {
   colors,
   spacing,
@@ -41,14 +42,23 @@ export const POIDownloadPrompt = memo(function POIDownloadPrompt({
   const {
     downloadEstimate,
     isEstimating,
+    selectedRadius,
+    setSelectedRadius,
   } = usePOIDownloadStore();
+
+  // Debounce state to prevent double-tap on download button
+  const [isStarting, setIsStarting] = useState(false);
 
   const handleDismiss = () => {
     onClose();
   };
 
   const handleDownload = () => {
+    // Prevent double-tap
+    if (isStarting) return;
+    setIsStarting(true);
     onDownload();
+    // Note: Don't reset isStarting - modal will unmount after download starts
   };
 
   // Format region display name nicely
@@ -103,6 +113,33 @@ export const POIDownloadPrompt = memo(function POIDownloadPrompt({
             <Text style={styles.moreText}>+ 14 more categories</Text>
           </View>
 
+          {/* Radius Selection - only show for non-region downloads */}
+          {!region && (
+            <View style={styles.section}>
+              <View style={styles.radiusHeader}>
+                <Text style={styles.sectionLabel}>Download Radius</Text>
+                <Text style={styles.radiusValue}>{selectedRadius} km</Text>
+              </View>
+              <View style={styles.radiusChipsContainer}>
+                {RADIUS_PRESETS.map((preset) => {
+                  const isSelected = selectedRadius === preset;
+                  return (
+                    <TouchableOpacity
+                      key={preset}
+                      style={[styles.radiusChip, isSelected && styles.radiusChipSelected]}
+                      onPress={() => setSelectedRadius(preset)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.radiusChipText, isSelected && styles.radiusChipTextSelected]}>
+                        {preset} km
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           {/* Estimate */}
           <View style={styles.estimateContainer}>
             {isEstimating ? (
@@ -143,16 +180,23 @@ export const POIDownloadPrompt = memo(function POIDownloadPrompt({
               <Text style={styles.buttonSecondaryText}>Not Now</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.buttonPrimary}
+              style={[styles.buttonPrimary, isStarting && styles.buttonDisabled]}
               onPress={handleDownload}
               activeOpacity={0.7}
+              disabled={isStarting}
             >
-              <MaterialCommunityIcons
-                name="download"
-                size={18}
-                color={colors.neutral[0]}
-              />
-              <Text style={styles.buttonPrimaryText}>Download</Text>
+              {isStarting ? (
+                <ActivityIndicator size="small" color={colors.neutral[0]} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="download"
+                  size={18}
+                  color={colors.neutral[0]}
+                />
+              )}
+              <Text style={styles.buttonPrimaryText}>
+                {isStarting ? 'Starting...' : 'Download'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -339,6 +383,45 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.semibold,
     color: colors.neutral[0],
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  radiusHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  radiusValue: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.primary[600],
+  },
+  radiusChipsContainer: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  radiusChip: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral[100],
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+  },
+  radiusChipSelected: {
+    backgroundColor: colors.primary[50],
+    borderColor: colors.primary[500],
+  },
+  radiusChipText: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.medium,
+    color: colors.neutral[600],
+  },
+  radiusChipTextSelected: {
+    color: colors.primary[700],
   },
 });
 

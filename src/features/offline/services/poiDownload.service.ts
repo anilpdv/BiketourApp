@@ -74,6 +74,7 @@ export interface DownloadProgress {
   percentage: number;
   currentTile: number;
   totalTiles: number;
+  failedTiles: number; // Count of tiles that failed to download
   message?: string;
 }
 
@@ -105,8 +106,12 @@ export interface DownloadedRegion {
 
 // DownloadEstimate is re-exported from downloadEstimation.service.ts
 
+// Retry configuration for download resilience
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
+
 /**
- * Fetch POIs for a tile WITHOUT rate limiting (for bulk downloads only)
+ * Fetch POIs for a tile with retry logic and exponential backoff
  * This bypasses the shared rate limiter for faster parallel fetches
  */
 async function fetchPOIsForTileBulk(
@@ -119,30 +124,14 @@ async function fetchPOIsForTileBulk(
 
   const query = buildMultiCategoryQuery(bbox, categoriesToFetch);
 
-  try {
-    const response = await fetchWithTimeout(
-      API_CONFIG.pois.baseUrl,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept-Encoding': 'gzip, deflate',
-        },
-        body: `data=${encodeURIComponent(query)}`,
-      },
-      30000, // 30s timeout for large tiles
-      signal
-    );
-
-    if (response.ok) {
-      const data: OverpassResponse = await response.json();
-      return parseOverpassResponse(data);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    // Check for abort before each attempt
+    if (signal?.aborted) {
+      return [];
     }
 
-    // Retry once on server error
-    if (response.status >= 500) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const retry = await fetchWithTimeout(
+    try {
+      const response = await fetchWithTimeout(
         API_CONFIG.pois.baseUrl,
         {
           method: 'POST',
@@ -152,20 +141,53 @@ async function fetchPOIsForTileBulk(
           },
           body: `data=${encodeURIComponent(query)}`,
         },
-        30000,
+        30000, // 30s timeout for large tiles
         signal
       );
-      if (retry.ok) {
-        const data: OverpassResponse = await retry.json();
+
+      if (response.ok) {
+        const data: OverpassResponse = await response.json();
         return parseOverpassResponse(data);
       }
-    }
 
-    return [];
-  } catch (error) {
-    logger.warn('offline', 'Bulk tile fetch failed', error);
-    return [];
+      // Retry on server error (500+)
+      if (response.status >= 500 && attempt < MAX_RETRIES) {
+        const delay = RETRY_DELAYS[attempt] || 4000;
+        await sleep(delay);
+        continue;
+      }
+
+      // Retry on rate limit (429) with longer delay
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        const delay = (RETRY_DELAYS[attempt] || 4000) * 2;
+        logger.info('offline', `Rate limited, retrying in ${delay}ms`);
+        await sleep(delay);
+        continue;
+      }
+
+      // Non-retryable error
+      return [];
+    } catch (error) {
+      // AbortError - don't retry, just return empty
+      if (error instanceof Error && error.name === 'AbortError') {
+        return [];
+      }
+
+      // Network error - retry with backoff
+      if (attempt < MAX_RETRIES) {
+        const delay = RETRY_DELAYS[attempt] || 4000;
+        logger.info('offline', `Tile fetch attempt ${attempt + 1} failed, retrying in ${delay}ms`);
+        await sleep(delay);
+        continue;
+      }
+
+      // All retries exhausted
+      logger.warn('offline', 'Bulk tile fetch failed after retries', error);
+      return [];
+    }
   }
+
+  return [];
 }
 
 /**
@@ -222,6 +244,9 @@ export async function downloadPOIsForArea(
     regionSize: `${regionSize.widthKm}km x ${regionSize.heightKm}km`,
   });
 
+  // Track failed tiles for user feedback
+  let failedTileCount = 0;
+
   // Progress reporting
   const reportProgress = (progress: Partial<DownloadProgress>) => {
     onProgress?.({
@@ -231,6 +256,7 @@ export async function downloadPOIsForArea(
       percentage: 0,
       currentTile: 0,
       totalTiles,
+      failedTiles: failedTileCount,
       ...progress,
     });
   };
@@ -298,9 +324,17 @@ export async function downloadPOIsForArea(
       results = await Promise.all(
         chunk.map(async (tile) => {
           try {
-            return await fetchPOIsForTileBulk(tile, categories, abortSignal);
+            const pois = await fetchPOIsForTileBulk(tile, categories, abortSignal);
+            // If tile returned empty due to non-abort error, count as potential failure
+            // (fetchPOIsForTileBulk returns [] on error)
+            return pois;
           } catch (error) {
-            logger.warn('offline', 'Failed to fetch tile', error);
+            // Don't log AbortErrors - they're expected when cancelling
+            if (error instanceof Error && error.name === 'AbortError') {
+              return [];
+            }
+            failedTileCount++;
+            logger.warn('offline', 'Failed to fetch tile (continuing)', error);
             return [];
           }
         })

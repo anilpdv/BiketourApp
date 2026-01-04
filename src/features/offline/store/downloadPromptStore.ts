@@ -17,9 +17,20 @@ import {
 import { logger } from '../../../shared/utils';
 import { ALL_POI_CATEGORIES } from './downloadProgressStore';
 
-// Default radius options in km
-export const RADIUS_OPTIONS = [25, 50, 100] as const;
-export type RadiusOption = (typeof RADIUS_OPTIONS)[number];
+// Radius configuration
+export const RADIUS_MIN = 10; // Minimum radius in km
+export const RADIUS_MAX = 200; // Maximum radius in km
+export const RADIUS_STEP = 5; // Step size for slider
+export const RADIUS_PRESETS = [25, 50, 100] as const; // Quick preset options
+export const RADIUS_DEFAULT = 50; // Default radius
+
+// Legacy export for backwards compatibility
+export const RADIUS_OPTIONS = RADIUS_PRESETS;
+
+// Now accepts any number within range (was constrained to union type)
+export type RadiusOption = number;
+
+// TODO: Add storage persistence for radius when @react-native-async-storage/async-storage is available
 
 interface DismissedArea {
   lat: number;
@@ -77,6 +88,9 @@ interface DownloadPromptState {
   // Actions - Completion
   setDownloadCompleted: (region: RegionInfo) => void;
   clearDownloadCompletedRegion: () => void;
+
+  // Actions - Initialization
+  initializeRadius: () => Promise<void>;
 }
 
 // How long to remember dismissed areas (24 hours)
@@ -153,10 +167,13 @@ export const useDownloadPromptStore = create<DownloadPromptState>((set, get) => 
   },
 
   setSelectedRadius: (radius) => {
+    // Clamp radius to valid range
+    const clampedRadius = Math.max(RADIUS_MIN, Math.min(RADIUS_MAX, radius));
     const { promptLocation } = get();
-    set({ selectedRadius: radius });
+    set({ selectedRadius: clampedRadius });
+
     if (promptLocation) {
-      get().updateEstimate(promptLocation.lat, promptLocation.lon, radius);
+      get().updateEstimate(promptLocation.lat, promptLocation.lon, clampedRadius);
     }
   },
 
@@ -299,5 +316,10 @@ export const useDownloadPromptStore = create<DownloadPromptState>((set, get) => 
 
   clearDownloadCompletedRegion: () => {
     set({ downloadCompletedRegion: null });
+  },
+
+  initializeRadius: async () => {
+    // TODO: Load persisted radius when storage is available
+    // For now, uses default value from state initialization
   },
 }));
