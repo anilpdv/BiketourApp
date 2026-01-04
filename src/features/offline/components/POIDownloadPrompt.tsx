@@ -4,7 +4,7 @@
  * Supports both region-based (new) and radius-based (legacy) downloads
  */
 
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -48,6 +48,13 @@ export const POIDownloadPrompt = memo(function POIDownloadPrompt({
 
   // Debounce state to prevent double-tap on download button
   const [isStarting, setIsStarting] = useState(false);
+
+  // Reset isStarting when modal closes (handles error cases where modal doesn't unmount)
+  useEffect(() => {
+    if (!visible) {
+      setIsStarting(false);
+    }
+  }, [visible]);
 
   const handleDismiss = () => {
     onClose();
@@ -165,6 +172,7 @@ export const POIDownloadPrompt = memo(function POIDownloadPrompt({
               </View>
             ) : (
               <View style={styles.estimateLoading}>
+                <ActivityIndicator size="small" color={colors.primary[500]} />
                 <Text style={styles.estimateLoadingText}>Calculating size...</Text>
               </View>
             )}

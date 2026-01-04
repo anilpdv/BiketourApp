@@ -11,6 +11,7 @@ import {
   getDownloadStats,
 } from '../services/poiDownload.service';
 import { logger } from '../../../shared/utils';
+import { useDownloadPromptStore } from './downloadPromptStore';
 
 interface DownloadedRegionsState {
   // Region list
@@ -65,8 +66,17 @@ export const useDownloadedRegionsStore = create<DownloadedRegionsState>((set, ge
   deleteRegion: async (regionId) => {
     set({ error: null });
     try {
+      // Get region name before deletion to undismiss it
+      const region = get().downloadedRegions.find((r) => r.id === regionId);
+      const regionName = region?.name;
+
       await deleteDownloadedRegion(regionId);
       await get().loadDownloadedRegions();
+
+      // Allow prompt to show again for this region
+      if (regionName) {
+        useDownloadPromptStore.getState().undismissRegion(regionName);
+      }
     } catch (error) {
       logger.error('offline', 'Failed to delete region', error);
       set({

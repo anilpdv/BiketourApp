@@ -75,6 +75,7 @@ interface DownloadPromptState {
   // Actions - Dismissal
   dismissPromptForArea: (lat: number, lon: number) => void;
   dismissRegion: (regionName: string) => void;
+  undismissRegion: (regionName: string) => void;
 
   // Actions - Check if should prompt
   checkShouldPrompt: (lat: number, lon: number, isDownloading: boolean) => Promise<boolean>;
@@ -229,6 +230,13 @@ export const useDownloadPromptStore = create<DownloadPromptState>((set, get) => 
       promptLocation: null,
       downloadEstimate: null,
       dismissedRegions: [...dismissedRegions, regionName],
+    });
+  },
+
+  undismissRegion: (regionName) => {
+    const { dismissedRegions } = get();
+    set({
+      dismissedRegions: dismissedRegions.filter((name) => name !== regionName),
     });
   },
 

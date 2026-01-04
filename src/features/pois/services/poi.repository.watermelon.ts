@@ -273,8 +273,8 @@ export const poiRepositoryWM = {
       }
 
       // Execute in chunked batches to prevent UI freeze
-      // Moderate batch size for stability (avoid pending changes conflicts)
-      const BATCH_SIZE = 1000;
+      // Larger batch size for better performance (5x fewer transactions)
+      const BATCH_SIZE = 5000;
       for (let i = 0; i < operations.length; i += BATCH_SIZE) {
         const batchOps = operations.slice(i, i + BATCH_SIZE);
         await database.batch(batchOps);  // Pass array directly, not spread

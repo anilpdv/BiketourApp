@@ -302,9 +302,10 @@ export async function downloadPOIsForArea(
     });
 
     // Start simulated progress animation during network fetch
-    // This gives smooth progress updates while waiting for the network response
+    // Cap at the progress value we'll show when this chunk completes (avoids jump/reset)
     let simulatedProgress = baseProgress;
-    const maxSimulatedProgress = 90;
+    const nextRealProgress = 45 + Math.round((chunkIndex / totalChunks) * 40);
+    const maxSimulatedProgress = nextRealProgress - 2; // Stay just below real progress
     const progressInterval = setInterval(() => {
       simulatedProgress = Math.min(simulatedProgress + 1, maxSimulatedProgress);
       reportProgress({
