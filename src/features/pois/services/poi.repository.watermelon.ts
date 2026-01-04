@@ -176,33 +176,31 @@ export const poiRepositoryWM = {
     const categoriesStr = categories?.sort().join(',') || '';
 
     await database.write(async () => {
-      // Check for existing POIs to update vs create
-      const existingPoiIds = new Set<string>();
+      // Check for existing POIs - use Map for O(1) lookup instead of O(n) find()
       const existingPois = await poisCollection
         .query(Q.where('poi_id', Q.oneOf(pois.map((p) => p.id))))
         .fetch();
 
+      const existingPoiMap = new Map<string, POIModel>();
       for (const poi of existingPois) {
-        existingPoiIds.add(poi.poiId);
+        existingPoiMap.set(poi.poiId, poi);
       }
 
       // Prepare batch operations
       const operations: POIModel[] = [];
 
       for (const poi of pois) {
-        if (existingPoiIds.has(poi.id)) {
+        const existing = existingPoiMap.get(poi.id);
+        if (existing) {
           // Update existing POI
-          const existing = existingPois.find((p) => p.poiId === poi.id);
-          if (existing) {
-            operations.push(
-              existing.prepareUpdate((record) => {
-                record.name = poi.name || '';
-                record.tagsJson = JSON.stringify(poi.tags || {});
-                record.fetchedAt = now;
-                record.expiresAt = expiresAt;
-              })
-            );
-          }
+          operations.push(
+            existing.prepareUpdate((record) => {
+              record.name = poi.name || '';
+              record.tagsJson = JSON.stringify(poi.tags || {});
+              record.fetchedAt = now;
+              record.expiresAt = expiresAt;
+            })
+          );
         } else {
           // Create new POI
           operations.push(
@@ -251,8 +249,9 @@ export const poiRepositoryWM = {
         });
       }
 
-      // Execute all operations in a single batch
-      await database.batch(...operations, tileOperation);
+      // Execute all operations in a single batch (pass array, not spread)
+      const allOps = [...operations, tileOperation];
+      await database.batch(allOps);
     });
 
     logger.info('poi', `Saved ${pois.length} POIs to WatermelonDB`);
@@ -265,40 +264,47 @@ export const poiRepositoryWM = {
   async saveDownloadedPOIs(pois: POI[]): Promise<void> {
     if (pois.length === 0) return;
 
+    // DEDUP: Remove duplicate POI IDs from input to prevent "pending changes" conflicts
+    // This can happen when POIs appear in multiple overlapping tiles
+    const seenIds = new Set<string>();
+    const uniquePois = pois.filter((p) => {
+      if (seenIds.has(p.id)) return false;
+      seenIds.add(p.id);
+      return true;
+    });
+
     const now = Date.now();
     const expiresAt = now + DOWNLOAD_EXPIRY_MS;
 
     const startTime = Date.now();
-    logger.info('poi', `Starting batch save of ${pois.length} downloaded POIs`);
+    logger.info('poi', `Starting batch save of ${uniquePois.length} downloaded POIs (${pois.length - uniquePois.length} duplicates removed)`);
 
     await database.write(async () => {
-      // Check for existing POIs
-      const existingPoiIds = new Set<string>();
+      // Check for existing POIs - use Map for O(1) lookup instead of O(n) find()
       const existingPois = await poisCollection
-        .query(Q.where('poi_id', Q.oneOf(pois.map((p) => p.id))))
+        .query(Q.where('poi_id', Q.oneOf(uniquePois.map((p) => p.id))))
         .fetch();
 
+      const existingPoiMap = new Map<string, POIModel>();
       for (const poi of existingPois) {
-        existingPoiIds.add(poi.poiId);
+        existingPoiMap.set(poi.poiId, poi);
       }
 
       const operations: POIModel[] = [];
 
-      for (const poi of pois) {
-        if (existingPoiIds.has(poi.id)) {
+      for (const poi of uniquePois) {
+        const existing = existingPoiMap.get(poi.id);
+        if (existing) {
           // Update existing - mark as downloaded
-          const existing = existingPois.find((p) => p.poiId === poi.id);
-          if (existing) {
-            operations.push(
-              existing.prepareUpdate((record) => {
-                record.name = poi.name || '';
-                record.tagsJson = JSON.stringify(poi.tags || {});
-                record.fetchedAt = now;
-                record.expiresAt = expiresAt;
-                record.isDownloaded = true;
-              })
-            );
-          }
+          operations.push(
+            existing.prepareUpdate((record) => {
+              record.name = poi.name || '';
+              record.tagsJson = JSON.stringify(poi.tags || {});
+              record.fetchedAt = now;
+              record.expiresAt = expiresAt;
+              record.isDownloaded = true;
+            })
+          );
         } else {
           // Create new downloaded POI
           operations.push(
@@ -318,12 +324,17 @@ export const poiRepositoryWM = {
         }
       }
 
-      // Execute all in a single batch - FAST!
-      await database.batch(...operations);
+      // Execute in chunked batches to prevent UI freeze
+      // Moderate batch size for stability (avoid pending changes conflicts)
+      const BATCH_SIZE = 1000;
+      for (let i = 0; i < operations.length; i += BATCH_SIZE) {
+        const batchOps = operations.slice(i, i + BATCH_SIZE);
+        await database.batch(batchOps);  // Pass array directly, not spread
+      }
     });
 
     const elapsed = Date.now() - startTime;
-    logger.info('poi', `Saved ${pois.length} downloaded POIs in ${elapsed}ms`);
+    logger.info('poi', `Saved ${uniquePois.length} downloaded POIs in ${elapsed}ms (chunked)`);
   },
 
   /**
@@ -400,7 +411,7 @@ export const poiRepositoryWM = {
       ];
 
       if (deleteOps.length > 0) {
-        await database.batch(...deleteOps);
+        await database.batch(deleteOps);
         logger.info('poi', `Cleaned ${deleteOps.length} expired entries`);
       }
     });
@@ -801,7 +812,7 @@ export const poiRepositoryWM = {
         ...poisInRegion.map((p) => p.prepareDestroyPermanently()),
       ];
 
-      await database.batch(...deleteOps);
+      await database.batch(deleteOps);
 
       logger.info(
         'poi',

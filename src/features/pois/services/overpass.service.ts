@@ -254,7 +254,7 @@ export function buildMultiCategoryQuery(
     .join('\n');
 
   return `
-    [out:json][timeout:8];
+    [out:json][timeout:25];
     (
       ${queries}
     );
@@ -625,7 +625,10 @@ export async function fetchPOIsForViewport(
       count: downloadedPOIs.length,
       elapsed: Date.now() - startTime,
     });
-    allPOIs.push(...downloadedPOIs);
+    // Use loop instead of spread to avoid stack overflow with large arrays (466K+ POIs)
+    for (const poi of downloadedPOIs) {
+      allPOIs.push(poi);
+    }
   }
 
   // If showPOIs is false, return ONLY downloaded POIs (skip API fetching)
@@ -655,11 +658,16 @@ export async function fetchPOIsForViewport(
     });
     const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
     // Filter cached by category, but downloaded (already added) are unfiltered
+    // Use loop instead of spread to avoid stack overflow with large arrays
     if (categories && categories.length > 0) {
       const filteredCached = cachedPOIs.filter(poi => categories.includes(poi.category));
-      allPOIs.push(...filteredCached);
+      for (const poi of filteredCached) {
+        allPOIs.push(poi);
+      }
     } else {
-      allPOIs.push(...cachedPOIs);
+      for (const poi of cachedPOIs) {
+        allPOIs.push(poi);
+      }
     }
     // Deduplicate (downloaded takes priority)
     const uniquePOIs = new Map<string, POI>();
@@ -678,11 +686,16 @@ export async function fetchPOIsForViewport(
       elapsed: Date.now() - startTime,
     });
     // Filter cached by category, but downloaded (already added) are unfiltered
+    // Use loop instead of spread to avoid stack overflow with large arrays
     if (categories && categories.length > 0) {
       const filteredCached = cachedPOIs.filter(poi => categories.includes(poi.category));
-      allPOIs.push(...filteredCached);
+      for (const poi of filteredCached) {
+        allPOIs.push(poi);
+      }
     } else {
-      allPOIs.push(...cachedPOIs);
+      for (const poi of cachedPOIs) {
+        allPOIs.push(poi);
+      }
     }
     // Deduplicate (downloaded takes priority)
     const uniquePOIs = new Map<string, POI>();
@@ -700,10 +713,16 @@ export async function fetchPOIsForViewport(
   // Get cached POIs (filter by category)
   logger.info('poi', 'Getting cached POIs for partial coverage');
   const cachedPOIs = await poiRepository.getPOIsInBounds(bbox);
+  // Use loop instead of spread to avoid stack overflow with large arrays
   if (categories && categories.length > 0) {
-    allPOIs.push(...cachedPOIs.filter(poi => categories.includes(poi.category)));
+    const filteredCached = cachedPOIs.filter(poi => categories.includes(poi.category));
+    for (const poi of filteredCached) {
+      allPOIs.push(poi);
+    }
   } else {
-    allPOIs.push(...cachedPOIs);
+    for (const poi of cachedPOIs) {
+      allPOIs.push(poi);
+    }
   }
   logger.info('poi', 'Cached POIs retrieved', {
     count: allPOIs.length,
@@ -781,8 +800,10 @@ export async function fetchPOIsForViewport(
       elapsed: Date.now() - startTime,
     });
 
-    // Add all results from this chunk
-    allPOIs.push(...chunkPOIsList);
+    // Add all results from this chunk (use loop for consistency with large array handling)
+    for (const poi of chunkPOIsList) {
+      allPOIs.push(poi);
+    }
 
     // PROGRESSIVE DISPLAY: Show POIs immediately as each chunk completes
     if (chunkPOIsList.length > 0) {

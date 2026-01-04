@@ -132,7 +132,8 @@ export const usePOIStore = create<POIState>((set, get) => ({
       newByCategory.set(category, [...existing, ...batch]);
     }
 
-    const updatedPOIs = [...pois, ...uniqueNew];
+    // Use concat instead of spread to avoid stack overflow with large arrays (466K+ POIs)
+    const updatedPOIs = pois.concat(uniqueNew);
 
     set({
       pois: updatedPOIs,

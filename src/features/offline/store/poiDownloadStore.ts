@@ -415,39 +415,25 @@ export const usePOIDownloadStore = create<POIDownloadState>((set, get) => ({
         return { shouldPrompt: false, region };
       }
 
-      // Check if region is already downloaded
+      // Check if region is already downloaded AND has POIs
+      // Regions with 0 POIs (failed downloads) should prompt for re-download
+      const MIN_POIS_FOR_VALID_DOWNLOAD = 10;
       const isAlreadyDownloaded = downloadedRegions.some(
-        (r) => r.name === region.displayName || r.name === region.region
+        (r) =>
+          (r.name === region.displayName || r.name === region.region) &&
+          r.poiCount >= MIN_POIS_FOR_VALID_DOWNLOAD
       );
 
       if (isAlreadyDownloaded) {
-        logger.info('offline', '[DEBUG] Skip: region already downloaded', { region: region.displayName });
+        logger.info('offline', '[DEBUG] Skip: region already downloaded with POIs', { region: region.displayName });
         set({ isDetectingRegion: false, currentRegion: region });
         return { shouldPrompt: false, region };
       }
 
-      // Check if current location is within any downloaded region bounds
-      for (const downloadedRegion of downloadedRegions) {
-        const bounds = {
-          south: downloadedRegion.minLat,
-          north: downloadedRegion.maxLat,
-          west: downloadedRegion.minLon,
-          east: downloadedRegion.maxLon,
-        };
-        if (
-          lat >= bounds.south &&
-          lat <= bounds.north &&
-          lon >= bounds.west &&
-          lon <= bounds.east
-        ) {
-          logger.info('offline', '[DEBUG] Skip: location within downloaded region bounds', {
-            location: { lat, lon },
-            downloadedRegion: downloadedRegion.name,
-          });
-          set({ isDetectingRegion: false, currentRegion: region });
-          return { shouldPrompt: false, region };
-        }
-      }
+      // NOTE: Removed bounding box overlap check - it caused false positives
+      // when neighboring regions had overlapping bounding boxes (e.g., Toulouse
+      // in Occitania being incorrectly matched to Nouvelle-Aquitaine's bounds).
+      // The name-based check above is sufficient.
 
       logger.info('offline', '[DEBUG] ✅ SHOULD PROMPT for region', { region: region.displayName });
       set({ isDetectingRegion: false, currentRegion: region });

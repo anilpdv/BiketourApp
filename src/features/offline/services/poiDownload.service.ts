@@ -21,19 +21,26 @@ import { API_CONFIG } from '../../../shared/config';
 // Grid size for tile-based downloading (0.2 degrees = ~22km at equator)
 const DOWNLOAD_TILE_SIZE = 0.2;
 
-// Larger tiles for bulk downloads - bypasses rate limiter (0.5° ≈ 55km)
-const BULK_DOWNLOAD_TILE_SIZE = 0.5;
+// Larger tiles for bulk downloads - bypasses rate limiter (1.0° ≈ 111km)
+// Increased from 0.5° for fewer API calls = faster downloads
+const BULK_DOWNLOAD_TILE_SIZE = 1.0;
 
 // Delay between API requests to respect rate limits (ms)
 // Set to 0 since the rate limiter handles throttling
 const REQUEST_DELAY_MS = 0;
 
 // Maximum concurrent tile downloads
-// Increased for faster downloads (kumi.systems can handle this)
-const MAX_CONCURRENT_DOWNLOADS = 5;
+// kumi.systems has no rate limits - can handle more parallelism
+const MAX_CONCURRENT_DOWNLOADS = 8;
 
 // Estimated bytes per POI (for size estimation)
 const BYTES_PER_POI_ESTIMATE = 500;
+
+// Maximum region size for single-query mode (in degrees)
+// Regions smaller than this use ONE API call instead of tile-by-tile
+// 3.0° ≈ 330km - conservative threshold to avoid Overpass timeout on large regions
+// (Bavaria at 4.87° × 3.29° was timing out with 6.0° threshold)
+const SINGLE_QUERY_MAX_SIZE_DEG = 3.0;
 
 // Database row interfaces removed - now using WatermelonDB models
 
@@ -323,11 +330,20 @@ export async function downloadPOIsForArea(
 
   // Use provided bounding box or calculate from radius
   const bounds = boundingBox || calculateBoundsFromRadius(centerLat, centerLon, radiusKm);
-  // Use larger tiles for bulk downloads (faster - bypasses rate limiter)
-  const tiles = getTilesCoveringBoundsForDownload(bounds);
+
+  // Check if region is small enough for single-query mode (FAST!)
+  const regionWidth = bounds.east - bounds.west;
+  const regionHeight = bounds.north - bounds.south;
+  const useSingleQuery = regionWidth < SINGLE_QUERY_MAX_SIZE_DEG && regionHeight < SINGLE_QUERY_MAX_SIZE_DEG;
+
+  // For single query, we treat it as 1 tile; otherwise use tile-based
+  const tiles = useSingleQuery ? [bounds] : getTilesCoveringBoundsForDownload(bounds);
   const totalTiles = tiles.length;
 
-  logger.info('offline', `Downloading ${totalTiles} tiles (using bulk tile size: ${BULK_DOWNLOAD_TILE_SIZE}°)`);
+  logger.info('offline', `Downloading POIs`, {
+    mode: useSingleQuery ? 'SINGLE_QUERY (fast)' : `TILE_BASED (${totalTiles} tiles)`,
+    regionSize: `${(regionWidth * 111).toFixed(0)}km x ${(regionHeight * 111).toFixed(0)}km`,
+  });
 
   // Progress reporting
   const reportProgress = (progress: Partial<DownloadProgress>) => {
@@ -342,7 +358,7 @@ export async function downloadPOIsForArea(
     });
   };
 
-  reportProgress({ phase: 'estimating', message: 'Calculating download size...' });
+  reportProgress({ phase: 'estimating', message: useSingleQuery ? 'Fetching POIs...' : 'Calculating download size...' });
 
   // Check for abort
   if (abortSignal?.aborted) {
@@ -350,9 +366,13 @@ export async function downloadPOIsForArea(
     throw new Error('Download cancelled');
   }
 
-  // Download POIs tile by tile
+  // Download POIs
   const allPOIs: POI[] = [];
   let tilesProcessed = 0;
+
+  // Track saved POI IDs to avoid "pending changes" conflicts from duplicates
+  // (POIs at tile boundaries can appear in multiple tiles)
+  const savedPoiIds = new Set<string>();
 
   // Process tiles in chunks for controlled concurrency
   for (let i = 0; i < tiles.length; i += MAX_CONCURRENT_DOWNLOADS) {
@@ -363,50 +383,113 @@ export async function downloadPOIsForArea(
     }
 
     const chunk = tiles.slice(i, i + MAX_CONCURRENT_DOWNLOADS);
+    const chunkIndex = Math.floor(i / MAX_CONCURRENT_DOWNLOADS);
+    const totalChunks = Math.ceil(tiles.length / MAX_CONCURRENT_DOWNLOADS);
+
+    // Progress: Connecting (show activity before network call)
+    const baseProgress = 5 + Math.round((chunkIndex / totalChunks) * 40);
+    reportProgress({
+      phase: 'downloading',
+      currentPOIs: allPOIs.length,
+      totalPOIs: allPOIs.length,
+      percentage: baseProgress,
+      currentTile: tilesProcessed,
+      totalTiles,
+      message: useSingleQuery ? 'Connecting to server...' : `Fetching tile ${chunkIndex + 1}/${totalChunks}...`,
+    });
+
+    // Start simulated progress animation during network fetch
+    // This gives smooth progress updates while waiting for the network response
+    let simulatedProgress = baseProgress;
+    const maxSimulatedProgress = 90;
+    const progressInterval = setInterval(() => {
+      simulatedProgress = Math.min(simulatedProgress + 1, maxSimulatedProgress);
+      reportProgress({
+        phase: 'downloading',
+        currentPOIs: allPOIs.length,
+        totalPOIs: allPOIs.length,
+        percentage: simulatedProgress,
+        currentTile: tilesProcessed,
+        totalTiles,
+        message: useSingleQuery ? 'Downloading POI data...' : `Fetching tile ${chunkIndex + 1}/${totalChunks}...`,
+      });
+    }, 600); // Update every 600ms for slow animation
 
     // Fetch tiles in parallel (using bulk fetch - no rate limiting)
-    const results = await Promise.all(
-      chunk.map(async (tile) => {
-        try {
-          return await fetchPOIsForTileBulk(tile, categories, abortSignal);
-        } catch (error) {
-          logger.warn('offline', 'Failed to fetch tile', error);
-          return [];
-        }
-      })
-    );
+    let results: POI[][];
+    try {
+      results = await Promise.all(
+        chunk.map(async (tile) => {
+          try {
+            return await fetchPOIsForTileBulk(tile, categories, abortSignal);
+          } catch (error) {
+            logger.warn('offline', 'Failed to fetch tile', error);
+            return [];
+          }
+        })
+      );
+    } finally {
+      // Always stop the animation timer
+      clearInterval(progressInterval);
+    }
 
     // Collect POIs from this chunk
+    const chunkPOIs: POI[] = [];
     for (const pois of results) {
+      chunkPOIs.push(...pois);
       allPOIs.push(...pois);
+    }
+
+    // Progress: Downloaded, now saving
+    reportProgress({
+      phase: 'downloading',
+      currentPOIs: allPOIs.length,
+      totalPOIs: allPOIs.length,
+      percentage: 45 + Math.round((chunkIndex / totalChunks) * 40),
+      currentTile: tilesProcessed,
+      totalTiles,
+      message: `Downloaded ${allPOIs.length} POIs, saving...`,
+    });
+
+    // PROGRESSIVE SAVE: Save POIs as they arrive (awaited for reliability)
+    // Filter out POIs already saved in previous chunks to avoid "pending changes" conflicts
+    const uniqueChunkPOIs = chunkPOIs.filter((p) => !savedPoiIds.has(p.id));
+    if (uniqueChunkPOIs.length > 0) {
+      try {
+        // Mark these POIs as saved before saving (to prevent duplicates in next chunk)
+        for (const poi of uniqueChunkPOIs) {
+          savedPoiIds.add(poi.id);
+        }
+        await poiRepositoryWM.saveDownloadedPOIs(uniqueChunkPOIs);
+      } catch (error) {
+        logger.warn('offline', 'Failed to save chunk POIs', error);
+      }
     }
 
     tilesProcessed += chunk.length;
 
+    // Progress: Chunk complete
     reportProgress({
       phase: 'downloading',
       currentPOIs: allPOIs.length,
-      totalPOIs: allPOIs.length, // We don't know total yet
-      percentage: Math.round((tilesProcessed / totalTiles) * 80), // 80% for downloading
+      totalPOIs: allPOIs.length,
+      percentage: 50 + Math.round((tilesProcessed / totalTiles) * 40),
       currentTile: tilesProcessed,
       totalTiles,
-      message: `Downloaded ${allPOIs.length} POIs (${tilesProcessed}/${totalTiles} tiles)`,
+      message: useSingleQuery
+        ? `Saved ${allPOIs.length} POIs`
+        : `Downloaded ${allPOIs.length} POIs (${tilesProcessed}/${totalTiles} tiles)`,
     });
 
-    // Rate limiting delay between chunks
-    if (i + MAX_CONCURRENT_DOWNLOADS < tiles.length) {
+    // Rate limiting delay between chunks (if multi-tile mode)
+    if (!useSingleQuery && i + MAX_CONCURRENT_DOWNLOADS < tiles.length) {
       await sleep(REQUEST_DELAY_MS);
     }
   }
 
-  // Deduplicate POIs by ID
-  const uniquePOIs = new Map<string, POI>();
-  for (const poi of allPOIs) {
-    uniquePOIs.set(poi.id, poi);
-  }
-  const finalPOIs = Array.from(uniquePOIs.values());
-
-  logger.info('offline', `Fetched ${finalPOIs.length} unique POIs`);
+  // WatermelonDB handles deduplication via ON CONFLICT - no need to dedup in memory
+  const poiCount = allPOIs.length;
+  logger.info('offline', `Fetched ${poiCount} POIs (dedup handled by DB)`);
 
   // Check for abort before saving
   if (abortSignal?.aborted) {
@@ -416,22 +499,19 @@ export async function downloadPOIsForArea(
 
   reportProgress({
     phase: 'saving',
-    currentPOIs: finalPOIs.length,
-    totalPOIs: finalPOIs.length,
-    percentage: 85,
+    currentPOIs: poiCount,
+    totalPOIs: poiCount,
+    percentage: 95,
     currentTile: totalTiles,
     totalTiles,
-    message: 'Saving POIs to database...',
+    message: 'Finalizing download...',
   });
 
-  // Save POIs to database as downloaded (permanent) - FAST with WatermelonDB!
-  const startSaveTime = Date.now();
-  await poiRepositoryWM.saveDownloadedPOIs(finalPOIs);
-  const saveElapsed = Date.now() - startSaveTime;
-  logger.info('offline', `Saved ${finalPOIs.length} POIs in ${saveElapsed}ms`);
+  // POIs already saved progressively during download - just log summary
+  logger.info('offline', `Download complete: ${poiCount} POIs`);
 
   // Estimate size (500 bytes per POI average)
-  const sizeBytes = finalPOIs.length * 500;
+  const sizeBytes = poiCount * 500;
 
   // Create region entry
   await poiRepositoryWM.saveDownloadedRegion({
@@ -441,31 +521,31 @@ export async function downloadPOIsForArea(
     centerLon,
     radiusKm,
     bbox: bounds,
-    poiCount: finalPOIs.length,
+    poiCount,
     sizeBytes,
     categories,
   });
 
   reportProgress({
     phase: 'complete',
-    currentPOIs: finalPOIs.length,
-    totalPOIs: finalPOIs.length,
+    currentPOIs: poiCount,
+    totalPOIs: poiCount,
     percentage: 100,
     currentTile: totalTiles,
     totalTiles,
-    message: `Downloaded ${finalPOIs.length} POIs`,
+    message: `Downloaded ${poiCount} POIs`,
   });
 
   logger.info('offline', 'Download complete', {
     regionId,
-    poiCount: finalPOIs.length,
+    poiCount,
     sizeBytes,
   });
 
   return {
     regionId,
     regionName: finalRegionName,
-    poiCount: finalPOIs.length,
+    poiCount,
     sizeBytes,
     categories,
   };
