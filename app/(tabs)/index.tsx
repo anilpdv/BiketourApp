@@ -157,6 +157,7 @@ export default function MapScreen() {
   const {
     cameraRef,
     currentBounds,
+    currentZoom,
     initialCameraSettings,
     handleCameraChanged: baseCameraChanged,
     flyTo,
@@ -577,6 +578,7 @@ export default function MapScreen() {
           visible={filteredPOIs.length > 0}
           pois={filteredPOIs}
           poiGeoJSON={poiGeoJSON}
+          zoomLevel={currentZoom}
           onPOIPress={handlePOIMarkerPress}
         />
 

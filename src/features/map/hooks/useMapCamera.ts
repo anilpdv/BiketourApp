@@ -15,6 +15,7 @@ export interface CameraSettings {
 export interface UseMapCameraReturn {
   cameraRef: React.RefObject<Camera | null>;
   currentBounds: MapBounds | null;
+  currentZoom: number;
   initialCameraSettings: CameraSettings;
 
   // Actions
@@ -32,6 +33,7 @@ export function useMapCamera(
 ): UseMapCameraReturn {
   const cameraRef = useRef<Camera>(null);
   const [currentBounds, setCurrentBounds] = useState<MapBounds | null>(null);
+  const [currentZoom, setCurrentZoom] = useState<number>(10); // Default zoom
 
   // Calculate initial camera settings
   const initialCameraSettings = useMemo((): CameraSettings => {
@@ -61,6 +63,11 @@ export function useMapCamera(
 
   // Handle camera changes
   const handleCameraChanged = useCallback((state: Mapbox.MapState) => {
+    // Update zoom level
+    if (state.properties.zoom !== undefined) {
+      setCurrentZoom(state.properties.zoom);
+    }
+
     if (!state.properties.bounds) return;
 
     const bounds: MapBounds = {
@@ -87,6 +94,7 @@ export function useMapCamera(
   return {
     cameraRef,
     currentBounds,
+    currentZoom,
     initialCameraSettings,
     handleCameraChanged,
     flyTo,

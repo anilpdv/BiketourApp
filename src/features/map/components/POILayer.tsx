@@ -1,78 +1,52 @@
 import React, { memo } from 'react';
-import { ShapeSource, CircleLayer, SymbolLayer } from '@rnmapbox/maps';
 import type { FeatureCollection, Point } from 'geojson';
-import { colors } from '../../../shared/design/tokens';
 import { POI } from '../../pois';
 import { POIMarker } from '../../pois/components/POIMarker';
+import { ClusterMarker } from '../../pois/components/ClusterMarker';
+import { usePOIClusters } from '../hooks/usePOIClusters';
 
 export interface POILayerProps {
   visible: boolean;
   pois: POI[];
   poiGeoJSON: FeatureCollection<Point>;
+  zoomLevel: number;
   onPOIPress: (poi: POI) => void;
 }
 
 /**
  * Map layer for rendering POIs with clustering
- * Uses POIMarker (PointAnnotation) for individual POIs with droplet-shaped pins
- * Uses CircleLayer for cluster visualization
+ * Uses MarkerView for both clusters and individual POIs (same z-level)
  */
 export const POILayer = memo(function POILayer({
   visible,
   pois,
-  poiGeoJSON,
+  zoomLevel,
   onPOIPress,
 }: POILayerProps) {
+  // Round zoom to nearest 0.5 to prevent flickering during smooth zoom
+  // Clustering only recalculates at: 8, 8.5, 9, 9.5, 10, 10.5, etc.
+  const stableZoom = Math.round(zoomLevel * 2) / 2;
+
+  // Compute clusters from POIs (zoom-aware)
+  const { clusters, unclusteredPOIs } = usePOIClusters(pois, stableZoom);
+
   if (!visible) {
     return null;
   }
 
   return (
     <>
-      {/* Cluster circles using ShapeSource */}
-      <ShapeSource
-        id="poi-clusters"
-        shape={poiGeoJSON}
-        cluster
-        clusterRadius={50}
-        clusterMaxZoomLevel={14}
-      >
-        {/* Cluster circles */}
-        <CircleLayer
-          id="poi-cluster-circles"
-          filter={['has', 'point_count']}
-          style={{
-            circleColor: colors.primary[600],
-            circleRadius: [
-              'step',
-              ['get', 'point_count'],
-              18,
-              10, 22,
-              50, 26,
-              100, 30,
-            ],
-            circleOpacity: 0.95,
-            circleStrokeColor: colors.neutral[0],
-            circleStrokeWidth: 3,
-          }}
+      {/* Render clusters first (so individual markers can appear on top if needed) */}
+      {clusters.map((cluster) => (
+        <ClusterMarker
+          key={cluster.id}
+          coordinate={cluster.coordinate}
+          pointCount={cluster.pointCount}
         />
+      ))}
 
-        {/* Cluster count text */}
-        <SymbolLayer
-          id="poi-cluster-count"
-          filter={['has', 'point_count']}
-          style={{
-            textField: ['get', 'point_count_abbreviated'],
-            textSize: 13,
-            textColor: colors.neutral[0],
-            textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-            textAllowOverlap: true,
-          }}
-        />
-      </ShapeSource>
-
-      {/* Individual POI markers using PointAnnotation */}
-      {pois.map(poi => (
+      {/* Render unclustered POI markers */}
+      {unclusteredPOIs.map((poi) => (
         <POIMarker key={poi.id} poi={poi} onPress={onPOIPress} />
       ))}
     </>
