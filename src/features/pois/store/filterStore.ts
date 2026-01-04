@@ -43,7 +43,7 @@ interface FilterStoreState {
   // Modal actions
   openModal: () => void;
   closeModal: () => void;
-  applyFilters: () => void;
+  applyFilters: (newFilters?: POIFilterStateExtended) => void;
   discardTempFilters: () => void;
 
   // Temp filters actions (used while modal is open)
@@ -124,9 +124,9 @@ export const useFilterStore = create<FilterStoreState>((set, get) => ({
       tempFilters: null,
     }),
 
-  applyFilters: () =>
+  applyFilters: (newFilters) =>
     set((state) => ({
-      filters: state.tempFilters ?? state.filters,
+      filters: newFilters ?? state.tempFilters ?? state.filters,
       isModalVisible: false,
       tempFilters: null,
     })),

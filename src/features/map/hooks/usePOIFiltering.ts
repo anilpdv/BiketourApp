@@ -48,10 +48,15 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
       hasViewportBounds: !!viewportBounds,
     });
 
-    // Filter by selected categories, but ALWAYS include downloaded POIs
-    const categoryFiltered = pois.filter(
-      (poi) => poi.isDownloaded || filterCategories.includes(poi.category)
-    );
+    // Filter by selected categories
+    const categoryFiltered = pois.filter((poi) => {
+      // If no categories selected, show all downloaded POIs
+      if (filterCategories.length === 0) {
+        return poi.isDownloaded;
+      }
+      // If categories selected, filter by category (downloaded or not)
+      return filterCategories.includes(poi.category);
+    });
 
     logger.info('poi', '[DIAGNOSTIC] After category filter', {
       categoryFiltered: categoryFiltered.length,

@@ -129,6 +129,7 @@ export default function MapScreen() {
 
   const {
     showPOIs,
+    pois,
     filteredPOIs,
     poiCounts,
     poiGeoJSON,
@@ -211,6 +212,11 @@ export default function MapScreen() {
       timer = setTimeout(async () => {
         if (isCancelled) return;
 
+        // Don't show download prompt if another modal is already open
+        if (isFiltersModalVisible) {
+          return;
+        }
+
         const result = await checkShouldPromptForRegion(
           mapCenter.lat,
           mapCenter.lon
@@ -242,7 +248,7 @@ export default function MapScreen() {
       isCancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [mapCenter?.lat, mapCenter?.lon, checkShouldPromptForRegion, showRegionDownloadPrompt]);
+  }, [mapCenter?.lat, mapCenter?.lon, checkShouldPromptForRegion, showRegionDownloadPrompt, isFiltersModalVisible]);
 
   // Stable ref for loadPOIsForBounds - prevents debounce reset on every render
   const loadPOIsRef = useRef(loadPOIsForBounds);
@@ -810,7 +816,7 @@ export default function MapScreen() {
         onClose={closeFiltersModal}
         onApply={applyFilters}
         currentFilters={extendedFilters}
-        resultCount={filteredPOIs.length}
+        pois={pois}
       />
 
       {/* POI Detail Sheet */}

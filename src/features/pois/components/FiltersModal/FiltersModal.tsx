@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Modal,
@@ -9,11 +9,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { LocationTypeGrid } from './LocationTypeGrid';
-import { PriceRangeSlider } from './PriceRangeSlider';
-import { RatingChips } from './RatingChips';
-import { FilterToggleSwitch } from './FilterToggleSwitch';
-import { POICategory, POIFilterStateExtended } from '../../types';
+import { CategoryGroupList } from './CategoryGroupList';
+import { POI, POICategory, POIFilterStateExtended } from '../../types';
 import {
   colors,
   spacing,
@@ -27,7 +24,7 @@ interface FiltersModalProps {
   onClose: () => void;
   onApply: (filters: POIFilterStateExtended) => void;
   currentFilters: POIFilterStateExtended;
-  resultCount: number;
+  pois: POI[];
 }
 
 export const FiltersModal = memo(function FiltersModal({
@@ -35,7 +32,7 @@ export const FiltersModal = memo(function FiltersModal({
   onClose,
   onApply,
   currentFilters,
-  resultCount,
+  pois,
 }: FiltersModalProps) {
   // Local state for filters while modal is open
   const [localFilters, setLocalFilters] =
@@ -47,6 +44,15 @@ export const FiltersModal = memo(function FiltersModal({
       setLocalFilters(currentFilters);
     }
   }, [visible, currentFilters]);
+
+  // Calculate filtered count based on local filters (real-time update)
+  const filteredCount = useMemo(() => {
+    if (localFilters.categories.length === 0) {
+      return pois.filter((p) => p.isDownloaded).length;
+    }
+    return pois.filter((p) => localFilters.categories.includes(p.category))
+      .length;
+  }, [pois, localFilters.categories]);
 
   const handleToggleCategory = (category: POICategory) => {
     setLocalFilters((prev) => {
@@ -79,7 +85,7 @@ export const FiltersModal = memo(function FiltersModal({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="fullScreen"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -107,63 +113,11 @@ export const FiltersModal = memo(function FiltersModal({
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Location type grid */}
-          <LocationTypeGrid
+          {/* All POI categories organized by group */}
+          <CategoryGroupList
             selectedCategories={localFilters.categories}
             onToggleCategory={handleToggleCategory}
           />
-
-          {/* Price range slider */}
-          <PriceRangeSlider
-            value={localFilters.maxPrice}
-            onChange={(price) =>
-              setLocalFilters((prev) => ({ ...prev, maxPrice: price }))
-            }
-          />
-
-          {/* Rating chips */}
-          <RatingChips
-            selectedRating={localFilters.minRating}
-            onSelect={(rating) =>
-              setLocalFilters((prev) => ({ ...prev, minRating: rating }))
-            }
-          />
-
-          {/* Toggle switches */}
-          <View style={styles.togglesSection}>
-            <FilterToggleSwitch
-              label="Opening period"
-              icon="clock-outline"
-              value={localFilters.isOpenNow}
-              onToggle={(value) =>
-                setLocalFilters((prev) => ({ ...prev, isOpenNow: value }))
-              }
-            />
-            <FilterToggleSwitch
-              label="Electricity"
-              icon="flash"
-              value={localFilters.hasElectricity}
-              onToggle={(value) =>
-                setLocalFilters((prev) => ({ ...prev, hasElectricity: value }))
-              }
-            />
-            <FilterToggleSwitch
-              label="WiFi"
-              icon="wifi"
-              value={localFilters.hasWifi}
-              onToggle={(value) =>
-                setLocalFilters((prev) => ({ ...prev, hasWifi: value }))
-              }
-            />
-            <FilterToggleSwitch
-              label="Pet friendly"
-              icon="paw"
-              value={localFilters.isPetFriendly}
-              onToggle={(value) =>
-                setLocalFilters((prev) => ({ ...prev, isPetFriendly: value }))
-              }
-            />
-          </View>
         </ScrollView>
 
         {/* Footer action bar */}
@@ -182,11 +136,11 @@ export const FiltersModal = memo(function FiltersModal({
             style={styles.applyButton}
             onPress={handleApply}
             accessibilityRole="button"
-            accessibilityLabel={`Show ${resultCount} locations`}
+            accessibilityLabel={`Show ${filteredCount} locations`}
             activeOpacity={0.7}
           >
             <Text style={styles.applyButtonText}>
-              Show {resultCount} locations
+              Show {filteredCount} locations
             </Text>
           </TouchableOpacity>
         </View>
@@ -227,9 +181,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: spacing.lg,
-  },
-  togglesSection: {
-    marginTop: spacing.md,
+    paddingBottom: spacing['2xl'],
   },
   footer: {
     flexDirection: 'row',
@@ -258,7 +210,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.md,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.secondary[700],
+    backgroundColor: colors.primary[600],
   },
   applyButtonText: {
     fontSize: typography.fontSizes.xl,
