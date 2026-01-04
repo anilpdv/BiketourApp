@@ -4,10 +4,13 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../../../
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
-  backdrop: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: colors.overlay.dark,
     justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.overlay.dark,
   },
   sheet: {
     backgroundColor: colors.neutral[0],
@@ -15,6 +18,9 @@ export const styles = StyleSheet.create({
     borderTopRightRadius: borderRadius['2xl'],
     maxHeight: SCREEN_HEIGHT * 0.85,
     minHeight: SCREEN_HEIGHT * 0.4,
+  },
+  sheetContent: {
+    // No flex - let content determine height naturally (bounded by sheet minHeight/maxHeight)
   },
   handleContainer: {
     alignItems: 'center',
@@ -85,6 +91,9 @@ export const heroStyles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   photoCountText: {
     color: colors.neutral[0],

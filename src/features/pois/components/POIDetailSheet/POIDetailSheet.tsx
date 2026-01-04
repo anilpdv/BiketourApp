@@ -4,12 +4,17 @@ import { Surface, Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { POI } from '../../types';
 import { usePOIStore } from '../../store/poiStore';
-import { getPOIContactInfo, getPOIAmenities } from '../../utils/poiTagParser';
+import { getPOIContactInfo, isCampingCategory } from '../../utils/poiTagParser';
 import { POIPhotoGallery } from './POIPhotoGallery';
+import { POIQuickInfo } from './POIQuickInfo';
+import { POIFacilities } from './POIFacilities';
+import { POISurroundings } from './POISurroundings';
+import { POITerrain } from './POITerrain';
 import { POIDetailInfo } from './POIDetailInfo';
 import { POIDetailActions } from './POIDetailActions';
 import { POIDetailNotes } from './POIDetailNotes';
-import { POIAmenities } from './POIAmenities';
+import { POIMiniMap } from './POIMiniMap';
+import { POIStickyBottomBar } from './POIStickyBottomBar';
 import { styles, descriptionStyles } from './POIDetailSheet.styles';
 import { colors } from '../../../../shared/design/tokens';
 
@@ -52,9 +57,14 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
 
     // Memoize extracted POI data to avoid recalculation on every render
     const contactInfo = useMemo(() => poi ? getPOIContactInfo(poi) : null, [poi]);
-    const amenities = useMemo(() => poi ? getPOIAmenities(poi) : null, [poi]);
 
-    if (!poi || !contactInfo || !amenities) return null;
+    // Check if we should show sticky bottom bar (for camping POIs with price info)
+    const showStickyBar = useMemo(() => {
+      if (!poi) return false;
+      return isCampingCategory(poi.category);
+    }, [poi]);
+
+    if (!poi || !contactInfo) return null;
 
     return (
       <Modal
@@ -63,9 +73,13 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
         animationType="slide"
         onRequestClose={handleClose}
       >
-        <Pressable style={styles.backdrop} onPress={handleClose}>
+        <View style={styles.modalContainer}>
+          {/* Backdrop - absolute positioned behind sheet, handles close on tap */}
+          <Pressable style={styles.backdrop} onPress={handleClose} />
+
+          {/* Sheet - no touch interception, ScrollView works naturally */}
           <Surface style={styles.sheet} elevation={5}>
-            <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetContent}>
               {/* Handle bar */}
               <View style={styles.handleContainer}>
                 <View style={styles.handle} />
@@ -73,22 +87,39 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
 
               <ScrollView
                 style={styles.contentContainer}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                  styles.scrollContent,
+                  showStickyBar && { paddingBottom: 120 }, // Extra padding for sticky bar
+                ]}
                 showsVerticalScrollIndicator={false}
                 bounces={true}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={true}
               >
                 {/* Hero Photo Gallery with Header */}
                 <POIPhotoGallery poi={poi} onClose={handleClose} />
 
-                {/* Info Sections */}
+                {/* Quick Info Bar (capacity, status, rating) */}
+                <POIQuickInfo poi={poi} />
+
+                {/* Facilities Section */}
+                <POIFacilities poi={poi} />
+
+                {/* Surroundings (for camping POIs) */}
+                <POISurroundings poi={poi} />
+
+                {/* Terrain Info (for camping POIs) */}
+                <POITerrain poi={poi} />
+
+                {/* Contact & Location Info */}
                 <POIDetailInfo
                   poi={poi}
                   distanceFromUser={poi.distanceFromUser}
                   contactInfo={contactInfo}
                 />
 
-                {/* Amenities */}
-                <POIAmenities amenities={amenities} />
+                {/* Mini Map Preview */}
+                <POIMiniMap poi={poi} />
 
                 {/* Action Buttons */}
                 <POIDetailActions poi={poi} contactInfo={contactInfo} />
@@ -114,9 +145,12 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
                   </View>
                 )}
               </ScrollView>
-            </Pressable>
+
+              {/* Sticky Bottom Bar (for camping POIs with price) */}
+              {showStickyBar && <POIStickyBottomBar poi={poi} />}
+            </View>
           </Surface>
-        </Pressable>
+        </View>
       </Modal>
     );
   }

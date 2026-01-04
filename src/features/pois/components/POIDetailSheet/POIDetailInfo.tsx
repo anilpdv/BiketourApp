@@ -1,12 +1,13 @@
-import React, { memo } from 'react';
-import { View } from 'react-native';
+import React, { memo, useMemo, useState } from 'react';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { POI } from '../../types';
 import { POIContactInfo, formatDistance } from '../../utils/poiTagParser';
+import { formatCoordinates } from '../../utils/coordinateFormatter';
 import { CopyableField, InfoField } from './CopyableField';
 import { infoStyles as styles } from './POIDetailSheet.styles';
-import { colors } from '../../../../shared/design/tokens';
+import { colors, spacing, borderRadius, typography } from '../../../../shared/design/tokens';
 
 export interface POIDetailInfoProps {
   poi: POI;
@@ -38,6 +39,77 @@ const InfoSection = memo(function InfoSection({ icon, title, children }: InfoSec
 });
 
 /**
+ * Coordinate display with decimal/DMS toggle
+ */
+const CoordinateField = memo(function CoordinateField({
+  lat,
+  lon,
+}: {
+  lat: number;
+  lon: number;
+}) {
+  const [showDMS, setShowDMS] = useState(false);
+  const coords = useMemo(() => formatCoordinates(lat, lon), [lat, lon]);
+
+  return (
+    <View style={[styles.row, styles.rowWithBorder]}>
+      <Text style={styles.label}>Coordinates</Text>
+      <Pressable
+        style={coordStyles.container}
+        onPress={() => setShowDMS(!showDMS)}
+      >
+        <View style={coordStyles.valueContainer}>
+          <Text style={coordStyles.value} numberOfLines={2}>
+            {showDMS ? coords.dms : coords.decimal}
+          </Text>
+          <View style={coordStyles.toggle}>
+            <Text style={coordStyles.toggleText}>
+              {showDMS ? 'DMS' : 'Decimal'}
+            </Text>
+            <MaterialCommunityIcons
+              name="swap-horizontal"
+              size={14}
+              color={colors.primary[500]}
+            />
+          </View>
+        </View>
+      </Pressable>
+    </View>
+  );
+});
+
+const coordStyles = StyleSheet.create({
+  container: {
+    flex: 2,
+    alignItems: 'flex-end',
+  },
+  valueContainer: {
+    alignItems: 'flex-end',
+  },
+  value: {
+    fontSize: typography.fontSizes.base,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.neutral[800],
+    textAlign: 'right',
+  },
+  toggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.full,
+  },
+  toggleText: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.primary[500],
+    fontWeight: typography.fontWeights.medium,
+  },
+});
+
+/**
  * POI Detail info grouped into sections
  */
 export const POIDetailInfo = memo(function POIDetailInfo({
@@ -46,11 +118,11 @@ export const POIDetailInfo = memo(function POIDetailInfo({
   contactInfo,
 }: POIDetailInfoProps) {
   const distance = formatDistance(distanceFromUser);
-  const coordinates = `${poi.latitude.toFixed(6)}, ${poi.longitude.toFixed(6)}`;
 
   const hasLocationInfo = poi.name || distance || contactInfo.address;
   const hasContactInfo = contactInfo.phone || contactInfo.website;
   const hasHours = !!contactInfo.openingHours;
+  const hasOperator = !!contactInfo.operator || !!contactInfo.siteCode;
 
   return (
     <>
@@ -60,12 +132,18 @@ export const POIDetailInfo = memo(function POIDetailInfo({
           {poi.name && (
             <CopyableField label="Name" value={poi.name} />
           )}
-          <CopyableField label="Coordinates" value={coordinates} />
+          <CoordinateField lat={poi.latitude} lon={poi.longitude} />
           {distance && (
             <InfoField label="Distance" value={distance} />
           )}
           {contactInfo.address && (
-            <CopyableField label="Address" value={contactInfo.address} isLast />
+            <CopyableField label="Address" value={contactInfo.address} isLast={!hasOperator} />
+          )}
+          {contactInfo.operator && (
+            <InfoField label="Operator" value={contactInfo.operator} />
+          )}
+          {contactInfo.siteCode && (
+            <CopyableField label="Site Code" value={contactInfo.siteCode} isLast />
           )}
         </InfoSection>
       )}

@@ -2,10 +2,21 @@ import { create } from 'zustand';
 import { POICategory, POIFilterStateExtended, QuickFilter } from '../types';
 
 /**
+ * Default camping categories for a camping-focused app
+ * These are shown by default when the app starts
+ */
+const DEFAULT_CAMPING_CATEGORIES: POICategory[] = [
+  'campsite',
+  'motorhome_spot',
+  'wild_camping',
+  'service_area',
+];
+
+/**
  * Default filter values
  */
 const defaultFilters: POIFilterStateExtended = {
-  categories: [],
+  categories: DEFAULT_CAMPING_CATEGORIES,
   maxDistance: 20,
   showOnMap: true,
   maxPrice: null,

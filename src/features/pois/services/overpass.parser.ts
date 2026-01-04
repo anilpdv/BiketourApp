@@ -9,16 +9,63 @@ import { POI, POICategory, OverpassResponse, OverpassElement } from '../types';
  * Essential tags to keep - reduces memory by ~80%
  */
 const ESSENTIAL_TAGS = [
+  // Basic info
   'name',
+  'description',
+  'note',
+  // Contact
   'website',
   'phone',
   'email',
+  'contact:phone',
+  'contact:website',
   'opening_hours',
+  // Address
+  'addr:street',
+  'addr:housenumber',
+  'addr:city',
+  'addr:postcode',
+  'addr:country',
+  // Site info
+  'operator',
+  'ref',
+  'code',
+  // Facilities
+  'toilets',
+  'toilets:fee',
+  'toilet',
+  'shower',
+  'shower:fee',
+  'washing_machine',
+  'laundry',
+  'waste_disposal',
+  'sanitary_dump_station',
+  'power_supply',
+  'electricity',
+  'internet_access',
+  'wifi',
+  'wifi:fee',
+  'drinking_water',
+  'water_point',
+  'dog',
+  'pets',
+  'wheelchair',
+  // Terrain/Capacity
   'fee',
   'capacity',
-  'addr:street',
-  'addr:city',
-  'description',
+  'maxstay',
+  'maxlength',
+  'maxwidth',
+  'surface',
+  // Surroundings
+  'sport',
+  'leisure',
+  'natural',
+  // Ratings (rare in OSM but worth keeping)
+  'stars',
+  'rating',
+  // Reservation
+  'reservation',
 ];
 
 /**

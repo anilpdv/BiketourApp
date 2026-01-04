@@ -14,9 +14,10 @@ export interface UsePOIVisibilityReturn {
 
 /**
  * Hook for managing POI visibility toggle state
+ * Default to true for a camping-focused app
  */
 export function usePOIVisibility(): UsePOIVisibilityReturn {
-  const [showPOIs, setShowPOIs] = useState(false);
+  const [showPOIs, setShowPOIs] = useState(true);
 
   const togglePOIs = useCallback(() => {
     logger.info('poi', '=== TOGGLE POIs ===', { currentState: showPOIs });
