@@ -45,6 +45,10 @@ const ALL_POI_CATEGORIES: POICategory[] = [
   'restaurant',
   'supermarket',
   'picnic_site',
+  // Emergency categories
+  'hospital',
+  'pharmacy',
+  'police',
 ];
 
 // Default radius options in km
