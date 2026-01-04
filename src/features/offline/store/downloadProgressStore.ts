@@ -97,10 +97,10 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
       currentDownload: {
         regionName: regionName || 'Downloading...',
         progress: {
-          phase: 'estimating',
+          phase: 'downloading',
           currentPOIs: 0,
           totalPOIs: 0,
-          percentage: 0,
+          percentage: 2,
           currentTile: 0,
           totalTiles: 0,
           failedTiles: 0,

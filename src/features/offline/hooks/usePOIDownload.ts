@@ -151,6 +151,8 @@ export function usePOIDownload(): UsePOIDownloadReturn {
   const startRegionDownload = useCallback(
     async (region: RegionInfo) => {
       hideDownloadPrompt();
+      // Small delay to ensure prompt animation completes before showing progress
+      await new Promise(resolve => setTimeout(resolve, 100));
       const result = await startRegionDownloadAction(region);
       if (result) {
         setDownloadCompleted(region);

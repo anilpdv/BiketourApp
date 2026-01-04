@@ -180,21 +180,19 @@ export default function MapScreen() {
     });
   }, []);
 
-  // Load POIs after download completes - stay where user is, don't auto-pan
+  // Load POIs after download completes - refresh current viewport
   useEffect(() => {
     if (downloadCompletedRegion) {
-      logger.info('offline', 'Download completed, loading POIs for region', {
+      logger.info('offline', 'Download completed, refreshing POIs for current viewport', {
         region: downloadCompletedRegion.displayName,
-        bounds: downloadCompletedRegion.boundingBox,
+        currentBounds,
       });
 
-      // Force POI reload with downloaded region's bounds
-      // POIs will appear where user is currently viewing - no panning away
-      const downloadedBounds = {
-        sw: [downloadCompletedRegion.boundingBox.west, downloadCompletedRegion.boundingBox.south] as [number, number],
-        ne: [downloadCompletedRegion.boundingBox.east, downloadCompletedRegion.boundingBox.north] as [number, number],
-      };
-      loadPOIsForBounds(downloadedBounds);
+      // Force POI reload with CURRENT viewport bounds (not downloaded region)
+      // This ensures POIs appear where user is currently looking
+      if (currentBounds) {
+        loadPOIsForBounds(currentBounds);
+      }
 
       // Auto-enable POI visibility after download so user sees their downloaded POIs
       if (!showPOIs) {
@@ -205,7 +203,7 @@ export default function MapScreen() {
       // Clear the completion flag
       clearDownloadCompletedRegion();
     }
-  }, [downloadCompletedRegion, loadPOIsForBounds, showPOIs, togglePOIs, clearDownloadCompletedRegion]);
+  }, [downloadCompletedRegion, loadPOIsForBounds, currentBounds, showPOIs, togglePOIs, clearDownloadCompletedRegion]);
 
   // Auto-prompt for POI download when viewing new region
   // Uses map viewport center (where user is looking), not GPS location

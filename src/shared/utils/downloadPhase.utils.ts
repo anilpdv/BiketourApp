@@ -33,31 +33,31 @@ export const DOWNLOAD_PHASE_CONFIG: Record<DownloadPhase, PhaseConfig> = {
   estimating: {
     icon: 'timer-sand',
     color: colors.primary[500],
-    title: 'Downloading POIs...',
-    statusText: 'Calculating download size...',
+    title: 'Preparing...',
+    statusText: 'Getting ready...',
   },
   downloading: {
     icon: 'cloud-download',
     color: colors.primary[500],
-    title: 'Downloading POIs...',
-    statusText: 'Downloading POIs',
+    title: 'Downloading',
+    statusText: 'Fetching data...',
   },
   saving: {
     icon: 'database',
     color: colors.primary[500],
-    title: 'Downloading POIs...',
-    statusText: 'Saving to database...',
+    title: 'Saving',
+    statusText: 'Saving to device...',
   },
   complete: {
     icon: 'check-circle',
     color: colors.status.success,
     title: 'Download Complete',
-    statusText: 'Downloaded',
+    statusText: 'Saved',
   },
   cancelled: {
     icon: 'close-circle',
     color: colors.neutral[500],
-    title: 'Download Cancelled',
+    title: 'Cancelled',
     statusText: 'Download cancelled',
   },
   error: {
@@ -109,13 +109,23 @@ export function formatStatusText(
 
   switch (phase) {
     case 'downloading':
-      if (currentTile !== undefined && totalTiles !== undefined) {
-        return `Downloading POIs (${currentTile}/${totalTiles} tiles)`;
+      // Show tile progress for multi-tile downloads
+      if (currentTile !== undefined && totalTiles !== undefined && totalTiles > 1) {
+        return `Downloading (${currentTile}/${totalTiles} areas)`;
+      }
+      // Show POI count when available
+      if (currentPOIs !== undefined && currentPOIs > 0) {
+        return `Downloading... ${currentPOIs.toLocaleString()} POIs`;
+      }
+      return 'Downloading...';
+    case 'saving':
+      if (currentPOIs !== undefined && currentPOIs > 0) {
+        return `Saving ${currentPOIs.toLocaleString()} POIs...`;
       }
       return config.statusText;
     case 'complete':
       if (currentPOIs !== undefined) {
-        return `Downloaded ${currentPOIs.toLocaleString()} POIs`;
+        return `${currentPOIs.toLocaleString()} POIs saved`;
       }
       return config.statusText;
     default:

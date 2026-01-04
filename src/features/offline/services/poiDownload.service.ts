@@ -48,7 +48,7 @@ export {
 
 // Maximum concurrent tile downloads
 // kumi.systems has no rate limits - can handle more parallelism
-const MAX_CONCURRENT_DOWNLOADS = 8;
+const MAX_CONCURRENT_DOWNLOADS = 12;
 
 // Delay between API requests to respect rate limits (ms)
 // Set to 0 since the rate limiter handles throttling
@@ -108,7 +108,7 @@ export interface DownloadedRegion {
 
 // Retry configuration for download resilience
 const MAX_RETRIES = 3;
-const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
+const RETRY_DELAYS = [500, 1000, 2000]; // Faster exponential backoff: 0.5s, 1s, 2s
 
 /**
  * Fetch POIs for a tile with retry logic and exponential backoff
@@ -141,7 +141,7 @@ async function fetchPOIsForTileBulk(
           },
           body: `data=${encodeURIComponent(query)}`,
         },
-        30000, // 30s timeout for large tiles
+        20000, // 20s timeout - faster failure detection
         signal
       );
 
@@ -261,7 +261,7 @@ export async function downloadPOIsForArea(
     });
   };
 
-  reportProgress({ phase: 'estimating', message: useSingleQuery ? 'Fetching POIs...' : 'Calculating download size...' });
+  reportProgress({ phase: 'downloading', percentage: 2, message: useSingleQuery ? 'Connecting to server...' : 'Preparing download...' });
 
   // Check for abort
   if (abortSignal?.aborted) {
@@ -317,7 +317,7 @@ export async function downloadPOIsForArea(
         totalTiles,
         message: useSingleQuery ? 'Downloading POI data...' : `Fetching tile ${chunkIndex + 1}/${totalChunks}...`,
       });
-    }, 600); // Update every 600ms for slow animation
+    }, 300); // Update every 300ms for smoother progress
 
     // Fetch tiles in parallel (using bulk fetch - no rate limiting)
     let results: POI[][];
