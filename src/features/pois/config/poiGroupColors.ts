@@ -41,7 +41,7 @@ export const CATEGORY_TO_GROUP: Record<POICategory, POIGroupKey> = {
   // Food
   restaurant: 'food',
   supermarket: 'food',
-  picnic_site: 'food',
+  picnic_site: 'camping',
   // Emergency
   hospital: 'emergency',
   pharmacy: 'emergency',

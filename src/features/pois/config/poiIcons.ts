@@ -86,7 +86,7 @@ export const CATEGORY_TO_VECTOR_ICON: Record<POICategory, string> = {
   service_area: 'gas-station',
   wild_camping: 'tree',
   caravan_site: 'caravan',
-  picnic_site: 'bench',
+  picnic_site: 'table-picnic',
   toilet: 'toilet',
   shower: 'shower-head',
   laundry: 'washing-machine',
