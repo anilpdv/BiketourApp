@@ -311,18 +311,6 @@ export async function fetchPOIsForViewport(
   // ALWAYS get downloaded POIs first - they bypass category filters
   // Downloaded POIs should always be visible to the user
   const downloadedPOIs = await poiRepository.getDownloadedPOIsInBounds(bbox);
-  logger.info('poi', '[DIAGNOSTIC] Downloaded POIs retrieved', {
-    count: downloadedPOIs.length,
-    sample: downloadedPOIs.slice(0, 3).map(p => ({
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      isDownloaded: p.isDownloaded,
-      lat: p.latitude,
-      lon: p.longitude,
-    })),
-    bbox,
-  });
   if (downloadedPOIs.length > 0) {
     logger.info('poi', 'Downloaded POIs found (always visible)', {
       count: downloadedPOIs.length,

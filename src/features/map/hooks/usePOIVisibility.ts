@@ -4,7 +4,6 @@
  */
 
 import { useState, useCallback } from 'react';
-import { logger } from '../../../shared/utils';
 
 export interface UsePOIVisibilityReturn {
   showPOIs: boolean;
@@ -20,9 +19,8 @@ export function usePOIVisibility(): UsePOIVisibilityReturn {
   const [showPOIs, setShowPOIs] = useState(true);
 
   const togglePOIs = useCallback(() => {
-    logger.info('poi', '=== TOGGLE POIs ===', { currentState: showPOIs });
     setShowPOIs((prev) => !prev);
-  }, [showPOIs]);
+  }, []);
 
   const setPOIsVisible = useCallback((visible: boolean) => {
     setShowPOIs(visible);

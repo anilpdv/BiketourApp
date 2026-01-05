@@ -1,15 +1,19 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { FeatureCollection, Point } from 'geojson';
 import * as Location from 'expo-location';
 import { usePOIStore, POI, POICategory, BoundingBox } from '../../pois';
 import { useFilterStore } from '../../pois/store/filterStore';
 import { ParsedRoute } from '../../routes/types';
 import { MapBounds } from '../../../shared/types';
+import { debounce } from '../../../shared/utils';
 import { usePOIFiltering } from './usePOIFiltering';
 import { usePOIGeoJSON, POIFeatureProperties } from './usePOIGeoJSON';
 import { usePOIFetching } from './usePOIFetching';
 import { usePOIVisibility } from './usePOIVisibility';
 import { usePOISelection } from './usePOISelection';
+
+// Debounce delay for viewport bounds updates during pan (ms)
+const VIEWPORT_UPDATE_DEBOUNCE = 150;
 
 export { MapBounds } from '../../../shared/types';
 
@@ -80,21 +84,28 @@ export function usePOIDisplay(
     onBoundsUpdate: setViewportBounds,
   });
 
+  // Debounced viewport bounds setter to reduce filtering frequency during pan
+  const debouncedSetViewportBounds = useMemo(
+    () => debounce((bbox: BoundingBox) => setViewportBounds(bbox), VIEWPORT_UPDATE_DEBOUNCE),
+    [setViewportBounds]
+  );
+
   // Update viewport bounds for filtering (called on camera changes)
   const updateViewportBounds = useCallback(
     (bounds: MapBounds) => {
-      // Store bounds for auto-loading when POIs enabled
+      // Store bounds immediately for auto-loading when POIs enabled
       lastBoundsRef.current = bounds;
 
+      // Debounce the viewport bounds update to reduce filtering frequency
       const bbox: BoundingBox = {
         south: bounds.sw[1],
         north: bounds.ne[1],
         west: bounds.sw[0],
         east: bounds.ne[0],
       };
-      setViewportBounds(bbox);
+      debouncedSetViewportBounds(bbox);
     },
-    [lastBoundsRef, setViewportBounds]
+    [lastBoundsRef, debouncedSetViewportBounds]
   );
 
   return {

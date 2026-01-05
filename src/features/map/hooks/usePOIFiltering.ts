@@ -11,7 +11,6 @@ import {
   BoundingBox,
 } from '../../pois';
 import { useFilterStore } from '../../pois/store/filterStore';
-import { logger } from '../../../shared/utils';
 
 // Throttle delay for filtered POI updates (ms)
 const FILTER_UPDATE_THROTTLE = 100;
@@ -43,15 +42,7 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
   const filterCategories = useFilterStore((state) => state.filters.categories);
 
   // Calculate filtered POIs (immediate, for internal use)
-  // IMPORTANT: Downloaded POIs bypass category filters - they are always visible
   const filteredPOIs = useMemo(() => {
-    logger.info('poi', '[DIAGNOSTIC] Filtering POIs', {
-      totalPOIs: pois.length,
-      downloadedPOIs: pois.filter(p => p.isDownloaded).length,
-      filterCategories: filterCategories.length,
-      hasViewportBounds: !!viewportBounds,
-    });
-
     // Filter by selected categories
     const categoryFiltered = pois.filter((poi) => {
       // If no categories selected, show all POIs (both downloaded and online)
@@ -62,17 +53,8 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
       return filterCategories.includes(poi.category);
     });
 
-    logger.info('poi', '[DIAGNOSTIC] After category filter', {
-      categoryFiltered: categoryFiltered.length,
-      downloadedInFiltered: categoryFiltered.filter(p => p.isDownloaded).length,
-    });
-
     // If no viewport bounds, return category-filtered POIs
     if (!viewportBounds) {
-      logger.info('poi', '[DIAGNOSTIC] Final filtered POIs (no viewport)', {
-        count: categoryFiltered.length,
-        downloadedInFinal: categoryFiltered.filter(p => p.isDownloaded).length,
-      });
       return categoryFiltered;
     }
 
@@ -86,16 +68,8 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
         poi.longitude <= viewportBounds.east
     );
 
-    logger.info('poi', '[DIAGNOSTIC] Final filtered POIs (with viewport)', {
-      count: viewportFiltered.length,
-      downloadedInFinal: viewportFiltered.filter(p => p.isDownloaded).length,
-      viewportBounds,
-    });
-
     // Limit number of markers to prevent Yoga layout crash
-    // MarkerView creates React Native Views which can overwhelm the layout engine
     if (viewportFiltered.length > MAX_RENDERED_MARKERS) {
-      logger.warn('poi', `Limiting markers from ${viewportFiltered.length} to ${MAX_RENDERED_MARKERS}`);
       return viewportFiltered.slice(0, MAX_RENDERED_MARKERS);
     }
 
