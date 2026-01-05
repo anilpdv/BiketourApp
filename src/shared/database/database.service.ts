@@ -247,14 +247,24 @@ class DatabaseService {
 
   /**
    * Delete all data (for testing/reset)
+   * Clears all 12 data tables in FK-safe order (children before parents)
+   * Note: schema_version is preserved to maintain migration state
    */
   async deleteAllData(): Promise<void> {
     const db = await this.getDatabase();
     await db.execAsync(`
       DELETE FROM route_geometry;
       DELETE FROM route_waypoints;
+      DELETE FROM poi_favorites;
+      DELETE FROM poi_cache_tiles;
+      DELETE FROM poi_downloaded_regions;
+      DELETE FROM pois;
       DELETE FROM custom_routes;
       DELETE FROM search_history;
+      DELETE FROM eurovelo_cache_segments;
+      DELETE FROM eurovelo_cache_routes;
+      DELETE FROM weather_cache;
+      DELETE FROM elevation_cache;
     `);
   }
 }

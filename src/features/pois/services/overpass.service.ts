@@ -51,17 +51,12 @@ function sleep(ms: number): Promise<void> {
 }
 
 // Fetch POIs for a bounding box
-// IMPORTANT: Only fetches explicitly selected categories - returns empty if none provided
+// When no categories specified, fetches ALL categories (show all POIs by default)
 export async function fetchPOIs(
   bbox: BoundingBox,
   categories?: POICategory[],
   signal?: AbortSignal  // Optional abort signal for per-tile timeout
 ): Promise<POI[]> {
-  // Return empty if no categories explicitly provided
-  if (!categories || categories.length === 0) {
-    return [];
-  }
-
   // Check if already aborted
   if (signal?.aborted) {
     return [];
@@ -69,7 +64,10 @@ export async function fetchPOIs(
 
   await waitForRateLimit();
 
-  const categoriesToFetch = getCategoryConfigs(categories);
+  // If no categories specified, fetch ALL categories (show all POIs by default)
+  const categoriesToFetch = (!categories || categories.length === 0)
+    ? POI_CATEGORIES
+    : getCategoryConfigs(categories);
 
   if (categoriesToFetch.length === 0) {
     return [];

@@ -54,9 +54,9 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
 
     // Filter by selected categories
     const categoryFiltered = pois.filter((poi) => {
-      // If no categories selected, show all downloaded POIs
+      // If no categories selected, show all POIs (both downloaded and online)
       if (filterCategories.length === 0) {
-        return poi.isDownloaded;
+        return true;
       }
       // If categories selected, filter by category (downloaded or not)
       return filterCategories.includes(poi.category);

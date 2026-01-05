@@ -2,15 +2,10 @@ import { create } from 'zustand';
 import { POICategory, POIFilterStateExtended, QuickFilter } from '../types';
 
 /**
- * Default camping categories for a camping-focused app
- * These are shown by default when the app starts
+ * Default categories - empty to show ALL POIs by default
+ * Users can add category filters if they want to narrow down
  */
-const DEFAULT_CAMPING_CATEGORIES: POICategory[] = [
-  'campsite',
-  'motorhome_spot',
-  'wild_camping',
-  'service_area',
-];
+const DEFAULT_CAMPING_CATEGORIES: POICategory[] = [];
 
 /**
  * Default filter values

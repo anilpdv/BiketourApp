@@ -1,5 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import React, { useEffect, useCallback, useState } from 'react';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, Modal } from 'react-native';
 import {
   List,
   Switch,
@@ -13,12 +13,15 @@ import {
 import { colors, spacing, borderRadius } from '../../src/shared/design/tokens';
 import { usePOIDownloadStore } from '../../src/features/offline/store/poiDownloadStore';
 import { formatBytes } from '../../src/features/offline/services/poiDownload.service';
+import { deleteAllAppData, DeleteProgress } from '../../src/shared/services/dataReset.service';
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const [offlineMode, setOfflineMode] = React.useState(false);
   const [showWeather, setShowWeather] = React.useState(true);
   const [showPOIs, setShowPOIs] = React.useState(true);
+  const [isResetting, setIsResetting] = React.useState(false);
+  const [deleteProgress, setDeleteProgress] = useState<DeleteProgress | null>(null);
 
   // POI download store
   const {
@@ -50,6 +53,51 @@ export default function SettingsScreen() {
       ]
     );
   }, [deleteRegion]);
+
+  // Handle delete all data with confirmation
+  const handleDeleteAllData = useCallback(() => {
+    Alert.alert(
+      'Delete All Data',
+      'This will permanently delete:\n\n' +
+        '• All downloaded POIs\n' +
+        '• All saved routes\n' +
+        '• All favorites\n' +
+        '• Search history\n' +
+        '• Weather and elevation cache\n' +
+        '• All GPX files\n\n' +
+        'This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Everything',
+          style: 'destructive',
+          onPress: async () => {
+            setIsResetting(true);
+            setDeleteProgress({ phase: 'counting', progress: 0, message: 'Preparing...' });
+            try {
+              const result = await deleteAllAppData((progress) => {
+                setDeleteProgress(progress);
+              });
+              setDeleteProgress(null);
+              if (result.success) {
+                Alert.alert('Data Deleted', 'All app data has been cleared successfully.');
+              } else {
+                Alert.alert(
+                  'Partial Deletion',
+                  `Some data could not be deleted:\n${result.errors.join('\n')}\n\nPlease restart the app and try again.`
+                );
+              }
+            } catch (error) {
+              setDeleteProgress(null);
+              Alert.alert('Error', 'Failed to delete data. Please try again.');
+            } finally {
+              setIsResetting(false);
+            }
+          },
+        },
+      ]
+    );
+  }, []);
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -196,6 +244,27 @@ export default function SettingsScreen() {
         </List.Section>
       </Surface>
 
+      <Surface style={styles.section} elevation={1}>
+        <List.Section>
+          <List.Subheader style={styles.sectionTitle}>Data Management</List.Subheader>
+
+          <List.Item
+            title="Delete All Data"
+            description="Clear all cached data, routes, favorites, and settings"
+            left={(props) => (
+              <List.Icon {...props} icon="delete-forever" color={theme.colors.error} />
+            )}
+            right={() =>
+              isResetting ? (
+                <ActivityIndicator size="small" color={theme.colors.error} />
+              ) : null
+            }
+            onPress={handleDeleteAllData}
+            disabled={isResetting}
+          />
+        </List.Section>
+      </Surface>
+
       <View style={styles.footer}>
         <Text variant="titleLarge" style={{ color: theme.colors.primary }}>
           BikeTour Europe
@@ -204,6 +273,39 @@ export default function SettingsScreen() {
           Built for the journey of a lifetime
         </Text>
       </View>
+
+      {/* Delete Progress Modal */}
+      <Modal
+        visible={deleteProgress !== null}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <Surface style={styles.progressModal} elevation={5}>
+            <ActivityIndicator size="large" color={theme.colors.error} />
+            <Text variant="titleMedium" style={styles.progressTitle}>
+              Deleting Data
+            </Text>
+            <Text variant="bodyMedium" style={styles.progressMessage}>
+              {deleteProgress?.message || 'Preparing...'}
+            </Text>
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: `${deleteProgress?.progress || 0}%`,
+                    backgroundColor: theme.colors.error,
+                  },
+                ]}
+              />
+            </View>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              {deleteProgress?.progress || 0}%
+            </Text>
+          </Surface>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -237,5 +339,36 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
     padding: spacing['3xl'],
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressModal: {
+    padding: spacing['2xl'],
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    minWidth: 280,
+    gap: spacing.md,
+  },
+  progressTitle: {
+    marginTop: spacing.md,
+    fontWeight: '600',
+  },
+  progressMessage: {
+    textAlign: 'center',
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 8,
+    backgroundColor: colors.neutral[200],
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
   },
 });

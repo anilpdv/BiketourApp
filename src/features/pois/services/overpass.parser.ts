@@ -134,6 +134,7 @@ export function parsePOIFromElement(element: OverpassElement): POI | null {
     latitude: lat,
     longitude: lon,
     tags: essentialTags,
+    isDownloaded: false,
   };
 }
 
