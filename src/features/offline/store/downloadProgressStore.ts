@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { POICategory } from '../../pois/types';
+import { usePOIStore } from '../../pois/store/poiStore';
 import {
   DownloadProgress,
   DownloadResult,
@@ -137,6 +138,16 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
       if (get().downloadId !== thisDownloadId) {
         logger.info('offline', 'Download result ignored (superseded by newer download)');
         return null;
+      }
+
+      // Add downloaded POIs directly to the store for immediate display
+      // This avoids timing issues with database queries
+      if (result.pois && result.pois.length > 0) {
+        const { addPOIs } = usePOIStore.getState();
+        addPOIs(result.pois);
+        logger.info('offline', 'Added downloaded POIs to store for immediate display', {
+          count: result.pois.length,
+        });
       }
 
       // Notify completion

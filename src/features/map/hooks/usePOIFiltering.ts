@@ -35,14 +35,23 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
   const [throttledFilteredPOIs, setThrottledFilteredPOIs] = useState<POI[]>([]);
   const throttleRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstRenderRef = useRef(true);
+  // Track last valid POIs to show during loading (prevents flicker)
+  const lastValidPOIsRef = useRef<POI[]>([]);
 
   // Use Zustand selectors for granular subscriptions
   const pois = usePOIStore((state) => state.pois);
+  const isLoading = usePOIStore((state) => state.isLoading);
   // Read categories from filterStore (single source of truth for filters)
   const filterCategories = useFilterStore((state) => state.filters.categories);
 
   // Calculate filtered POIs (immediate, for internal use)
   const filteredPOIs = useMemo(() => {
+    // During loading, keep showing previous POIs (prevents flicker during pan)
+    // This maintains visual continuity while new POIs are fetched
+    if (isLoading) {
+      return lastValidPOIsRef.current;
+    }
+
     // Filter by selected categories
     const categoryFiltered = pois.filter((poi) => {
       // If no categories selected, show all POIs (both downloaded and online)
@@ -69,12 +78,17 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
     );
 
     // Limit number of markers to prevent Yoga layout crash
+    let result: POI[];
     if (viewportFiltered.length > MAX_RENDERED_MARKERS) {
-      return viewportFiltered.slice(0, MAX_RENDERED_MARKERS);
+      result = viewportFiltered.slice(0, MAX_RENDERED_MARKERS);
+    } else {
+      result = viewportFiltered;
     }
 
-    return viewportFiltered;
-  }, [viewportBounds, pois, filterCategories]);
+    // Store result for next loading cycle (prevents flicker)
+    lastValidPOIsRef.current = result;
+    return result;
+  }, [viewportBounds, pois, filterCategories, isLoading]);
 
   // Throttle updates to prevent constant re-renders during pan
   // Skip throttle on first render with data for instant display

@@ -84,6 +84,7 @@ export interface DownloadResult {
   poiCount: number;
   sizeBytes: number;
   categories: POICategory[];
+  pois: POI[];  // Downloaded POIs for immediate display
 }
 
 export interface DownloadedRegion {
@@ -454,12 +455,16 @@ export async function downloadPOIsForArea(
     sizeBytes,
   });
 
+  // Mark all POIs as downloaded for immediate display in store
+  const downloadedPOIs = allPOIs.map(poi => ({ ...poi, isDownloaded: true as const }));
+
   return {
     regionId,
     regionName: finalRegionName,
     poiCount,
     sizeBytes,
     categories,
+    pois: downloadedPOIs,
   };
 }
 

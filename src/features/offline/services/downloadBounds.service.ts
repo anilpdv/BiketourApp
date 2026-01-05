@@ -5,8 +5,8 @@
 
 import { BoundingBox } from '../../pois/types';
 
-// Grid size for tile-based downloading (0.2 degrees = ~22km at equator)
-export const DOWNLOAD_TILE_SIZE = 0.2;
+// Grid size for tile-based downloading (0.5 degrees = ~55km at equator)
+export const DOWNLOAD_TILE_SIZE = 0.5;
 
 // Larger tiles for bulk downloads - bypasses rate limiter (1.0° ≈ 111km)
 export const BULK_DOWNLOAD_TILE_SIZE = 1.0;

@@ -429,8 +429,8 @@ export async function fetchPOIsForViewport(
   });
 
   // Per-tile timeout: skip slow tiles instead of waiting forever
-  const TILE_TIMEOUT_MS = 8000;  // 8 seconds max per tile (increased from 4s for slow Overpass servers)
-  const CONCURRENCY = 3;  // Safe with per-tile timeouts
+  const TILE_TIMEOUT_MS = 15000;  // 15 seconds max per tile (match Overpass query timeout)
+  const CONCURRENCY = 6;  // Higher concurrency for faster loading
   let loaded = 0;
 
   // Split tiles into chunks for parallel processing

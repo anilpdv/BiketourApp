@@ -8,8 +8,8 @@ import {
 } from '../services/overpass.service';
 import { logger, withTimeout, isTimeoutError } from '../../../shared/utils';
 
-// Loading timeout to prevent forever loading (15 seconds)
-const LOADING_TIMEOUT_MS = 15000;
+// Loading timeout to prevent forever loading (30 seconds - matches API timeout)
+const LOADING_TIMEOUT_MS = 30000;
 
 interface POIState {
   // All loaded POIs
