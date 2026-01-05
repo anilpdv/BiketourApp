@@ -1,6 +1,7 @@
 import React, { memo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { MarkerView, MapView } from '@rnmapbox/maps';
+import { MarkerView } from '@maplibre/maplibre-react-native';
+import type { MapViewRef } from '@maplibre/maplibre-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Waypoint, Coordinate } from '../types';
 import { colors, shadows } from '../../../shared/design/tokens';
@@ -9,7 +10,7 @@ interface DraggableWaypointMarkerProps {
   waypoint: Waypoint;
   onDrag: (waypointId: string, newCoordinate: Coordinate) => void;
   onDragEnd: () => void;
-  mapRef: React.RefObject<MapView | null>;
+  mapRef: React.RefObject<MapViewRef | null>;
 }
 
 /**

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { StyleSheet, Pressable } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, shadows, spacing } from '../../../shared/design/tokens';
 
 export interface RoutePlanningFABProps {

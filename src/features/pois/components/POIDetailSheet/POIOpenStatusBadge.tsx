@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { parseOpeningHours, OpeningHoursResult } from '../../utils/openingHoursParser';
 import { colors, spacing, borderRadius, typography } from '../../../../shared/design/tokens';
 

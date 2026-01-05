@@ -17,6 +17,7 @@ export interface POIFeatureProperties {
   group: POIGroupKey;
   groupColor: string;
   makiIcon: string;
+  spriteIcon: string;
   emoji: string;
   isFavorite: boolean;
 }
@@ -51,6 +52,7 @@ export function usePOIGeoJSON(
           group: styling.group,
           groupColor: styling.groupColor,
           makiIcon: styling.makiIcon,
+          spriteIcon: styling.spriteIcon,
           emoji: styling.emoji,
           isFavorite,
         },

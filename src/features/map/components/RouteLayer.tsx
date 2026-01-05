@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { ShapeSource, LineLayer } from '@rnmapbox/maps';
+import { ShapeSource, LineLayer } from '@maplibre/maplibre-react-native';
 import type { FeatureCollection, LineString, GeoJsonProperties, Feature } from 'geojson';
 
 // Type for Mapbox ShapeSource press event
@@ -24,7 +24,7 @@ export const RouteLayer = memo(function RouteLayer({
   onRoutePress,
 }: RouteLayerProps) {
   if (routeGeoJSON.features.length === 0) {
-    return null;
+    return <></>;
   }
 
   return (

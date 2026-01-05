@@ -9,6 +9,9 @@ export type { MapControlsProps } from './MapControls';
 export { MapStylePicker } from './MapStylePicker';
 export type { MapStylePickerProps } from './MapStylePicker';
 
+export { MapStyleSelector } from './MapStyleSelector';
+
+
 export { RouteChipSelector } from './RouteChipSelector';
 export type { RouteChipSelectorProps } from './RouteChipSelector';
 

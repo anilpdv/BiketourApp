@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Chip, Badge, ActivityIndicator, useTheme } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POICategory } from '../types';
 import { POI_CATEGORIES } from '../services/overpass.service';
 import { getCategoryIcon } from '../config/poiIcons';

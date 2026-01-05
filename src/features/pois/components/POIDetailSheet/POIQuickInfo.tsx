@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { POIOpenStatusInline } from './POIOpenStatusBadge';
 import { getPOITerrain, getPOIRating, isCampingCategory } from '../../utils/poiTagParser';
@@ -105,7 +105,7 @@ const CategoryBadge = memo(function CategoryBadge({
 }) {
   return (
     <View style={[styles.categoryBadge, { backgroundColor: color + '15' }]}>
-      <MaterialCommunityIcons name={icon} size={14} color={color} />
+      <MaterialCommunityIcons name={icon as any} size={14} color={color} />
       <Text style={[styles.categoryText, { color }]}>{label}</Text>
     </View>
   );

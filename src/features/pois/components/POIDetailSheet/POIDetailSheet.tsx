@@ -1,7 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { View, Modal, Pressable, ScrollView } from 'react-native';
 import { Surface, Text } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { usePOIStore } from '../../store/poiStore';
 import { getPOIContactInfo, isCampingCategory } from '../../utils/poiTagParser';

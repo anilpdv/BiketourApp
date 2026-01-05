@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { getPOITerrain, hasTerrain, isCampingCategory, POITerrain as POITerrainType } from '../../utils/poiTagParser';
 import { colors, spacing, borderRadius, typography, shadows } from '../../../../shared/design/tokens';
@@ -99,7 +99,7 @@ const TerrainInfoItem = memo(function TerrainInfoItem({
   return (
     <View style={[styles.infoItem, highlight && styles.infoItemHighlight]}>
       <MaterialCommunityIcons
-        name={icon}
+        name={icon as any}
         size={16}
         color={highlight ? colors.status.warning : colors.neutral[500]}
       />

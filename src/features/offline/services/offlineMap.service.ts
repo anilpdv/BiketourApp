@@ -1,11 +1,12 @@
-import { offlineManager } from '@rnmapbox/maps';
+import { OfflineManager } from '@maplibre/maplibre-react-native';
 import { DEFAULT_MAP_STYLE } from '../../../shared/config/mapbox.config';
+import { logger } from '../../../shared/utils';
 
 // Type for metadata stored with offline regions
 type OfflineMetadata = Record<string, unknown>;
 
-// Type for Mapbox offline pack from callbacks
-interface MapboxOfflinePack {
+// Type for offline pack from callbacks
+interface OfflinePackInfo {
   name: string;
   bounds: [[number, number], [number, number]];
   metadata?: OfflineMetadata;
@@ -33,28 +34,38 @@ export interface OfflinePackStatus {
 
 export interface OfflinePack {
   name: string;
-  bounds: string; // Mapbox returns bounds as string
+  bounds: string;
   metadata: OfflineMetadata;
   status?: OfflinePackStatus;
 }
 
-export type DownloadProgressCallback = (pack: MapboxOfflinePack, status: OfflinePackStatus) => void;
+export type DownloadProgressCallback = (pack: OfflinePackInfo, status: OfflinePackStatus) => void;
+export type DownloadErrorCallback = (pack: OfflinePackInfo, error: Error) => void;
 
 /**
  * Download an offline region for use without internet connection
  */
 export async function downloadOfflineRegion(
   region: OfflineRegion,
-  onProgress?: DownloadProgressCallback
+  onProgress?: DownloadProgressCallback,
+  onError?: DownloadErrorCallback
 ): Promise<void> {
-  // Type assertion needed as Mapbox SDK types are incomplete
+  // Progress listener
   const progressListener = (pack: unknown, status: unknown) => {
     if (onProgress) {
-      onProgress(pack as MapboxOfflinePack, status as OfflinePackStatus);
+      onProgress(pack as OfflinePackInfo, status as OfflinePackStatus);
     }
   };
 
-  await offlineManager.createPack(
+  // Error listener (required by MapLibre)
+  const errorListener = (pack: unknown, error: unknown) => {
+    logger.error('offline', 'Offline pack download error', { pack, error });
+    if (onError) {
+      onError(pack as OfflinePackInfo, error as Error);
+    }
+  };
+
+  await OfflineManager.createPack(
     {
       name: region.name,
       styleURL: DEFAULT_MAP_STYLE,
@@ -68,7 +79,8 @@ export async function downloadOfflineRegion(
         createdAt: new Date().toISOString(),
       },
     },
-    progressListener
+    progressListener,
+    errorListener
   );
 }
 
@@ -76,7 +88,7 @@ export async function downloadOfflineRegion(
  * Get all downloaded offline regions
  */
 export async function getOfflineRegions(): Promise<OfflinePack[]> {
-  const packs = await offlineManager.getPacks();
+  const packs = await OfflineManager.getPacks();
   return packs as unknown as OfflinePack[];
 }
 
@@ -84,14 +96,14 @@ export async function getOfflineRegions(): Promise<OfflinePack[]> {
  * Delete an offline region by name
  */
 export async function deleteOfflineRegion(name: string): Promise<void> {
-  await offlineManager.deletePack(name);
+  await OfflineManager.deletePack(name);
 }
 
 /**
  * Reset the offline database (use with caution)
  */
 export async function resetOfflineDatabase(): Promise<void> {
-  await offlineManager.resetDatabase();
+  await OfflineManager.resetDatabase();
 }
 
 /**

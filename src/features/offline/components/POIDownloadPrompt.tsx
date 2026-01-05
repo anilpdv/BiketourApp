@@ -13,7 +13,7 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePOIDownloadStore } from '../store/poiDownloadStore';
 import { formatBytes } from '../services/poiDownload.service';
 import { RegionInfo } from '../services/regionDetection.service';
@@ -222,7 +222,7 @@ const CategoryBadge = memo(function CategoryBadge({ icon, label }: CategoryBadge
   return (
     <View style={styles.categoryBadge}>
       <MaterialCommunityIcons
-        name={icon}
+        name={icon as any}
         size={14}
         color={colors.neutral[600]}
       />

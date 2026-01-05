@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View } from 'react-native';
 import { Text } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POIAmenities as POIAmenitiesType, hasAmenities } from '../../utils/poiTagParser';
 import { amenitiesStyles as styles } from './POIDetailSheet.styles';
 import { colors } from '../../../../shared/design/tokens';
@@ -34,7 +34,7 @@ const AmenityChip = memo(function AmenityChip({ icon, label, status }: AmenityCh
 
   return (
     <View style={chipStyle}>
-      <MaterialCommunityIcons name={icon} size={16} color={iconColor} />
+      <MaterialCommunityIcons name={icon as any} size={16} color={iconColor} />
       <Text style={textStyle}>{label}</Text>
     </View>
   );

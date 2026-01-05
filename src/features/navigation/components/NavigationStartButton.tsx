@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { StyleSheet, Pressable, View, Text } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, shadows, spacing, typography, borderRadius } from '../../../shared/design/tokens';
 
 export interface NavigationStartButtonProps {

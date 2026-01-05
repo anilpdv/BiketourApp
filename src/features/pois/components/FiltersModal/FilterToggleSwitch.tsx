@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   colors,
   spacing,

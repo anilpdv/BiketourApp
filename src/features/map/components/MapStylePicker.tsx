@@ -7,7 +7,7 @@ import {
   RadioButton,
   useTheme,
 } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { MapStyleKey } from '../../../shared/config/mapbox.config';
 import { MapStyleOption } from '../hooks/useMapSettings';
 import { colors, spacing, borderRadius } from '../../../shared/design/tokens';

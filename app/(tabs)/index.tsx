@@ -1,7 +1,8 @@
 import React, { useRef, useCallback, useMemo, useEffect, useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, SymbolLayer } from '@rnmapbox/maps';
-import type { MapView as MapViewType } from '@rnmapbox/maps';
+import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, SymbolLayer } from '@maplibre/maplibre-react-native';
+import type { MapViewRef, RegionPayload } from '@maplibre/maplibre-react-native';
+import type { Feature, Point } from 'geojson';
 import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
 import { POIDetailSheet, POIDetailSheetRef, usePOIStore } from '../../src/features/pois';
@@ -27,11 +28,12 @@ import {
   usePOIDisplay,
   useMapCamera,
   useRoutePlanning,
+  useMarkerImages,
 } from '../../src/features/map/hooks';
 
 // Map feature components
 import {
-  MapStylePicker,
+  MapStyleSelector,
   RouteInfoCard,
   TerrainLayer,
   RoutePlanningFAB,
@@ -45,7 +47,7 @@ import { MapControlsBottom } from '../../src/features/map/components/MapControls
 
 export default function MapScreen() {
   const poiDetailSheetRef = useRef<POIDetailSheetRef>(null);
-  const mapRef = useRef<MapViewType>(null);
+  const mapRef = useRef<MapViewRef>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isListView, setIsListView] = useState(false);
@@ -121,7 +123,6 @@ export default function MapScreen() {
     show3DBuildings,
     currentMapStyle,
     showStylePicker,
-    styleOptions,
     toggle3DTerrain,
     toggle3DBuildings,
     setMapStyle,
@@ -167,6 +168,9 @@ export default function MapScreen() {
 
   // Active navigation
   const navigation = useActiveNavigation();
+
+  // Marker images for POIs (generated once at startup)
+  const { markerImages, MarkerGenerator } = useMarkerImages();
 
   // Load downloaded regions on mount
   useEffect(() => {
@@ -221,7 +225,7 @@ export default function MapScreen() {
         if (isCancelled) return;
 
         // Don't show download prompt if another modal is already open
-        if (isFiltersModalVisible) {
+        if (isFiltersModalVisible || showStylePicker || showRoutesModal || isDownloading) {
           return;
         }
 
@@ -256,7 +260,7 @@ export default function MapScreen() {
       isCancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [mapCenter?.lat, mapCenter?.lon, checkShouldPromptForRegion, showRegionDownloadPrompt, isFiltersModalVisible]);
+  }, [mapCenter?.lat, mapCenter?.lon, checkShouldPromptForRegion, showRegionDownloadPrompt, isFiltersModalVisible, showStylePicker, showRoutesModal, isDownloading]);
 
   // Stable ref for loadPOIsForBounds - prevents debounce reset on every render
   const loadPOIsRef = useRef(loadPOIsForBounds);
@@ -296,10 +300,10 @@ export default function MapScreen() {
   const handleCameraChanged = useCallback((state: any) => {
     baseCameraChanged(state);
 
-    if (!state.properties.bounds) return;
+    if (!state.properties.visibleBounds) return;
 
-    // Validate bounds structure
-    const { ne, sw } = state.properties.bounds;
+    // Validate bounds structure - MapLibre provides [northEast, southWest] array
+    const [ne, sw] = state.properties.visibleBounds;
     if (!Array.isArray(ne) || !Array.isArray(sw) || ne.length !== 2 || sw.length !== 2) {
       logger.warn('ui', 'Invalid bounds structure in camera changed');
       return;
@@ -541,16 +545,14 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        styleURL={MAP_STYLES[currentMapStyle]}
-        compassEnabled
-        scaleBarEnabled
+        mapStyle={MAP_STYLES[currentMapStyle]}
         zoomEnabled
         scrollEnabled
         rotateEnabled
         pitchEnabled
         attributionEnabled
         logoEnabled
-        onCameraChanged={handleCameraChanged}
+        onRegionDidChange={handleCameraChanged}
         onPress={handleMapPress}
       >
         {/* Camera */}
@@ -575,7 +577,7 @@ export default function MapScreen() {
         />
 
         {/* Routes - disable press during planning so taps pass through to MapView */}
-        {routeGeoJSON.features.length > 0 && (
+        {routeGeoJSON.features.length > 0 ? (
           <ShapeSource id="routes" shape={routeGeoJSON} onPress={isPlanning ? undefined : handleRoutePress}>
             <LineLayer
               id="route-lines-full"
@@ -600,19 +602,20 @@ export default function MapScreen() {
               }}
             />
           </ShapeSource>
-        )}
+        ) : <></>}
 
-        {/* POIs with clustering - droplet-shaped pin markers */}
+        {/* POIs with clustering - custom pin markers */}
         <POILayer
           visible={filteredPOIs.length > 0}
           pois={filteredPOIs}
           poiGeoJSON={poiGeoJSON}
           zoomLevel={currentZoom}
           onPOIPress={handlePOIMarkerPress}
+          markerImages={markerImages}
         />
 
         {/* Planned Route Line with Casing */}
-        {isPlanning && plannedRouteGeoJSON && (
+        {isPlanning && plannedRouteGeoJSON ? (
           <ShapeSource id="planned-route" shape={plannedRouteGeoJSON}>
             {/* Route casing (dark outline) */}
             <LineLayer
@@ -635,10 +638,10 @@ export default function MapScreen() {
               }}
             />
           </ShapeSource>
-        )}
+        ) : <></>}
 
         {/* Waypoints with MarkerView - supports gestures and nested views */}
-        {isPlanning && waypoints.map((waypoint) => (
+        {isPlanning ? waypoints.map((waypoint) => (
           <DraggableWaypointMarker
             key={waypoint.id}
             waypoint={waypoint}
@@ -646,7 +649,7 @@ export default function MapScreen() {
             onDragEnd={handleWaypointDragEnd}
             mapRef={mapRef}
           />
-        ))}
+        )) : <></>}
       </MapView>
 
       {/* Map Header with Search and List Toggle */}
@@ -700,11 +703,10 @@ export default function MapScreen() {
         />
       )}
 
-      {/* Map Style Picker */}
-      <MapStylePicker
+      {/* Map Style Selector */}
+      <MapStyleSelector
         visible={showStylePicker}
         currentStyle={currentMapStyle}
-        styleOptions={styleOptions}
         onSelectStyle={setMapStyle}
         onClose={closeStylePicker}
       />
@@ -832,6 +834,9 @@ export default function MapScreen() {
         visible={isDownloading}
         onComplete={handleDownloadComplete}
       />
+
+      {/* Hidden marker image generator - captures marker PNGs at startup */}
+      {MarkerGenerator}
     </View>
     </ErrorBoundary>
   );

@@ -1,16 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, ComponentProps } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { MapStyleKey } from '../../../shared/config/mapbox.config';
+
+// Type for MaterialCommunityIcons name
+type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export interface MapStyleOption {
   key: MapStyleKey;
   label: string;
-  icon: string;
+  icon: IconName;
 }
 
 export const MAP_STYLE_OPTIONS: MapStyleOption[] = [
   { key: 'outdoors', label: 'Outdoors', icon: 'bike' },
   { key: 'streets', label: 'Streets', icon: 'city' },
   { key: 'satellite', label: 'Satellite', icon: 'satellite-variant' },
+  { key: 'topo', label: 'Topo', icon: 'terrain' },
+  { key: 'terrain', label: 'Terrain', icon: 'image-filter-hdr' },
+  { key: 'natgeo', label: 'NatGeo', icon: 'earth' },
   { key: 'light', label: 'Light', icon: 'white-balance-sunny' },
   { key: 'dark', label: 'Dark', icon: 'moon-waning-crescent' },
 ];

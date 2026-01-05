@@ -13,7 +13,7 @@ import {
   ViewToken,
 } from 'react-native';
 import { Text, IconButton, useTheme, Surface } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { usePOIPhotos } from '../../hooks/usePOIPhotos';
 import { getCategoryConfig } from '../../services/overpass.service';

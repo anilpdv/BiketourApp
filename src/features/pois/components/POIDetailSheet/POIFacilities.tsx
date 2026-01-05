@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, Modal, ScrollView } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { getPOIFacilities, POIFacility } from '../../utils/poiTagParser';
 import { colors, spacing, borderRadius, typography, shadows } from '../../../../shared/design/tokens';
@@ -74,7 +74,7 @@ const FacilityItem = memo(function FacilityItem({
     <View style={[styles.facilityItem, expanded && styles.facilityItemExpanded]}>
       <View style={styles.facilityIconContainer}>
         <MaterialCommunityIcons
-          name={facility.icon}
+          name={facility.icon as any}
           size={20}
           color={colors.secondary[600]}
         />

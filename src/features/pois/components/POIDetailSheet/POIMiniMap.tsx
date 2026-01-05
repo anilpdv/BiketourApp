@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { View, StyleSheet, Pressable, Image, Linking, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { getCategoryConfig } from '../../config/poiCategoryConfig';
 import { colors, spacing, borderRadius, typography, shadows } from '../../../../shared/design/tokens';

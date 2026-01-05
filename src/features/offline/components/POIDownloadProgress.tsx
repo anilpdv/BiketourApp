@@ -12,7 +12,7 @@ import {
   Modal,
   Animated,
 } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePOIDownloadStore } from '../store/poiDownloadStore';
 import {
   colors,
@@ -83,7 +83,7 @@ export const POIDownloadProgress = memo(function POIDownloadProgress({
               ]}
             >
               <MaterialCommunityIcons
-                name={phaseConfig.icon}
+                name={phaseConfig.icon as any}
                 size={32}
                 color={phaseConfig.color}
               />

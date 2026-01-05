@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { MarkerView } from '@rnmapbox/maps';
+import { MarkerView } from '@maplibre/maplibre-react-native';
 import { colors } from '../../../shared/design/tokens';
 
 interface ClusterMarkerProps {

@@ -1,26 +1,47 @@
-import Mapbox from '@rnmapbox/maps';
+// MapLibre Configuration - Free Map Solution
+// No API key required for most providers
 
-// Mapbox Access Token
-const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiYW5pbHBkdjQyIiwiYSI6ImNtanJyMXY3NTBxdnczZnFzYnVuNnA2NGYifQ.hsPYpDAxQ6bMyEOzUJ8ZeA';
+import {
+  SATELLITE_STYLE,
+  TOPO_STYLE,
+  HILLSHADE_STYLE,
+  NATGEO_STYLE,
+} from './esriStyles';
 
-// Map Style URLs
-export const MAP_STYLES = {
-  outdoors: 'mapbox://styles/mapbox/outdoors-v12', // Best for cycling
-  streets: 'mapbox://styles/mapbox/streets-v12',
-  satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
-  light: 'mapbox://styles/mapbox/light-v11',
-  dark: 'mapbox://styles/mapbox/dark-v11',
-} as const;
+// Map Style URLs and Objects (free providers)
+export const MAP_STYLES: Record<string, string | object> = {
+  // OpenFreeMap - 100% free, no limits (no /style.json suffix!)
+  outdoors: 'https://tiles.openfreemap.org/styles/liberty',
+  streets: 'https://tiles.openfreemap.org/styles/bright',
+  // ESRI - free for non-commercial with attribution
+  satellite: SATELLITE_STYLE,
+  topo: TOPO_STYLE,
+  terrain: HILLSHADE_STYLE,
+  natgeo: NATGEO_STYLE,
+  // Carto - free, no API key required
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+};
 
-export type MapStyleKey = keyof typeof MAP_STYLES;
+export type MapStyleKey = 'outdoors' | 'streets' | 'satellite' | 'topo' | 'terrain' | 'natgeo' | 'light' | 'dark';
 
-// Default map style for cycling app
-export const DEFAULT_MAP_STYLE = MAP_STYLES.outdoors;
+// Default map style for cycling app (must be a URL string for offline packs)
+export const DEFAULT_MAP_STYLE = MAP_STYLES.outdoors as string;
 
-// Initialize Mapbox - call this once at app startup
+// Terrain tile sources (free)
+export const TERRAIN_SOURCES = {
+  // AWS Terrain Tiles - free, global coverage
+  aws: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+  // MapTiler terrain RGB (requires free API key)
+  maptiler: 'https://api.maptiler.com/tiles/terrain-rgb-v2/{z}/{x}/{y}.webp?key=get_your_free_key',
+};
+
+// Initialize MapLibre - no token required!
 export function initializeMapbox(): void {
-  Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
+  // MapLibre doesn't require initialization with an access token
+  // This function is kept for API compatibility
+  console.log('MapLibre initialized - no access token required');
 }
 
-// Export token for cases where direct access is needed
-export const getAccessToken = (): string => MAPBOX_ACCESS_TOKEN;
+// For API compatibility (returns empty string since MapLibre doesn't need tokens)
+export const getAccessToken = (): string => '';

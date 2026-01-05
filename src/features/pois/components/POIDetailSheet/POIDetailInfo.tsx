@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useState } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { POIContactInfo, formatDistance } from '../../utils/poiTagParser';
 import { formatCoordinates } from '../../utils/coordinateFormatter';
@@ -26,7 +26,7 @@ const InfoSection = memo(function InfoSection({ icon, title, children }: InfoSec
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <MaterialCommunityIcons
-          name={icon}
+          name={icon as any}
           size={18}
           color={colors.primary[500]}
           style={styles.sectionIcon}

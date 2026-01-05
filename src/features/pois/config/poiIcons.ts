@@ -69,6 +69,34 @@ export const CATEGORY_TO_MAKI_ICON: Record<POICategory, string> = {
   police: 'police',
 };
 
+// Map POI categories to OpenFreeMap sprite icon names
+// These are image-based icons in the style sprite (not fonts)
+export const CATEGORY_TO_SPRITE_ICON: Record<POICategory, string> = {
+  campsite: 'campsite',
+  drinking_water: 'water',
+  bike_shop: 'bicycle',
+  bike_repair: 'bicycle',
+  hotel: 'lodging',
+  hostel: 'lodging',
+  guest_house: 'lodging',
+  shelter: 'shelter',
+  supermarket: 'grocery',
+  restaurant: 'restaurant',
+  // Camping categories
+  motorhome_spot: 'car',
+  service_area: 'fuel',
+  wild_camping: 'park',
+  caravan_site: 'campsite',
+  picnic_site: 'picnic_site',
+  toilet: 'toilets',
+  shower: 'water',
+  laundry: 'laundry',
+  // Emergency categories
+  hospital: 'hospital',
+  pharmacy: 'pharmacy',
+  police: 'police',
+};
+
 // MaterialCommunityIcons names for UI components
 export const CATEGORY_TO_VECTOR_ICON: Record<POICategory, string> = {
   campsite: 'tent',
@@ -92,7 +120,7 @@ export const CATEGORY_TO_VECTOR_ICON: Record<POICategory, string> = {
   laundry: 'washing-machine',
   // Emergency categories
   hospital: 'hospital-box',
-  pharmacy: 'pharmacy',
+  pharmacy: 'pill',
   police: 'shield-account',
 };
 
@@ -153,6 +181,9 @@ export const CATEGORY_NAMES: Record<POICategory, string> = {
 /**
  * Get the icon configuration for a POI category
  */
+// Type for MaterialCommunityIcons name (using any to allow dynamic icon names)
+type IconName = React.ComponentProps<typeof import('@expo/vector-icons').MaterialCommunityIcons>['name'];
+
 export function getCategoryIcon(category: POICategory) {
   // Validate category exists in mappings (helps identify invalid data)
   if (__DEV__ && !CATEGORY_COLORS[category]) {
@@ -164,7 +195,8 @@ export function getCategoryIcon(category: POICategory) {
     group: CATEGORY_TO_GROUP[category] || 'services',
     groupColor: getCategoryGroupColor(category),
     makiIcon: CATEGORY_TO_MAKI_ICON[category] || 'marker',
-    vectorIcon: CATEGORY_TO_VECTOR_ICON[category] || 'map-marker',
+    spriteIcon: CATEGORY_TO_SPRITE_ICON[category] || 'marker',
+    vectorIcon: (CATEGORY_TO_VECTOR_ICON[category] || 'map-marker') as IconName,
     emoji: CATEGORY_TO_EMOJI[category] || '📍',
     name: CATEGORY_NAMES[category] || category,
   };

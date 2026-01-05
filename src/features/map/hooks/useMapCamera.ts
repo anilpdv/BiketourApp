@@ -1,7 +1,7 @@
 import { useRef, useCallback, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
-import { Camera } from '@rnmapbox/maps';
-import type Mapbox from '@rnmapbox/maps';
+import type { CameraRef, RegionPayload } from '@maplibre/maplibre-react-native';
+import type { Feature, Point } from 'geojson';
 import * as Location from 'expo-location';
 import { ParsedRoute } from '../../routes/types';
 import { MapBounds } from '../../../shared/types';
@@ -9,19 +9,22 @@ import { logger } from '../../../shared/utils';
 
 export { MapBounds } from '../../../shared/types';
 
+// MapLibre region change event type
+type RegionChangeEvent = Feature<Point, RegionPayload>;
+
 export interface CameraSettings {
   centerCoordinate: [number, number];
   zoomLevel: number;
 }
 
 export interface UseMapCameraReturn {
-  cameraRef: React.RefObject<Camera | null>;
+  cameraRef: React.RefObject<CameraRef | null>;
   currentBounds: MapBounds | null;
   currentZoom: number;
   initialCameraSettings: CameraSettings;
 
   // Actions
-  handleCameraChanged: (state: Mapbox.MapState) => void;
+  handleCameraChanged: (feature: RegionChangeEvent) => void;
   flyTo: (coordinate: [number, number], zoom?: number) => void;
   fitToBounds: (bounds: MapBounds, padding?: number) => void;
 }
@@ -33,7 +36,7 @@ export function useMapCamera(
   selectedFullRoute: ParsedRoute | null,
   location: Location.LocationObject | null
 ): UseMapCameraReturn {
-  const cameraRef = useRef<Camera>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const [currentBounds, setCurrentBounds] = useState<MapBounds | null>(null);
   const [currentZoom, setCurrentZoom] = useState<number>(10); // Default zoom
 
@@ -75,18 +78,21 @@ export function useMapCamera(
     };
   }, [selectedFullRoute, location]);
 
-  // Handle camera changes
-  const handleCameraChanged = useCallback((state: Mapbox.MapState) => {
+  // Handle camera changes (MapLibre uses onRegionDidChange with Feature<Point, RegionPayload>)
+  const handleCameraChanged = useCallback((feature: RegionChangeEvent) => {
     try {
+      const { properties } = feature;
+
       // Update zoom level
-      if (state.properties.zoom !== undefined) {
-        setCurrentZoom(state.properties.zoom);
+      if (properties.zoomLevel !== undefined) {
+        setCurrentZoom(properties.zoomLevel);
       }
 
-      if (!state.properties.bounds) return;
+      // Get visible bounds from properties
+      // MapLibre provides visibleBounds as [northEast, southWest] positions
+      if (!properties.visibleBounds) return;
 
-      // Validate bounds before using
-      const { ne, sw } = state.properties.bounds;
+      const [ne, sw] = properties.visibleBounds;
       if (!Array.isArray(ne) || !Array.isArray(sw) || ne.length !== 2 || sw.length !== 2) {
         logger.warn('ui', 'Invalid bounds structure in camera changed event');
         return;

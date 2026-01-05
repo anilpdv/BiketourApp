@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { QuickFilterChip } from './QuickFilterChip';
 import { QuickFilter } from '../../../pois/types';
 import {

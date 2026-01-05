@@ -56,7 +56,7 @@
           "photosPermission": "Allow BikeTour Europe to access your photos for your trip journal."
         }
       ],
-      "@rnmapbox/maps"
+      "@maplibre/maplibre-react-native"
     ]
   }
 }

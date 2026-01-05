@@ -3,14 +3,17 @@
  * An icon button with a text label below it, commonly used for action rows
  */
 
-import React, { memo } from 'react';
+import React, { memo, ComponentProps } from 'react';
 import { View, Text, Pressable, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../../design/tokens';
+
+// Type for MaterialCommunityIcons name
+type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export interface LabeledIconButtonProps {
   /** MaterialCommunityIcons icon name */
-  icon: string;
+  icon: IconName;
   /** Label text displayed below the icon */
   label: string;
   /** Press handler */

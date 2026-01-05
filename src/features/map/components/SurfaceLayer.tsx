@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { ShapeSource, LineLayer } from '@rnmapbox/maps';
+import { ShapeSource, LineLayer } from '@maplibre/maplibre-react-native';
 import type { FeatureCollection, LineString, Feature } from 'geojson';
 import { SurfaceSegment, SURFACE_COLORS, SurfaceType } from '../../routes/types';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
@@ -43,11 +43,11 @@ export const SurfaceLayer = memo(function SurfaceLayer({
   visible,
 }: SurfaceLayerProps) {
   if (!visible || !surfaceGeoJSON || surfaceGeoJSON.features.length === 0) {
-    return null;
+    return <></>;
   }
 
   return (
-    <ErrorBoundary fallback={null}>
+    <ErrorBoundary fallback={<></>}>
       <ShapeSource id="surface-data" shape={surfaceGeoJSON}>
         {/* Base surface line */}
         <LineLayer

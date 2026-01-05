@@ -36,3 +36,6 @@ export type { UseMapCameraReturn, CameraSettings } from './useMapCamera';
 
 export { useRoutePlanning } from './useRoutePlanning';
 export type { UseRoutePlanningReturn } from './useRoutePlanning';
+
+export { useMarkerImages, CLUSTER_COUNTS } from './useMarkerImages';
+export type { MarkerImagesMap } from './useMarkerImages';

@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
-import { MarkerView } from '@rnmapbox/maps';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MarkerView } from '@maplibre/maplibre-react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../types';
 import { getCategoryIcon } from '../config/poiIcons';
 import { colors } from '../../../shared/design/tokens';
