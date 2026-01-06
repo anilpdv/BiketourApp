@@ -3,7 +3,6 @@ import { StatusBar } from 'expo-status-bar';
 import { LogBox } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { initializeMapbox } from '../src/shared/config/mapbox.config';
 import { paperLightTheme } from '../src/shared/design/paperTheme';
 
 // Suppress Reanimated worklet warnings from @gorhom/bottom-sheet
@@ -13,9 +12,6 @@ LogBox.ignoreLogs([
   '[Worklets] Tried to modify key',
   'Tried to modify key',
 ]);
-
-// Initialize Mapbox at app startup
-initializeMapbox();
 
 export default function RootLayout() {
   return (

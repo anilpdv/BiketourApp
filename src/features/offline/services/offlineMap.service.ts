@@ -1,5 +1,5 @@
 import { OfflineManager } from '@maplibre/maplibre-react-native';
-import { DEFAULT_MAP_STYLE } from '../../../shared/config/mapbox.config';
+import { DEFAULT_MAP_STYLE } from '../../../shared/config/mapStyles.config';
 import { logger } from '../../../shared/utils';
 
 // Type for metadata stored with offline regions

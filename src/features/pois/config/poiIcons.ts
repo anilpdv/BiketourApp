@@ -7,10 +7,8 @@ import {
 /**
  * POI Icon Configuration
  *
- * Uses Mapbox's built-in Maki icons which are available in all Mapbox styles.
+ * Uses MapLibre/OpenFreeMap sprite icons for map rendering.
  * These icons render as proper vector symbols rather than emojis.
- *
- * Available Maki icons: https://labs.mapbox.com/maki-icons/
  */
 
 // Category colors (used for circle backgrounds)
@@ -45,8 +43,8 @@ export const CATEGORY_COLORS: Record<POICategory, string> = {
   police: '#1E40AF', // Police Blue
 };
 
-// Map POI categories to Mapbox Maki icon names
-// These are built into Mapbox styles and render as proper vector symbols
+// Map POI categories to Maki icon names
+// These icons are available in MapLibre/OpenFreeMap styles
 export const CATEGORY_TO_MAKI_ICON: Record<POICategory, string> = {
   campsite: 'campsite',
   drinking_water: 'drinking-water',

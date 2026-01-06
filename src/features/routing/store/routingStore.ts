@@ -379,7 +379,7 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
         }));
         set({ calculatedGeometry: geometry, isCalculating: false });
       } else {
-        // For point-to-point, use Mapbox cycling routing
+        // For point-to-point, use OSRM cycling routing
         const coordinates = waypoints.map((wp) => ({
           latitude: wp.latitude,
           longitude: wp.longitude,
@@ -387,7 +387,7 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
 
         const result = await calculateRoute(coordinates, {
           profile: 'cycling',
-          provider: 'mapbox',
+          provider: 'osrm',
         });
 
         // Store route with distance and duration

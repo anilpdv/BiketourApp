@@ -1,6 +1,6 @@
 import { useState, useCallback, ComponentProps } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { MapStyleKey } from '../../../shared/config/mapbox.config';
+import { MapStyleKey } from '../../../shared/config/mapStyles.config';
 
 // Type for MaterialCommunityIcons name
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];

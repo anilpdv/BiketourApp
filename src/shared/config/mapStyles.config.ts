@@ -65,16 +65,4 @@ export const DEFAULT_MAP_STYLE = MAP_STYLES.outdoors as string;
 export const TERRAIN_SOURCES = {
   // AWS Terrain Tiles - free, global coverage
   aws: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
-  // MapTiler terrain RGB (requires free API key)
-  maptiler: 'https://api.maptiler.com/tiles/terrain-rgb-v2/{z}/{x}/{y}.webp?key=get_your_free_key',
 };
-
-// Initialize MapLibre - no token required!
-export function initializeMapbox(): void {
-  // MapLibre doesn't require initialization with an access token
-  // This function is kept for API compatibility
-  console.log('MapLibre initialized - no access token required');
-}
-
-// For API compatibility (returns empty string since MapLibre doesn't need tokens)
-export const getAccessToken = (): string => '';

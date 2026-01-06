@@ -4,7 +4,7 @@ import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, Sym
 import type { MapViewRef, RegionPayload } from '@maplibre/maplibre-react-native';
 import type { Feature, Point } from 'geojson';
 import { useLocalSearchParams } from 'expo-router';
-import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
+import { MAP_STYLES } from '../../src/shared/config/mapStyles.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
 import { POIDetailSheet, POIDetailSheetRef, usePOIStore } from '../../src/features/pois';
 import { FiltersModal } from '../../src/features/pois/components/FiltersModal';

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapStyleKey } from '../../../../shared/config/mapbox.config';
+import { MapStyleKey } from '../../../../shared/config/mapStyles.config';
 import { colors, spacing, borderRadius, typography, shadows } from '../../../../shared/design/tokens';
 
 const ITEM_WIDTH = 100;

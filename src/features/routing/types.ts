@@ -2,7 +2,7 @@
 export type RoutePlanningMode = 'point-to-point' | 'freeform' | 'modify-existing';
 
 // Routing provider
-export type RoutingProvider = 'osrm' | 'mapbox';
+export type RoutingProvider = 'osrm';
 
 // Routing profile
 export type RoutingProfile = 'driving' | 'foot' | 'cycling';

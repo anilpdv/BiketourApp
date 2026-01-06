@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { RasterSource, RasterLayer, FillExtrusionLayer } from '@maplibre/maplibre-react-native';
-import { MapStyleKey, TERRAIN_SOURCES } from '../../../shared/config/mapbox.config';
+import { MapStyleKey, TERRAIN_SOURCES } from '../../../shared/config/mapStyles.config';
 
 export interface TerrainLayerProps {
   show3DTerrain: boolean;
