@@ -11,6 +11,7 @@ export type { MapStylePickerProps } from './MapStylePicker';
 
 export { MapStyleSelector } from './MapStyleSelector';
 
+export { MapLegend } from './MapLegend';
 
 export { RouteChipSelector } from './RouteChipSelector';
 export type { RouteChipSelectorProps } from './RouteChipSelector';

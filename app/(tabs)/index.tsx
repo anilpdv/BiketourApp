@@ -38,6 +38,7 @@ import {
   TerrainLayer,
   RoutePlanningFAB,
   POILayer,
+  MapLegend,
 } from '../../src/features/map/components';
 import { EuroVeloRoutesButton } from '../../src/features/routes/components/EuroVeloRoutesButton';
 import { EuroVeloRoutesModal } from '../../src/features/routes/components/EuroVeloRoutesModal';
@@ -725,6 +726,9 @@ export default function MapScreen() {
           onOpenLayers={openStylePicker}
         />
       )}
+
+      {/* Map Legend - only show for cycling style */}
+      <MapLegend visible={currentMapStyle === 'cycling'} />
 
       {/* Map Style Selector */}
       <MapStyleSelector

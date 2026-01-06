@@ -22,10 +22,15 @@ const STYLE_PREVIEWS: Record<MapStyleKey, {
   colors: [string, string, string];
   icon: string;
 }> = {
+  cycling: {
+    label: 'Cycling',
+    colors: ['#FF6B00', '#FF8F00', '#FFB300'],
+    icon: 'bicycle',
+  },
   outdoors: {
     label: 'Outdoors',
     colors: ['#4CAF50', '#8BC34A', '#CDDC39'],
-    icon: 'bike',
+    icon: 'pine-tree',
   },
   streets: {
     label: 'Streets',

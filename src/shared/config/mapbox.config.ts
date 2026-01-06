@@ -8,8 +8,41 @@ import {
   NATGEO_STYLE,
 } from './esriStyles';
 
+// CyclOSM - Free cycling-focused map (no API key required)
+// Shows bike lanes, cycle paths, surface types, bike parking
+// Perfect for bike touring apps
+const CYCLOSM_STYLE = {
+  version: 8,
+  name: 'CyclOSM',
+  sources: {
+    'cyclosm-tiles': {
+      type: 'raster',
+      tiles: [
+        'https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+        'https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+        'https://c.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '© CyclOSM | Map data © OpenStreetMap contributors',
+      maxzoom: 20,
+    },
+  },
+  layers: [
+    {
+      id: 'cyclosm-layer',
+      type: 'raster',
+      source: 'cyclosm-tiles',
+      minzoom: 0,
+      maxzoom: 20,
+    },
+  ],
+  glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+};
+
 // Map Style URLs and Objects (free providers)
 export const MAP_STYLES: Record<string, string | object> = {
+  // CyclOSM - cycling-focused map (best for bike touring!)
+  cycling: CYCLOSM_STYLE,
   // OpenFreeMap - 100% free, no limits (no /style.json suffix!)
   outdoors: 'https://tiles.openfreemap.org/styles/liberty',
   streets: 'https://tiles.openfreemap.org/styles/bright',
@@ -23,7 +56,7 @@ export const MAP_STYLES: Record<string, string | object> = {
   dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
 };
 
-export type MapStyleKey = 'outdoors' | 'streets' | 'satellite' | 'topo' | 'terrain' | 'natgeo' | 'light' | 'dark';
+export type MapStyleKey = 'cycling' | 'outdoors' | 'streets' | 'satellite' | 'topo' | 'terrain' | 'natgeo' | 'light' | 'dark';
 
 // Default map style for cycling app (must be a URL string for offline packs)
 export const DEFAULT_MAP_STYLE = MAP_STYLES.outdoors as string;
