@@ -39,6 +39,11 @@ export function MarkerImageGenerator({ onImagesGenerated }: MarkerGeneratorProps
   // Total images to generate: groups + cluster counts
   const totalImages = groups.length + CLUSTER_COUNTS.length;
 
+  // Stable ref setter to avoid Reanimated warnings from inline mutations
+  const setViewShotRef = useCallback((key: string, ref: ViewShot | null) => {
+    viewShotRefs.current.set(key, ref);
+  }, []);
+
   const captureImage = useCallback(async (key: string) => {
     const ref = viewShotRefs.current.get(key);
     if (ref && ref.capture) {
@@ -83,7 +88,7 @@ export function MarkerImageGenerator({ onImagesGenerated }: MarkerGeneratorProps
       {groups.map(group => (
         <ViewShot
           key={`marker-${group}`}
-          ref={ref => { viewShotRefs.current.set(`marker-${group}`, ref); }}
+          ref={ref => setViewShotRef(`marker-${group}`, ref)}
           options={{ format: 'png', quality: 1, result: 'data-uri' }}
           style={styles.markerShot}
         >
@@ -104,7 +109,7 @@ export function MarkerImageGenerator({ onImagesGenerated }: MarkerGeneratorProps
       {CLUSTER_COUNTS.map(count => (
         <ViewShot
           key={`cluster-${count}`}
-          ref={ref => { viewShotRefs.current.set(`cluster-${count}`, ref); }}
+          ref={ref => setViewShotRef(`cluster-${count}`, ref)}
           options={{ format: 'png', quality: 1, result: 'data-uri' }}
           style={styles.clusterShot}
         >

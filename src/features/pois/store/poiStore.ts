@@ -93,9 +93,10 @@ export const usePOIStore = create<POIState>((set, get) => ({
       return; // Early exit if no new POIs
     }
 
-    // Add new IDs to Set
+    // Create NEW Set with all IDs (immutable pattern to avoid Reanimated warnings)
+    const newPoiIds = new Set(poiIds);
     for (const poi of uniqueNew) {
-      poiIds.add(poi.id);
+      newPoiIds.add(poi.id);
     }
 
     // Batch category updates - group by category first
@@ -118,7 +119,7 @@ export const usePOIStore = create<POIState>((set, get) => ({
 
     set({
       pois: updatedPOIs,
-      poiIds, // Mutated in place for performance
+      poiIds: newPoiIds, // New Set, not mutated original
       poisByCategory: newByCategory,
     });
   },
