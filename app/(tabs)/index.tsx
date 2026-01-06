@@ -3,6 +3,7 @@ import { View, StyleSheet, Alert } from 'react-native';
 import { MapView, Camera, UserLocation, ShapeSource, LineLayer, CircleLayer, SymbolLayer } from '@maplibre/maplibre-react-native';
 import type { MapViewRef, RegionPayload } from '@maplibre/maplibre-react-native';
 import type { Feature, Point } from 'geojson';
+import { useLocalSearchParams } from 'expo-router';
 import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
 import { POIDetailSheet, POIDetailSheetRef, usePOIStore } from '../../src/features/pois';
@@ -35,7 +36,6 @@ import {
 // Map feature components
 import {
   MapStyleSelector,
-  RouteInfoCard,
   TerrainLayer,
   RoutePlanningFAB,
   POILayer,
@@ -51,6 +51,9 @@ import { MapControlsBottom } from '../../src/features/map/components/MapControls
 const SETTLE_TIMEOUT_MS = 5000; // Wait 5 seconds of no movement before prompting
 
 export default function MapScreen() {
+  // Get route params for "View on Map" from route details
+  const { showRoute } = useLocalSearchParams<{ showRoute?: string }>();
+
   const poiDetailSheetRef = useRef<POIDetailSheetRef>(null);
   const mapRef = useRef<MapViewRef>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -59,6 +62,7 @@ export default function MapScreen() {
   const [showRoutesModal, setShowRoutesModal] = useState(false);
   const [mapCenter, setMapCenter] = useState<{lat: number; lon: number} | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
+  const [pendingRouteToShow, setPendingRouteToShow] = useState<number | null>(null);
 
   // Settling detection refs - prevent popup spam during navigation
   const lastMoveTimeRef = useRef<number>(Date.now());
@@ -222,6 +226,41 @@ export default function MapScreen() {
   useEffect(() => {
     loadDownloadedRegions();
   }, [loadDownloadedRegions]);
+
+  // Handle "View on Map" from route details - auto-enable route and fly to it
+  useEffect(() => {
+    if (showRoute) {
+      const euroVeloId = parseInt(showRoute, 10);
+      if (!isNaN(euroVeloId)) {
+        // Enable route if not already enabled
+        if (!enabledRouteIds.includes(euroVeloId)) {
+          toggleRoute(euroVeloId);
+        } else {
+          // Route already enabled, just select it
+          selectRoute(euroVeloId);
+        }
+        // Set pending route to fly to once loaded
+        setPendingRouteToShow(euroVeloId);
+      }
+    }
+  }, [showRoute]);
+
+  // Fly to route bounds when pending route is loaded
+  useEffect(() => {
+    if (pendingRouteToShow && routes.length > 0) {
+      const targetRoute = routes.find(r => r.euroVeloId === pendingRouteToShow);
+      if (targetRoute && targetRoute.bounds) {
+        const { minLat, maxLat, minLon, maxLon } = targetRoute.bounds;
+        // Fly to route bounds with padding
+        fitToBounds({
+          ne: [maxLon, maxLat],
+          sw: [minLon, minLat]
+        }, 50);
+        // Clear pending route
+        setPendingRouteToShow(null);
+      }
+    }
+  }, [pendingRouteToShow, routes, fitToBounds]);
 
   // Debug: Check database content on mount to verify POI location
   useEffect(() => {
@@ -807,14 +846,6 @@ export default function MapScreen() {
         onSelectStyle={setMapStyle}
         onClose={closeStylePicker}
       />
-
-      {/* Route Info Card - hide during planning and navigation */}
-      {selectedFullRoute && !isPlanning && !navigation.isNavigating && (
-        <RouteInfoCard
-          route={selectedFullRoute}
-          developedRoute={selectedRoutes.find(r => r.variant === 'developed')}
-        />
-      )}
 
       {/* Active Navigation Overlay */}
       {navigation.isNavigating && (
