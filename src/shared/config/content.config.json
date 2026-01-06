@@ -20,13 +20,27 @@
         "Norwegian Fjords",
         "Irish Wild Atlantic Way",
         "French Atlantic Coast",
-        "Portuguese Algarve"
+        "Portuguese Algarve",
+        "Prehistoric wonders and ancient heritage",
+        "Best Atlantic seafood"
       ],
       "keyCities": ["Bergen", "Dublin", "Nantes", "Bordeaux", "Porto", "Lisbon"],
       "unescoSites": 14,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2283_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev1",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Land of the Midnight Sun", "region": "Northern Norway"},
+        {"name": "Land of the Fjords", "region": "Norwegian Fjords"},
+        {"name": "Celtic Glens", "region": "Scotland"},
+        {"name": "Celtic Coast", "region": "Ireland"},
+        {"name": "Britain & Brittany", "region": "UK & France"},
+        {"name": "Wine & World Heritage", "region": "France"},
+        {"name": "Atlantic to Navarra", "region": "Spain"},
+        {"name": "New World & Sunny Beaches", "region": "Portugal"}
+      ],
+      "terrainDescription": "Mix of dedicated cycle paths, minor roads, and some gravel sections. Coastal routes with varying elevation, particularly challenging in Norwegian fjord region.",
+      "practicalInfo": "Summer months offer optimal conditions. Winter cycling possible but challenging, especially in Scandinavia. Ferry crossings required between some sections. GPX tracks available for developed sections.",
       "enabled": true
     },
     {
@@ -47,13 +61,27 @@
         "Six European Capitals",
         "Białowieża Forest",
         "Snowdonia National Park",
-        "Dutch Countryside"
+        "Dutch Countryside",
+        "First-class dining and nightlife",
+        "Two European seas"
       ],
       "keyCities": ["Dublin", "London", "Berlin", "Warsaw", "Minsk", "Moscow"],
       "unescoSites": 17,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2282_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1560969184-10fe8719e047?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev2",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Irish Coast", "region": "Ireland"},
+        {"name": "Welsh Highlands", "region": "United Kingdom"},
+        {"name": "English Countryside", "region": "United Kingdom"},
+        {"name": "Dutch Lowlands", "region": "Netherlands"},
+        {"name": "German Plains", "region": "Germany"},
+        {"name": "Polish Heartland", "region": "Poland"},
+        {"name": "Białowieża Forest", "region": "Poland/Belarus"},
+        {"name": "Eastern Approach", "region": "Belarus/Russia"}
+      ],
+      "terrainDescription": "Mix of urban cycling and countryside routes. Flat terrain through Netherlands and Germany, rolling hills in UK. Well-developed cycle paths in Western Europe, variable conditions in Eastern sections.",
+      "practicalInfo": "Parts of route under development in Eastern Europe. Visa requirements for Belarus and Russia. Excellent cycling infrastructure in Netherlands and Germany. Multiple guides available for Western sections.",
       "enabled": true
     },
     {
@@ -74,13 +102,28 @@
         "Cologne & Aachen Cathedrals",
         "Paris",
         "Santiago de Compostela",
-        "Cape Finisterre"
+        "Cape Finisterre",
+        "Famous European nightlife cities",
+        "Historic pilgrimage heritage"
       ],
       "keyCities": ["Trondheim", "Hamburg", "Cologne", "Paris", "Santiago de Compostela"],
       "unescoSites": 20,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2283_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev3",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "St. Olav Ways", "region": "Norway"},
+        {"name": "Oxen Way", "region": "Sweden/Denmark"},
+        {"name": "German Jakobswege", "region": "Germany"},
+        {"name": "Via Mosana", "region": "Belgium"},
+        {"name": "Sambre to Oise", "region": "France/Belgium"},
+        {"name": "Seine to Loire", "region": "France"},
+        {"name": "Tours to Bordeaux", "region": "France"},
+        {"name": "Gascony to Pyrenees", "region": "France/Spain"},
+        {"name": "Camino Francés", "region": "Spain"}
+      ],
+      "terrainDescription": "Varied terrain following historic pilgrimage routes. River valleys, vineyard regions, and mountain approaches to the Pyrenees. Mix of dedicated paths and minor roads.",
+      "practicalInfo": "Connects with famous Camino de Santiago pilgrimage. Great cultural and culinary experiences in cities like Hamburg, Liège, and Paris. Bikeline and ADFC guides available for detailed planning.",
       "enabled": true
     },
     {
@@ -101,13 +144,27 @@
         "Mont-Saint-Michel",
         "Pink Granite Coast",
         "Bohemian Forest",
-        "Medieval Architecture"
+        "Medieval Architecture",
+        "Rhine and Main valleys",
+        "History lessons across 7 nations"
       ],
       "keyCities": ["Roscoff", "Brussels", "Aachen", "Prague", "Krakow", "Kyiv"],
       "unescoSites": 21,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2284_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev4",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Brittany Coast", "region": "France"},
+        {"name": "Northern France", "region": "France"},
+        {"name": "Belgian Lowlands", "region": "Belgium"},
+        {"name": "Dutch Rivers", "region": "Netherlands"},
+        {"name": "Rhine & Main Valleys", "region": "Germany"},
+        {"name": "Bohemian Forest", "region": "Czechia"},
+        {"name": "Polish Plains", "region": "Poland"},
+        {"name": "Eastern Approach", "region": "Ukraine"}
+      ],
+      "terrainDescription": "Varied terrain from dramatic French coastlines to river valleys and the Bohemian Forest. Mix of flat sections through Netherlands and Germany with hillier terrain in Czechia.",
+      "practicalInfo": "Partially developed with some sections under planning. Bikeline cycle maps available for German sections. Czech cycling routes have certified cycle-friendly services.",
       "enabled": true
     },
     {
@@ -128,13 +185,30 @@
         "20 Cathedrals",
         "European Institutions",
         "Tuscany Hills",
-        "Ancient Via Appia"
+        "Ancient Via Appia",
+        "Alpine crossing",
+        "1000 years of pilgrimage history"
       ],
       "keyCities": ["Canterbury", "Brussels", "Luxembourg", "Strasbourg", "Rome", "Brindisi"],
       "unescoSites": 21,
-      "imageUrl": "https://media.eurovelo.com/images/67/f0/2284_orig_pre-fullhd.jpg",
+      "imageUrl": "https://images.unsplash.com/photo-1534445867742-43195f401b6c?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev5",
       "bestSeason": ["april", "may", "june", "september", "october"],
+      "stages": [
+        {"name": "Crossing the Channel", "region": "UK/France"},
+        {"name": "The Low Countries", "region": "Belgium/Luxembourg"},
+        {"name": "Alsace Vineyards", "region": "France"},
+        {"name": "Crossing the Alps", "region": "Switzerland"},
+        {"name": "Lakes and Canals", "region": "Northern Italy"},
+        {"name": "Po River Plain", "region": "Lombardy"},
+        {"name": "Apennines to the Sea", "region": "Central Italy"},
+        {"name": "Hills of Tuscany", "region": "Tuscany"},
+        {"name": "Rome and Latium Hills", "region": "Latium"},
+        {"name": "Southern Apennines", "region": "Southern Italy"},
+        {"name": "Along the Roman Via Appia", "region": "Puglia"}
+      ],
+      "terrainDescription": "Challenging and varied terrain including Alpine crossing, Tuscan hills, and Apennine mountains. River plains provide flatter sections. Ancient Roman roads in southern sections.",
+      "practicalInfo": "Historic pilgrimage route with rich cultural heritage. Channel crossing required. Alpine section challenging but rewarding. Best avoided in peak summer heat for Italian sections.",
       "enabled": true
     },
     {
@@ -155,13 +229,28 @@
         "Loire Valley Vineyards",
         "Danube River Path",
         "Vienna & Budapest",
-        "Black Sea Coast"
+        "Black Sea Coast",
+        "World-famous cycling paths",
+        "6 major European rivers"
       ],
       "keyCities": ["Nantes", "Basel", "Ulm", "Vienna", "Budapest", "Belgrade", "Constanta"],
       "unescoSites": 11,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2286_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev6",
       "bestSeason": ["april", "may", "june", "september", "october"],
+      "stages": [
+        {"name": "Nantes to Nevers", "region": "France"},
+        {"name": "Nevers to Basel", "region": "France/Switzerland"},
+        {"name": "Basel to Ulm", "region": "Switzerland/Germany"},
+        {"name": "Ulm to Passau", "region": "Germany"},
+        {"name": "Passau to Vienna", "region": "Germany/Austria"},
+        {"name": "Vienna to Budapest", "region": "Austria/Slovakia/Hungary"},
+        {"name": "Budapest to Belgrade", "region": "Hungary/Croatia/Serbia"},
+        {"name": "Belgrade to Giurgiu", "region": "Serbia/Romania/Bulgaria"},
+        {"name": "Giurgiu to Constanta", "region": "Romania/Bulgaria"}
+      ],
+      "terrainDescription": "Predominantly flat terrain along river valleys. World-renowned Loire and Danube cycle paths with excellent surfaces. Gentle gradients suitable for all fitness levels.",
+      "practicalInfo": "Train stations every 5km in Austria for flexible planning. Numerous Bed+Bike accommodations welcome single-night stays. Best infrastructure in Western sections. One of the most beginner-friendly long-distance routes.",
       "enabled": true
     },
     {
@@ -182,13 +271,29 @@
         "Midnight Sun",
         "Alpine Crossing",
         "Lake Garda Path",
-        "Malta Archipelago"
+        "Malta Archipelago",
+        "Baltic Sea ferry crossings",
+        "9 countries north to south"
       ],
       "keyCities": ["North Cape", "Copenhagen", "Berlin", "Prague", "Vienna", "Verona", "Malta"],
       "unescoSites": 18,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2287_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1473951574080-01fe45ec8643?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev7",
       "bestSeason": ["june", "july", "august", "september"],
+      "stages": [
+        {"name": "Arctic Norway", "region": "Norway"},
+        {"name": "Finnish Lapland", "region": "Finland"},
+        {"name": "Swedish Heartland", "region": "Sweden"},
+        {"name": "Danish Islands", "region": "Denmark"},
+        {"name": "German Plains", "region": "Germany"},
+        {"name": "Bohemian Crossroads", "region": "Czechia"},
+        {"name": "Austrian Alps", "region": "Austria"},
+        {"name": "Northern Italy", "region": "Italy"},
+        {"name": "Southern Italy", "region": "Italy"},
+        {"name": "Malta Crossing", "region": "Malta"}
+      ],
+      "terrainDescription": "Extremely varied terrain from Arctic tundra to Mediterranean islands. Includes challenging Alpine crossing. Flat sections through Germany and Denmark contrast with mountainous regions.",
+      "practicalInfo": "Ferry crossings required: Helsingborg-Helsingor, Gedser-Rostock, and Italy-Malta. Train stations every 5km in Austria. Bett+Bike accommodations available. Summer months essential for northern sections.",
       "enabled": true
     },
     {
@@ -209,13 +314,31 @@
         "Alhambra Palace",
         "Venice Canals",
         "Dubrovnik Old Town",
-        "Greek Islands"
+        "Greek Islands",
+        "Mediterranean cuisine",
+        "10 countries along the coast"
       ],
       "keyCities": ["Cadiz", "Barcelona", "Nice", "Venice", "Dubrovnik", "Athens", "Cyprus"],
       "unescoSites": 23,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2288_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1499678329028-101435549a4e?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev8",
       "bestSeason": ["april", "may", "september", "october"],
+      "stages": [
+        {"name": "Andalusian Coast", "region": "Spain"},
+        {"name": "Costa Brava", "region": "Spain"},
+        {"name": "French Riviera", "region": "France"},
+        {"name": "Italian Riviera", "region": "Italy"},
+        {"name": "Venetian Lagoon", "region": "Italy"},
+        {"name": "Slovenian Coast", "region": "Slovenia"},
+        {"name": "Croatian Dalmatia", "region": "Croatia"},
+        {"name": "Montenegrin Coast", "region": "Montenegro"},
+        {"name": "Albanian Riviera", "region": "Albania"},
+        {"name": "Greek Coastline", "region": "Greece"},
+        {"name": "Turkish Aegean", "region": "Turkey"},
+        {"name": "Cyprus Island", "region": "Cyprus"}
+      ],
+      "terrainDescription": "Coastal cycling with varied terrain. Some flat sections along beaches, hillier terrain in Croatia and Greece. Hot Mediterranean climate in summer. Mix of dedicated paths and coastal roads.",
+      "practicalInfo": "Avoid peak summer months due to heat and crowds. Spring and autumn ideal for cycling. Ferry crossings available between some sections. Rich culinary experiences throughout.",
       "enabled": true
     },
     {
@@ -236,13 +359,27 @@
         "Ancient Amber Route",
         "Alpine Passages",
         "Spa Towns",
-        "Adriatic Coast"
+        "Adriatic Coast",
+        "Baltic to Mediterranean",
+        "Thermal relaxation stops"
       ],
       "keyCities": ["Gdansk", "Brno", "Vienna", "Ljubljana", "Trieste", "Pula"],
       "unescoSites": 12,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2289_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1555990793-da11153b2473?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev9",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Polish Baltic Coast", "region": "Poland"},
+        {"name": "Silesian Uplands", "region": "Poland/Czechia"},
+        {"name": "Moravian Wine Region", "region": "Czechia"},
+        {"name": "Austrian Vineyards", "region": "Austria"},
+        {"name": "Styrian Alps", "region": "Austria"},
+        {"name": "Slovenian Valleys", "region": "Slovenia"},
+        {"name": "Italian Karst", "region": "Italy"},
+        {"name": "Istrian Peninsula", "region": "Croatia"}
+      ],
+      "terrainDescription": "Varied terrain following historic trade route. Flat Baltic coast, rolling hills through Czechia, Alpine passages, and Mediterranean finish. Good cycling infrastructure throughout.",
+      "practicalInfo": "Historic Amber Route with rich trading heritage. Excellent spa towns for rest days. Well-developed cycling infrastructure in Austria. Shorter than most EuroVelo routes - completable in 2-3 weeks.",
       "enabled": true
     },
     {
@@ -263,13 +400,26 @@
         "Five Capital Cities",
         "Hanseatic Heritage",
         "Thousands of Islands",
-        "Baltic Coastline"
+        "Baltic Coastline",
+        "Saint Petersburg",
+        "Gdansk & Lubeck old towns"
       ],
       "keyCities": ["Copenhagen", "Stockholm", "Helsinki", "Tallinn", "Riga", "Gdansk"],
       "unescoSites": 15,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2290_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1548834925-e48f8a27ae6f?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev10",
       "bestSeason": ["june", "july", "august"],
+      "stages": [
+        {"name": "Gulf of Bothnia", "region": "Sweden"},
+        {"name": "Gulf of Finland", "region": "Finland/Russia"},
+        {"name": "Gulf of Riga & Courland Coast", "region": "Latvia/Lithuania"},
+        {"name": "Curonian Spit & Gulf of Gdansk", "region": "Lithuania/Poland"},
+        {"name": "Southern Coast", "region": "Poland/Germany"},
+        {"name": "Danish Straits", "region": "Denmark"},
+        {"name": "Swedish Coast", "region": "Sweden"}
+      ],
+      "terrainDescription": "Diverse coastal landscapes including beaches, cliffs, woodland, ports and marinas. Thousands of islands large and small. Surface conditions vary by region from well-developed cycling paths to gravel roads.",
+      "practicalInfo": "Summer months offer optimal cycling conditions. Download official GPX tracks before departure. Consult region-specific Bikeline guides for detailed maps. Plan accommodations using cycling service directories.",
       "enabled": true
     },
     {
@@ -290,13 +440,27 @@
         "Six Capital Cities",
         "Nordic to Mediterranean",
         "Eastern European Culture",
-        "Diverse Landscapes"
+        "Diverse Landscapes",
+        "European Heritage Label sites",
+        "Hip Helsinki to ancient Athens"
       ],
       "keyCities": ["North Cape", "Helsinki", "Vilnius", "Warsaw", "Budapest", "Belgrade", "Athens"],
       "unescoSites": 16,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2291_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev11",
       "bestSeason": ["june", "july", "august", "september"],
+      "stages": [
+        {"name": "Arctic Norway", "region": "Norway"},
+        {"name": "Finnish Lakeland", "region": "Finland"},
+        {"name": "Baltic States", "region": "Estonia/Latvia/Lithuania"},
+        {"name": "Polish Plains", "region": "Poland"},
+        {"name": "Carpathian Foothills", "region": "Slovakia"},
+        {"name": "Hungarian Plains", "region": "Hungary"},
+        {"name": "Balkan Mountains", "region": "Serbia/N. Macedonia"},
+        {"name": "Greek Finale", "region": "Greece"}
+      ],
+      "terrainDescription": "Extremely varied terrain from Arctic tundra to Mediterranean coast. Mix of well-developed sections and areas under development. Some challenging unpaved sections in Eastern Europe.",
+      "practicalInfo": "Earned the nickname 'Beast of the East' due to its length and challenging nature. Varying development status along the route. Use EuroVelo Route Planner tool for trip organization. Summer months essential for northern sections.",
       "enabled": true
     },
     {
@@ -317,13 +481,28 @@
         "Norwegian Fjords",
         "Dutch Beaches",
         "Scottish Distilleries",
-        "Orkney & Shetland"
+        "Orkney & Shetland",
+        "Medieval Bruges",
+        "18 UNESCO World Heritage sites"
       ],
       "keyCities": ["Amsterdam", "Hamburg", "Copenhagen", "Gothenburg", "Edinburgh", "Bergen"],
       "unescoSites": 18,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2292_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev12",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Norwegian Coast", "region": "Norway"},
+        {"name": "Swedish Riviera", "region": "Sweden"},
+        {"name": "Danish Paths", "region": "Denmark"},
+        {"name": "German North Sea", "region": "Germany"},
+        {"name": "Dutch Coastline", "region": "Netherlands"},
+        {"name": "Belgian Flanders", "region": "Belgium"},
+        {"name": "French Opal Coast", "region": "France"},
+        {"name": "English & Scottish Coast", "region": "United Kingdom"},
+        {"name": "Northern Isles", "region": "Orkney & Shetland"}
+      ],
+      "terrainDescription": "Dramatic contrasts from land below sea level in Netherlands to 300m cliffs in Norway. Well-maintained Danish cycle paths. Flat Dutch sections and varied terrain along Scottish coast.",
+      "practicalInfo": "Summer months optimal as some ferries operate seasonally only. Check ferry timetables in advance - essential in Norway for fjord crossings. Multiple ferry connections: Sweden-Denmark, Channel crossings. Orkney requires ferries from John o' Groats or Thurso.",
       "enabled": true
     },
     {
@@ -344,13 +523,30 @@
         "Berlin Wall Memorial",
         "Three European Seas",
         "Cold War History",
-        "Cultural Route of Europe"
+        "Cultural Route of Europe",
+        "Podyjí National Park",
+        "Historic wine towns"
       ],
       "keyCities": ["Helsinki", "Tallinn", "Berlin", "Prague", "Vienna", "Budapest", "Bucharest"],
       "unescoSites": 14,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2293_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1560969184-10fe8719e047?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev13",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Arctic Border", "region": "Norway/Finland/Russia"},
+        {"name": "Baltic States", "region": "Estonia/Latvia/Lithuania"},
+        {"name": "Pomeranian Coast", "region": "Poland"},
+        {"name": "German-German Border", "region": "Germany"},
+        {"name": "Bavaria & Bohemia", "region": "Germany/Czechia"},
+        {"name": "Czech-Austrian Border", "region": "Czechia/Austria"},
+        {"name": "Danube Frontier", "region": "Austria/Slovakia/Hungary"},
+        {"name": "Balkan Border", "region": "Slovenia/Croatia/Serbia"},
+        {"name": "Romanian Frontier", "region": "Romania"},
+        {"name": "Bulgarian-Greek Border", "region": "Bulgaria/Greece"},
+        {"name": "Aegean Crossing", "region": "Greece/Turkey"}
+      ],
+      "terrainDescription": "Considerable variety from vineyards in southern Czechia and northern Austria to mountainous Bulgarian-Greek border. Bustling Baltic ports to stark beauty of Lapland. Mix of surfaces varying by region.",
+      "practicalInfo": "A living history lesson tracing Europe's division. Summer months recommended. Bed+Bike accommodations in Austria with secure parking. Train stations every 5km in Austrian sections for flexible travel. Bikeline guides available for detailed planning.",
       "enabled": true
     },
     {
@@ -371,13 +567,27 @@
         "Thermal Spa Towns",
         "Lake Balaton",
         "Vienna to Budapest",
-        "Scenic Waterways"
+        "Scenic Waterways",
+        "Enns & Mur Cycle Paths",
+        "Tauern Cycle Path"
       ],
       "keyCities": ["Vienna", "Graz", "Lake Balaton", "Budapest"],
       "unescoSites": 4,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2294_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev14",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Salzburg Region", "region": "Austria"},
+        {"name": "Enns Cycle Path", "region": "Austria"},
+        {"name": "Mur Cycle Path", "region": "Austria"},
+        {"name": "Tauern Cycle Path", "region": "Austria"},
+        {"name": "Styrian Valleys", "region": "Austria"},
+        {"name": "Thermal Region", "region": "Hungary"},
+        {"name": "Lake Balaton", "region": "Hungary"},
+        {"name": "Budapest Approach", "region": "Hungary"}
+      ],
+      "terrainDescription": "Water-themed geography connecting rivers, lakes and spas. Follows riverside and lake landscapes with varied terrain across central European geography. Generally easy cycling along waterways.",
+      "practicalInfo": "Train stations every 5km in Austrian sections for flexible travel. Certified Bett+Bike accommodations welcome single-night stays with secure bike parking. Excellent train connectivity for weather-based flexibility.",
       "enabled": true
     },
     {
@@ -398,13 +608,26 @@
         "Rhine Falls",
         "Romantic Rhine Castles",
         "Alsatian Vineyards",
-        "Lake Constance"
+        "Lake Constance",
+        "Industrial heritage sites",
+        "Medieval towns"
       ],
       "keyCities": ["Andermatt", "Basel", "Strasbourg", "Mainz", "Cologne", "Rotterdam"],
       "unescoSites": 11,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2295_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1527254553196-ebb13f0cce87?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev15",
       "bestSeason": ["may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Swiss Alps to Lake Constance", "region": "Switzerland"},
+        {"name": "Lake Constance to Basel", "region": "Switzerland/Germany"},
+        {"name": "Basel to Karlsruhe", "region": "France/Germany"},
+        {"name": "Karlsruhe to Bingen", "region": "Germany"},
+        {"name": "Romantic Rhine", "region": "Germany"},
+        {"name": "Cologne to Arnhem", "region": "Germany/Netherlands"},
+        {"name": "Rhine Delta", "region": "Netherlands"}
+      ],
+      "terrainDescription": "Suitable for all fitness levels. Generally follows river valley with well-developed cycling infrastructure. Alpine terrain at source transitioning to flat delta toward the coast. Romantic section features steep hillsides.",
+      "practicalInfo": "Well-connected to public transport services in all countries crossed. Cyclist-friendly accommodations throughout. One-way bike rental services available. Summer months optimal for events and best weather conditions.",
       "enabled": true
     },
     {
@@ -425,13 +648,27 @@
         "Lake Geneva",
         "Provence Lavender",
         "Camargue Wild Horses",
-        "Mediterranean Coast"
+        "Mediterranean Coast",
+        "Alpine start at 2,400m",
+        "ViaRhôna cycling path"
       ],
       "keyCities": ["Andermatt", "Geneva", "Lyon", "Avignon", "Camargue"],
       "unescoSites": 6,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2297_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev17",
       "bestSeason": ["april", "may", "june", "september", "october"],
+      "stages": [
+        {"name": "Alpine Andermatt", "region": "Switzerland"},
+        {"name": "Valais Valley", "region": "Switzerland"},
+        {"name": "Lake Geneva", "region": "Switzerland/France"},
+        {"name": "Rhône Valley", "region": "France"},
+        {"name": "Lyon Region", "region": "France"},
+        {"name": "Provence", "region": "France"},
+        {"name": "Avignon & Camargue", "region": "France"},
+        {"name": "Mediterranean Coast", "region": "France"}
+      ],
+      "terrainDescription": "Varied topography from alpine terrain over 2,400m to sea-level Mediterranean coast. Follows River Rhone throughout. Mix of developed ViaRhôna cycling paths and sections under development.",
+      "practicalInfo": "Shortest EuroVelo route but packs diverse experiences. Alpine start requires good fitness. ViaRhôna platform provides detailed French section information. Bikeline guides available for both Swiss and French sections.",
       "enabled": true
     },
     {
@@ -452,13 +689,26 @@
         "Verdun WWI Sites",
         "French & Belgian Ardennes",
         "Rhine-Meuse Delta",
-        "Medieval Towns"
+        "Medieval Towns",
+        "National parks & biodiversity",
+        "Local folklore traditions"
       ],
       "keyCities": ["Langres", "Verdun", "Namur", "Maastricht", "Rotterdam"],
       "unescoSites": 3,
-      "imageUrl": "https://media.eurovelo.com/images/96/27/2299_orig_cover1920.webp",
+      "imageUrl": "https://images.unsplash.com/photo-1548777123-e216912df7d8?w=1920&q=80",
       "websiteUrl": "https://en.eurovelo.com/ev19",
       "bestSeason": ["april", "may", "june", "july", "august", "september"],
+      "stages": [
+        {"name": "Langres to Verdun", "region": "France"},
+        {"name": "Tracks of WWI", "region": "France"},
+        {"name": "French Ardennes", "region": "France"},
+        {"name": "Belgian Ardennes", "region": "Belgium"},
+        {"name": "Namur to Roermond", "region": "Belgium/Netherlands"},
+        {"name": "Natural Parks", "region": "Netherlands"},
+        {"name": "Rhine-Meuse Delta", "region": "Netherlands"}
+      ],
+      "terrainDescription": "Easy rides suitable for families. Charming riverside cycling through varied landscapes - French forests, Belgian valleys, and Dutch waterways. Gentle terrain throughout.",
+      "practicalInfo": "Welcomes cyclists of all abilities. Spring offers beautiful riverside blossoms. Bikeline guide available with 1:75,000 scale maps. Good public transport integration. WWI historical sites near Verdun provide poignant rest stops.",
       "enabled": true
     }
   ],

@@ -15,13 +15,24 @@ export interface EuroVeloRoute {
   euroVeloId: number;      // 1, 6, 15, etc.
   name: string;
   description: string;
+  fullDescription?: string; // Detailed description from eurovelo.com
   distance: number;        // in km
+  distanceUnit?: string;   // "km" (optional for backwards compatibility)
   countries: string[];
+  countryCount?: number;   // Number of countries
   color: string;           // hex color for map display
   difficulty: 'easy' | 'moderate' | 'difficult';
   surface: string[];
   highlights: string[];
+  keyCities?: string[];    // Major cities along the route
+  unescoSites?: number;    // Number of UNESCO World Heritage sites
+  imageUrl?: string;       // Hero image URL from eurovelo.com
+  websiteUrl?: string;     // Official EuroVelo page URL
+  gpxFile?: string;        // Path to GPX file
   bestSeason: string[];
+  stages?: Array<{ name: string; region: string }>;
+  terrainDescription?: string;
+  practicalInfo?: string;
   enabled: boolean;
 }
 

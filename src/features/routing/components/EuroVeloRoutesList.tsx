@@ -1,44 +1,79 @@
 import React, { memo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ListRenderItem } from 'react-native';
-import { ROUTE_CONFIGS } from '../../routes/services/routeLoader.service';
 import { EuroVeloRoute } from '../../routes/types';
-import { RouteCard } from './RouteCard';
+import { useEuroVeloRoutes } from '../../routes/hooks/useEuroVeloRoutes';
+import { EuroVeloRouteCard } from './EuroVeloRouteCard';
+import { EuroVeloFilterBar } from './EuroVeloFilterBar';
 import { colors, spacing, typography } from '../../../shared/design/tokens';
 
-const ListHeader = memo(function ListHeader() {
-  return (
-    <View>
-      <Text style={styles.title}>EuroVelo Routes</Text>
-      <Text style={styles.subtitle}>
-        {ROUTE_CONFIGS.length} routes available
-      </Text>
-    </View>
-  );
-});
-
-const ListFooter = memo(function ListFooter() {
-  return (
-    <Text style={styles.moreText}>
-      More routes coming soon - all 17 EuroVelo routes planned
-    </Text>
-  );
-});
-
 export const EuroVeloRoutesList = memo(function EuroVeloRoutesList() {
+  const {
+    routes,
+    totalCount,
+    filteredCount,
+    availableCountries,
+    filters,
+    hasActiveFilters,
+    setSearchQuery,
+    toggleDifficulty,
+    setDistanceRange,
+    toggleCountry,
+    clearFilters,
+  } = useEuroVeloRoutes();
+
   const renderItem: ListRenderItem<EuroVeloRoute> = useCallback(
-    ({ item }) => <RouteCard route={item} />,
+    ({ item }) => <EuroVeloRouteCard route={item} />,
     []
   );
 
   const keyExtractor = useCallback((item: EuroVeloRoute) => item.id, []);
 
+  const ListHeader = useCallback(() => (
+    <View>
+      <Text style={styles.title}>EuroVelo Routes</Text>
+      <Text style={styles.subtitle}>
+        Explore {totalCount} iconic cycling routes across Europe
+      </Text>
+      <EuroVeloFilterBar
+        filters={filters}
+        totalCount={totalCount}
+        filteredCount={filteredCount}
+        availableCountries={availableCountries}
+        hasActiveFilters={hasActiveFilters}
+        onSearchChange={setSearchQuery}
+        onToggleDifficulty={toggleDifficulty}
+        onSetDistanceRange={setDistanceRange}
+        onToggleCountry={toggleCountry}
+        onClearFilters={clearFilters}
+      />
+    </View>
+  ), [
+    totalCount,
+    filters,
+    filteredCount,
+    availableCountries,
+    hasActiveFilters,
+    setSearchQuery,
+    toggleDifficulty,
+    setDistanceRange,
+    toggleCountry,
+    clearFilters,
+  ]);
+
+  const ListEmpty = useCallback(() => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No routes match your filters</Text>
+      <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
+    </View>
+  ), []);
+
   return (
     <FlatList
-      data={ROUTE_CONFIGS}
+      data={routes}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       ListHeaderComponent={ListHeader}
-      ListFooterComponent={ListFooter}
+      ListEmptyComponent={ListEmpty}
       scrollEnabled={false}
       removeClippedSubviews
     />
@@ -57,11 +92,18 @@ const styles = StyleSheet.create({
     color: colors.neutral[600],
     marginBottom: spacing.lg,
   },
-  moreText: {
-    textAlign: 'center',
-    color: colors.neutral[400],
-    marginTop: spacing.lg,
-    marginBottom: spacing['3xl'],
-    fontStyle: 'italic',
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing['3xl'],
+  },
+  emptyText: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.neutral[700],
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    fontSize: typography.fontSizes.md,
+    color: colors.neutral[500],
   },
 });

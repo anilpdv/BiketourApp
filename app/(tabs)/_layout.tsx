@@ -38,6 +38,7 @@ export default function TabLayout() {
         name="routes"
         options={{
           title: 'Routes',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="road-variant" size={size} color={color} />
           ),

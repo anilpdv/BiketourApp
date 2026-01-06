@@ -1,13 +1,15 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CustomRouteSummary, RoutePlanningMode } from '../types';
 import { formatDistance } from '../services/routing.service';
-import { colors, spacing, borderRadius, shadows } from '../../../shared/design/tokens';
+import { colors, spacing, borderRadius, shadows, typography } from '../../../shared/design/tokens';
 
-const MODE_ICONS: Record<RoutePlanningMode, string> = {
-  'point-to-point': '🛣️',
-  freeform: '✏️',
-  'modify-existing': '🔧',
+// Mode icon configuration with colors
+const MODE_CONFIG: Record<RoutePlanningMode, { icon: string; color: string; bgColor: string }> = {
+  'point-to-point': { icon: 'road-variant', color: '#1565C0', bgColor: '#E3F2FD' },
+  freeform: { icon: 'pencil', color: '#7B1FA2', bgColor: '#F3E5F5' },
+  'modify-existing': { icon: 'wrench', color: '#E65100', bgColor: '#FFF3E0' },
 };
 
 interface RoutePreviewCardProps {
@@ -25,7 +27,7 @@ function RoutePreviewCardComponent({
   onDelete,
   isSelected = false,
 }: RoutePreviewCardProps) {
-  const modeIcon = MODE_ICONS[route.mode] || '📍';
+  const modeConfig = MODE_CONFIG[route.mode] || MODE_CONFIG['point-to-point'];
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -44,8 +46,12 @@ function RoutePreviewCardComponent({
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.modeIcon}>
-          <Text style={styles.modeIconText}>{modeIcon}</Text>
+        <View style={[styles.modeIcon, { backgroundColor: modeConfig.bgColor }]}>
+          <MaterialCommunityIcons
+            name={modeConfig.icon as any}
+            size={22}
+            color={modeConfig.color}
+          />
         </View>
         <View style={styles.headerText}>
           <Text style={styles.name} numberOfLines={1}>
@@ -62,15 +68,18 @@ function RoutePreviewCardComponent({
       {/* Stats */}
       <View style={styles.stats}>
         <View style={styles.stat}>
+          <MaterialCommunityIcons name="map-marker-distance" size={14} color={colors.neutral[500]} />
           <Text style={styles.statValue}>{formatDistance(route.distance)}</Text>
           <Text style={styles.statLabel}>Distance</Text>
         </View>
         <View style={styles.stat}>
+          <MaterialCommunityIcons name="map-marker-multiple" size={14} color={colors.neutral[500]} />
           <Text style={styles.statValue}>{route.waypointCount}</Text>
           <Text style={styles.statLabel}>Points</Text>
         </View>
         {route.elevationGain !== undefined && (
           <View style={styles.stat}>
+            <MaterialCommunityIcons name="trending-up" size={14} color={colors.neutral[500]} />
             <Text style={styles.statValue}>+{Math.round(route.elevationGain)}m</Text>
             <Text style={styles.statLabel}>Elevation</Text>
           </View>
@@ -79,7 +88,10 @@ function RoutePreviewCardComponent({
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.date}>{formatDate(route.updatedAt)}</Text>
+        <View style={styles.dateContainer}>
+          <MaterialCommunityIcons name="calendar" size={12} color={colors.neutral[400]} />
+          <Text style={styles.date}>{formatDate(route.updatedAt)}</Text>
+        </View>
         <View style={styles.actions}>
           {onExport && (
             <TouchableOpacity
@@ -89,7 +101,7 @@ function RoutePreviewCardComponent({
                 onExport(route);
               }}
             >
-              <Text style={styles.actionIcon}>📤</Text>
+              <MaterialCommunityIcons name="export-variant" size={18} color={colors.neutral[600]} />
             </TouchableOpacity>
           )}
           {onDelete && (
@@ -100,7 +112,7 @@ function RoutePreviewCardComponent({
                 onDelete(route);
               }}
             >
-              <Text style={styles.actionIcon}>🗑️</Text>
+              <MaterialCommunityIcons name="delete-outline" size={18} color={colors.status.error} />
             </TouchableOpacity>
           )}
         </View>
@@ -114,11 +126,16 @@ export const RoutePreviewCard = memo(RoutePreviewCardComponent);
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
+    borderRadius: 18,
     padding: spacing.lg,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.sm,
-    ...shadows.md,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    shadowColor: colors.neutral[900],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   containerSelected: {
     borderWidth: 2,
@@ -133,14 +150,10 @@ const styles = StyleSheet.create({
   modeIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.neutral[50],
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
-  },
-  modeIconText: {
-    fontSize: 22,
   },
   headerText: {
     flex: 1,
@@ -166,17 +179,18 @@ const styles = StyleSheet.create({
   },
   stat: {
     alignItems: 'center',
+    gap: 2,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.bold,
     color: colors.neutral[800],
-    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.neutral[500],
     textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   footer: {
     flexDirection: 'row',
@@ -184,8 +198,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.md,
   },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   date: {
-    fontSize: 12,
+    fontSize: typography.fontSizes.xs,
     color: colors.neutral[500],
   },
   actions: {
@@ -202,8 +221,5 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: colors.status.errorBg,
-  },
-  actionIcon: {
-    fontSize: 16,
   },
 });

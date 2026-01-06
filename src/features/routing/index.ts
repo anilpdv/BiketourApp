@@ -58,6 +58,8 @@ export { RouteInfoPanel } from './components/RouteInfoPanel';
 export { RoutePreviewCard } from './components/RoutePreviewCard';
 export { RouteCard, type RouteConfig } from './components/RouteCard';
 export { EuroVeloRoutesList } from './components/EuroVeloRoutesList';
+export { EuroVeloRouteCard } from './components/EuroVeloRouteCard';
+export { EuroVeloFilterBar } from './components/EuroVeloFilterBar';
 export { MyRoutesList } from './components/MyRoutesList';
 export { SaveRouteDialog } from './components/SaveRouteDialog';
 export type { SaveRouteDialogProps } from './components/SaveRouteDialog';

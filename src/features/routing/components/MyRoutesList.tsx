@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSavedRoutesStore, RoutePreviewCard, CustomRouteSummary } from '../index';
 import { LoadingSpinner, EmptyState, Button } from '../../../shared/components';
 import { colors, spacing, typography } from '../../../shared/design/tokens';
@@ -78,18 +79,20 @@ export function MyRoutesList() {
           onPress={handleImport}
           variant="primary"
           size="sm"
-          icon={<Text style={styles.importButtonIcon}>📥</Text>}
+          icon={<MaterialCommunityIcons name="import" size={16} color="#fff" />}
         />
       </View>
 
       {isLoading ? (
         <LoadingSpinner message="Loading routes..." />
       ) : savedRoutes.length === 0 ? (
-        <EmptyState
-          icon="🗺️"
-          title="No saved routes yet"
-          subtitle="Create a route on the map or import a GPX file"
-        />
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconContainer}>
+            <MaterialCommunityIcons name="map-marker-path" size={48} color={colors.neutral[400]} />
+          </View>
+          <Text style={styles.emptyTitle}>No saved routes yet</Text>
+          <Text style={styles.emptySubtitle}>Create a route on the map or import a GPX file</Text>
+        </View>
       ) : (
         savedRoutes.map((route) => (
           <RoutePreviewCard
@@ -126,8 +129,31 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.lg,
     color: colors.neutral[600],
   },
-  importButtonIcon: {
-    fontSize: 16,
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing['3xl'],
+    paddingHorizontal: spacing.lg,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.neutral[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.neutral[700],
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: typography.fontSizes.md,
+    color: colors.neutral[500],
+    textAlign: 'center',
   },
   errorText: {
     color: colors.status.error,
