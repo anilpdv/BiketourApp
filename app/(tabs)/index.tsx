@@ -45,6 +45,9 @@ import { MapHeader } from '../../src/features/map/components/MapHeader';
 import { FilterChipsBar } from '../../src/features/map/components/FilterChipsBar';
 import { MapControlsBottom } from '../../src/features/map/components/MapControlsBottom';
 
+// Settling detection constants
+const SETTLE_TIMEOUT_MS = 5000; // Wait 5 seconds of no movement before prompting
+
 export default function MapScreen() {
   const poiDetailSheetRef = useRef<POIDetailSheetRef>(null);
   const mapRef = useRef<MapViewRef>(null);
@@ -53,6 +56,11 @@ export default function MapScreen() {
   const [isListView, setIsListView] = useState(false);
   const [showRoutesModal, setShowRoutesModal] = useState(false);
   const [mapCenter, setMapCenter] = useState<{lat: number; lon: number} | null>(null);
+
+  // Settling detection refs - prevent popup spam during navigation
+  const lastMoveTimeRef = useRef<number>(Date.now());
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPromptedRegionRef = useRef<string | null>(null);
 
   // Filter store for advanced filtering
   const {
@@ -211,54 +219,52 @@ export default function MapScreen() {
     }
   }, [downloadCompletedRegion, showPOIs, togglePOIs, clearDownloadCompletedRegion, flyTo]);
 
-  // Auto-prompt for POI download when viewing new region
-  // Uses map viewport center (where user is looking), not GPS location
+  // Auto-prompt for POI download when user has SETTLED in a new region
+  // Uses settling detection: only prompt after 5+ seconds of no movement
+  // Prevents popup spam during navigation
   useEffect(() => {
     if (!mapCenter) return;
 
-    let timer: ReturnType<typeof setTimeout>;
-    let isCancelled = false;
+    // Clear any pending settle check when user moves again
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+    }
 
-    const checkAndPrompt = async () => {
-      // Delay to let user settle in the area first
-      timer = setTimeout(async () => {
-        if (isCancelled) return;
+    // Wait for user to settle (5 seconds after last movement)
+    settleTimerRef.current = setTimeout(async () => {
+      // Double-check user hasn't moved since timer started
+      const timeSinceLastMove = Date.now() - lastMoveTimeRef.current;
+      if (timeSinceLastMove < SETTLE_TIMEOUT_MS) {
+        // User moved during the wait - skip this check
+        return;
+      }
 
-        // Don't show download prompt if another modal is already open
-        if (isFiltersModalVisible || showStylePicker || showRoutesModal || isDownloading) {
-          return;
-        }
+      // Don't show download prompt if another modal is already open
+      if (isFiltersModalVisible || showStylePicker || showRoutesModal || isDownloading) {
+        return;
+      }
 
-        const result = await checkShouldPromptForRegion(
-          mapCenter.lat,
-          mapCenter.lon
-        );
+      const result = await checkShouldPromptForRegion(
+        mapCenter.lat,
+        mapCenter.lon
+      );
 
-        // DEBUG: Track prompt state flow
-        console.log('[DEBUG] Region check result:', {
-          shouldPrompt: result.shouldPrompt,
-          region: result.region?.displayName,
-          showDownloadPrompt,
-        });
+      // Don't re-prompt for the same region in this session
+      if (result.region && lastPromptedRegionRef.current === result.region.displayName) {
+        return;
+      }
 
-        if (result.shouldPrompt && result.region) {
-          console.log('[DEBUG] Calling showRegionDownloadPrompt for:', result.region.displayName);
-          // Show region-based download prompt
-          showRegionDownloadPrompt(result.region);
-        } else {
-          console.log('[DEBUG] NOT showing prompt. Reason:', {
-            hasShouldPrompt: result.shouldPrompt,
-            hasRegion: !!result.region,
-          });
-        }
-      }, 2000); // 2 second delay before checking region
-    };
-
-    checkAndPrompt();
+      if (result.shouldPrompt && result.region) {
+        // Remember this region so we don't re-prompt
+        lastPromptedRegionRef.current = result.region.displayName;
+        showRegionDownloadPrompt(result.region);
+      }
+    }, SETTLE_TIMEOUT_MS);
 
     return () => {
-      isCancelled = true;
-      if (timer) clearTimeout(timer);
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+      }
     };
   }, [mapCenter?.lat, mapCenter?.lon, checkShouldPromptForRegion, showRegionDownloadPrompt, isFiltersModalVisible, showStylePicker, showRoutesModal, isDownloading]);
 
@@ -296,8 +302,18 @@ export default function MapScreen() {
     [] // Empty deps = stable reference, won't reset timer
   );
 
-  // Handle camera changes with POI loading
+  // Lightweight handler for during gestures - minimal work only
+  // This prevents JavaScript from blocking the native animation thread
+  // All state updates happen in onRegionDidChange when gesture ends
+  const handleCameraChanging = useCallback((_state: any) => {
+    // Only track movement time - very cheap, no React state updates
+    // This is used by settling detection to know when user stopped moving
+    lastMoveTimeRef.current = Date.now();
+  }, []);
+
+  // Handle camera changes with POI loading - only called when gesture ENDS
   const handleCameraChanged = useCallback((state: any) => {
+    // Update zoom/bounds state only when gesture ends (not during)
     baseCameraChanged(state);
 
     if (!state.properties.visibleBounds) return;
@@ -552,6 +568,7 @@ export default function MapScreen() {
         pitchEnabled
         attributionEnabled
         logoEnabled
+        onRegionIsChanging={handleCameraChanging}
         onRegionDidChange={handleCameraChanged}
         onPress={handleMapPress}
       >
