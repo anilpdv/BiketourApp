@@ -29,20 +29,22 @@ interface MarkerGeneratorProps {
  * and cluster count images. Renders once, captures images, then unmounts
  */
 export function MarkerImageGenerator({ onImagesGenerated }: MarkerGeneratorProps) {
-  const viewShotRefs = useRef<Record<string, ViewShot | null>>({});
+  // Use Map instead of object to avoid Reanimated "tried to modify key" warnings
+  // Maps are designed for dynamic key mutations, objects trigger warnings when serialized
+  const viewShotRefs = useRef<Map<string, ViewShot | null>>(new Map());
   const [capturedCount, setCapturedCount] = useState(0);
-  const imagesRef = useRef<MarkerImagesMap>({});
+  const imagesRef = useRef<Map<string, { uri: string }>>(new Map());
   const groups = Object.keys(CATEGORY_GROUP_COLORS) as POIGroupKey[];
 
   // Total images to generate: groups + cluster counts
   const totalImages = groups.length + CLUSTER_COUNTS.length;
 
   const captureImage = useCallback(async (key: string) => {
-    const ref = viewShotRefs.current[key];
+    const ref = viewShotRefs.current.get(key);
     if (ref && ref.capture) {
       try {
         const uri = await ref.capture();
-        imagesRef.current[key] = { uri };
+        imagesRef.current.set(key, { uri });
         setCapturedCount(prev => prev + 1);
       } catch (error) {
         console.warn(`[MarkerGen] Failed to capture ${key}:`, error);
@@ -65,8 +67,13 @@ export function MarkerImageGenerator({ onImagesGenerated }: MarkerGeneratorProps
   useEffect(() => {
     // When all captures are done, notify parent
     if (capturedCount === totalImages) {
-      console.log('[MarkerGen] All images generated:', Object.keys(imagesRef.current).length);
-      onImagesGenerated(imagesRef.current);
+      // Convert Map to object for consumers
+      const imagesObject: MarkerImagesMap = {};
+      imagesRef.current.forEach((value, key) => {
+        imagesObject[key] = value;
+      });
+      console.log('[MarkerGen] All images generated:', imagesRef.current.size);
+      onImagesGenerated(imagesObject);
     }
   }, [capturedCount, totalImages, onImagesGenerated]);
 
@@ -76,7 +83,7 @@ export function MarkerImageGenerator({ onImagesGenerated }: MarkerGeneratorProps
       {groups.map(group => (
         <ViewShot
           key={`marker-${group}`}
-          ref={ref => { viewShotRefs.current[`marker-${group}`] = ref; }}
+          ref={ref => { viewShotRefs.current.set(`marker-${group}`, ref); }}
           options={{ format: 'png', quality: 1, result: 'data-uri' }}
           style={styles.markerShot}
         >
@@ -97,7 +104,7 @@ export function MarkerImageGenerator({ onImagesGenerated }: MarkerGeneratorProps
       {CLUSTER_COUNTS.map(count => (
         <ViewShot
           key={`cluster-${count}`}
-          ref={ref => { viewShotRefs.current[`cluster-${count}`] = ref; }}
+          ref={ref => { viewShotRefs.current.set(`cluster-${count}`, ref); }}
           options={{ format: 'png', quality: 1, result: 'data-uri' }}
           style={styles.clusterShot}
         >

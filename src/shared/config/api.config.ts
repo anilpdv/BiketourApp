@@ -18,7 +18,8 @@ export const API_CONFIG = {
   },
 
   routing: {
-    baseUrl: 'https://router.project-osrm.org',
+    baseUrl: 'https://router.project-osrm.org',           // For driving/foot
+    cyclingUrl: 'https://routing.openstreetmap.de/routed-bike',  // For cycling (FREE, no API key)
     timeout: 15000,
     rateLimit: 500, // Be conservative with demo server
   },

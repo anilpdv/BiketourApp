@@ -1,14 +1,40 @@
 import { Coordinate, CalculatedRoute, Waypoint, RouteInstruction, RoutingProfile, RoutingProvider } from '../types';
 import { httpGet } from '../../../shared/api';
 import { API_CONFIG } from '../../../shared/config';
-import { getAccessToken } from '../../../shared/config/mapbox.config';
 import { logger, formatDistance, formatDuration, calculateDistanceMeters } from '../../../shared/utils';
 
-// OSRM API base URL from centralized config
+// OSRM API base URLs from centralized config
 const OSRM_API = API_CONFIG.routing.baseUrl;
+const OSRM_BIKE_API = API_CONFIG.routing.cyclingUrl;
 
-// OSRM profile type (subset of RoutingProfile)
-type OSRMProfile = 'driving' | 'foot';
+// OSRM profile type
+type OSRMProfile = 'driving' | 'foot' | 'bike';
+
+/**
+ * Get the appropriate OSRM base URL for a given profile
+ */
+function getOSRMBaseUrl(profile: RoutingProfile): string {
+  if (profile === 'cycling') {
+    return OSRM_BIKE_API;
+  }
+  return OSRM_API;
+}
+
+/**
+ * Get the OSRM profile name for a given routing profile
+ */
+function getOSRMProfileName(profile: RoutingProfile): string {
+  switch (profile) {
+    case 'cycling':
+      return 'bike';
+    case 'driving':
+      return 'driving';
+    case 'foot':
+      return 'foot';
+    default:
+      return 'bike';
+  }
+}
 
 interface RoutingOptions {
   profile?: RoutingProfile;
@@ -98,94 +124,24 @@ interface MapboxWaypoint {
 }
 
 /**
- * Calculate a cycling route using Mapbox Directions API
+ * Calculate a cycling route using OSRM bike server (FREE, no API key required)
+ * Uses https://routing.openstreetmap.de/routed-bike/ which has the same API as OSRM
  */
 export async function calculateCyclingRoute(
   waypoints: Coordinate[],
   options: { alternatives?: boolean; steps?: boolean } = {}
 ): Promise<CalculatedRoute> {
-  if (waypoints.length < 2) {
-    throw new Error('At least 2 waypoints required');
-  }
-
-  const coords = waypoints
-    .map((wp) => `${wp.longitude},${wp.latitude}`)
-    .join(';');
-
-  const params = new URLSearchParams({
-    geometries: 'geojson',
-    overview: 'full',
-    steps: String(options.steps ?? true),
-    alternatives: String(options.alternatives ?? false),
-    access_token: getAccessToken(),
+  // Delegate to OSRM route calculation with cycling profile
+  return calculateOSRMRoute(waypoints, {
+    profile: 'cycling',
+    alternatives: options.alternatives,
+    steps: options.steps,
   });
-
-  const url = `https://api.mapbox.com/directions/v5/mapbox/cycling/${coords}?${params}`;
-
-  try {
-    const data = await httpGet<MapboxDirectionsResponse>(url, {
-      timeout: 15000,
-    });
-
-    if (data.code !== 'Ok') {
-      throw new Error(`Mapbox routing failed: ${data.code}`);
-    }
-
-    if (!data.routes || data.routes.length === 0) {
-      throw new Error('No cycling route found');
-    }
-
-    const route = data.routes[0];
-
-    // Convert geometry to our format
-    const geometry: Coordinate[] = route.geometry.coordinates.map(
-      ([lon, lat]) => ({
-        latitude: lat,
-        longitude: lon,
-      })
-    );
-
-    // Convert waypoints to our format
-    const resultWaypoints: Waypoint[] = data.waypoints.map((wp, index) => ({
-      id: `wp-${index}`,
-      latitude: wp.location[1],
-      longitude: wp.location[0],
-      name: wp.name || undefined,
-      type: index === 0 ? 'start' : index === data.waypoints.length - 1 ? 'end' : 'via',
-      order: index,
-    }));
-
-    // Convert instructions
-    const instructions: RouteInstruction[] = [];
-    for (const leg of route.legs) {
-      if (leg.steps) {
-        for (const step of leg.steps) {
-          instructions.push({
-            type: step.maneuver.type,
-            text: step.maneuver.instruction || step.name || step.maneuver.type,
-            distance: step.distance,
-            duration: step.duration,
-            modifier: step.maneuver.modifier,
-          });
-        }
-      }
-    }
-
-    return {
-      waypoints: resultWaypoints,
-      geometry,
-      distance: route.distance,
-      duration: route.duration,
-      instructions: instructions.length > 0 ? instructions : undefined,
-    };
-  } catch (error) {
-    logger.error('api', 'Mapbox cycling routing error', error);
-    throw error;
-  }
 }
 
 /**
- * Calculate a route using OSRM (for driving/foot profiles)
+ * Calculate a route using OSRM (supports cycling, driving, foot profiles)
+ * Cycling uses a dedicated bike server, others use the main OSRM server
  */
 export async function calculateOSRMRoute(
   waypoints: Coordinate[],
@@ -195,7 +151,10 @@ export async function calculateOSRMRoute(
     throw new Error('At least 2 waypoints required');
   }
 
-  const profile = options.profile || 'driving';
+  const profile = options.profile || 'cycling';
+  const baseUrl = getOSRMBaseUrl(profile);
+  const osrmProfile = getOSRMProfileName(profile);
+
   const coords = waypoints
     .map((wp) => `${wp.longitude},${wp.latitude}`)
     .join(';');
@@ -207,7 +166,7 @@ export async function calculateOSRMRoute(
     geometries: 'geojson',
   });
 
-  const url = `${OSRM_API}/${profile}/${coords}?${params}`;
+  const url = `${baseUrl}/route/v1/${osrmProfile}/${coords}?${params}`;
 
   try {
     const data = await httpGet<OSRMResponse>(url, {
@@ -272,27 +231,20 @@ export async function calculateOSRMRoute(
 }
 
 /**
- * Unified route calculation - routes to Mapbox for cycling, OSRM for others
+ * Unified route calculation - all profiles now use OSRM (different servers)
+ * Cycling uses the dedicated OSRM bike server (free, no API key)
+ * Driving/foot use the main OSRM demo server
  */
 export async function calculateRoute(
   waypoints: Coordinate[],
   options: RoutingOptions = {}
 ): Promise<CalculatedRoute> {
   const profile = options.profile || 'cycling';
-  const provider = options.provider || (profile === 'cycling' ? 'mapbox' : 'osrm');
 
-  if (provider === 'mapbox' && profile === 'cycling') {
-    return calculateCyclingRoute(waypoints, {
-      alternatives: options.alternatives,
-      steps: options.steps,
-    });
-  }
-
-  // For non-cycling profiles, use OSRM
-  const osrmProfile: OSRMProfile = profile === 'cycling' ? 'driving' : (profile as OSRMProfile);
+  // All profiles now use OSRM - cycling gets routed to the bike server automatically
   return calculateOSRMRoute(waypoints, {
     ...options,
-    profile: osrmProfile as RoutingProfile,
+    profile,
   });
 }
 
