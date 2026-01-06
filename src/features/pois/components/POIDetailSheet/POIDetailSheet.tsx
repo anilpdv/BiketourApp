@@ -21,6 +21,7 @@ import { colors } from '../../../../shared/design/tokens';
 export interface POIDetailSheetRef {
   present: (poi: POI) => void;
   dismiss: () => void;
+  isOpen: () => boolean;
 }
 
 export interface POIDetailSheetProps {
@@ -47,7 +48,8 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
         setPOI(null);
         onClose?.();
       },
-    }));
+      isOpen: () => visible,
+    }), [visible, onClose]);
 
     const handleClose = useCallback(() => {
       setVisible(false);

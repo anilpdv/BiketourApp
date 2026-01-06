@@ -240,7 +240,13 @@ export default function MapScreen() {
       }
 
       // Don't show download prompt if another modal is already open
-      if (isFiltersModalVisible || showStylePicker || showRoutesModal || isDownloading) {
+      if (
+        isFiltersModalVisible ||
+        showStylePicker ||
+        showRoutesModal ||
+        isDownloading ||
+        poiDetailSheetRef.current?.isOpen()
+      ) {
         return;
       }
 
