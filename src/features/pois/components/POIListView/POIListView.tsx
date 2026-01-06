@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POIListCard } from './POIListCard';
+import { SortDropdown, SortOption } from './SortDropdown';
 import { POI } from '../../types';
 import {
   colors,
@@ -24,6 +25,8 @@ interface POIListViewProps {
   favoriteIds: Set<string>;
   isLoading: boolean;
   onRefresh: () => void;
+  sortBy?: SortOption;
+  onSortChange?: (sortBy: SortOption) => void;
 }
 
 /**
@@ -46,14 +49,23 @@ function EmptyState() {
 }
 
 /**
- * List header with count
+ * List header with count and sort dropdown
  */
-function ListHeader({ count }: { count: number }) {
+function ListHeader({
+  count,
+  sortBy,
+  onSortChange,
+}: {
+  count: number;
+  sortBy: SortOption;
+  onSortChange: (sortBy: SortOption) => void;
+}) {
   return (
     <View style={styles.header}>
       <Text style={styles.countText}>
         <Text style={styles.countNumber}>{count}</Text> locations
       </Text>
+      <SortDropdown value={sortBy} onChange={onSortChange} />
     </View>
   );
 }
@@ -66,6 +78,8 @@ export const POIListView = memo(function POIListView({
   favoriteIds,
   isLoading,
   onRefresh,
+  sortBy = 'relevance',
+  onSortChange,
 }: POIListViewProps) {
   const renderItem: ListRenderItem<POI> = useCallback(
     ({ item }) => (
@@ -82,9 +96,22 @@ export const POIListView = memo(function POIListView({
 
   const keyExtractor = useCallback((item: POI) => item.id, []);
 
+  const handleSortChange = useCallback(
+    (newSortBy: SortOption) => {
+      onSortChange?.(newSortBy);
+    },
+    [onSortChange]
+  );
+
   const ListHeaderComponent = useCallback(
-    () => <ListHeader count={pois.length} />,
-    [pois.length]
+    () => (
+      <ListHeader
+        count={pois.length}
+        sortBy={sortBy}
+        onSortChange={handleSortChange}
+      />
+    ),
+    [pois.length, sortBy, handleSortChange]
   );
 
   return (
@@ -111,8 +138,8 @@ export const POIListView = memo(function POIListView({
         windowSize={10}
         initialNumToRender={10}
         getItemLayout={(_, index) => ({
-          length: 156, // card height + margin
-          offset: 156 * index + 60, // header height
+          length: 166, // card height (150) + margin (16)
+          offset: 166 * index + 52, // header height
           index,
         })}
       />
@@ -124,7 +151,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutral[50],
-    marginTop: 150, // Below header and filter chips
   },
   listContent: {
     paddingBottom: spacing['4xl'],
@@ -141,7 +167,7 @@ const styles = StyleSheet.create({
     color: colors.neutral[600],
   },
   countNumber: {
-    color: colors.secondary[600],
+    color: colors.primary[600],
     fontWeight: typography.fontWeights.semibold,
   },
   emptyContainer: {

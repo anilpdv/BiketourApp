@@ -1,9 +1,11 @@
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { getCategoryIcon, CATEGORY_NAMES } from '../../config/poiIcons';
 import { getPOIContactInfo } from '../../utils/poiTagParser';
+import { parseOpeningHours } from '../../utils/openingHoursParser';
 import {
   colors,
   spacing,
@@ -30,6 +32,14 @@ function formatDistance(distanceKm: number): string {
   return `${distanceKm.toFixed(2)} km`;
 }
 
+/**
+ * Format location string from contact info
+ */
+function formatLocation(contactInfo: { city?: string; country?: string }): string | null {
+  const parts = [contactInfo.city, contactInfo.country].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : null;
+}
+
 export const POIListCard = memo(function POIListCard({
   poi,
   distance,
@@ -46,12 +56,14 @@ export const POIListCard = memo(function POIListCard({
   // Get price info
   const price = poi.tags?.fee;
 
-  // Get facilities info
-  const facilities: string[] = [];
-  if (poi.tags?.capacity) facilities.push(`Capacity: ${poi.tags.capacity}`);
-  if (poi.tags?.internet_access === 'yes' || poi.tags?.wifi === 'yes')
-    facilities.push('WiFi');
-  if (poi.tags?.power_supply === 'yes') facilities.push('Power');
+  // Get capacity
+  const capacity = poi.tags?.capacity;
+
+  // Get opening hours status
+  const openingHours = parseOpeningHours(poi.tags?.opening_hours);
+
+  // Format location (city, country)
+  const location = formatLocation(contactInfo) || CATEGORY_NAMES[poi.category];
 
   return (
     <TouchableOpacity
@@ -61,21 +73,20 @@ export const POIListCard = memo(function POIListCard({
       accessibilityRole="button"
       accessibilityLabel={`${poi.name || CATEGORY_NAMES[poi.category]}${distance ? `, ${formatDistance(distance)} away` : ''}`}
     >
-      {/* Image section */}
+      {/* Image section with gradient */}
       <View style={styles.imageContainer}>
-        {/* Placeholder image with category icon */}
-        <View
-          style={[
-            styles.imagePlaceholder,
-            { backgroundColor: categoryConfig.color + '20' },
-          ]}
+        <LinearGradient
+          colors={[categoryConfig.color + '15', categoryConfig.color + '45']}
+          style={styles.imagePlaceholder}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
         >
           <MaterialCommunityIcons
             name={categoryConfig.vectorIcon as any}
-            size={40}
+            size={48}
             color={categoryConfig.color}
           />
-        </View>
+        </LinearGradient>
 
         {/* Favorite button */}
         <TouchableOpacity
@@ -92,7 +103,7 @@ export const POIListCard = memo(function POIListCard({
         >
           <MaterialCommunityIcons
             name={isFavorite ? 'heart' : 'heart-outline'}
-            size={24}
+            size={22}
             color={isFavorite ? colors.status.favorite : colors.neutral[0]}
           />
         </TouchableOpacity>
@@ -105,40 +116,57 @@ export const POIListCard = memo(function POIListCard({
           {poi.name || CATEGORY_NAMES[poi.category]}
         </Text>
 
-        {/* Location / Category */}
+        {/* Location (city, country) */}
         <Text style={styles.location} numberOfLines={1}>
-          {contactInfo.address || CATEGORY_NAMES[poi.category]}
+          {location}
         </Text>
 
-        {/* Rating badge */}
-        {rating && (
-          <View style={styles.ratingContainer}>
+        {/* Rating and capacity row */}
+        <View style={styles.infoRow}>
+          {/* Rating badge - GREEN */}
+          {rating && (
             <View style={styles.ratingBadge}>
               <MaterialCommunityIcons
                 name="star"
-                size={14}
+                size={12}
                 color={colors.neutral[0]}
               />
               <Text style={styles.ratingText}>{rating}</Text>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* Facilities row */}
-        {facilities.length > 0 && (
-          <View style={styles.facilitiesRow}>
-            {facilities.slice(0, 3).map((facility, index) => (
-              <Text key={index} style={styles.facilityText}>
-                {facility}
-                {index < facilities.length - 1 ? ' · ' : ''}
-              </Text>
-            ))}
-          </View>
+          {/* Capacity with icon */}
+          {capacity && (
+            <View style={styles.capacityContainer}>
+              <MaterialCommunityIcons
+                name="tent"
+                size={14}
+                color={colors.neutral[500]}
+              />
+              <Text style={styles.capacityText}>{capacity}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Opening hours status */}
+        {openingHours && (
+          <Text
+            style={[
+              styles.openStatus,
+              openingHours.isOpen ? styles.openStatusOpen : styles.openStatusClosed,
+            ]}
+          >
+            {openingHours.isOpen ? 'Open today' : 'Closed'}
+          </Text>
         )}
 
         {/* Bottom row: price and distance */}
         <View style={styles.bottomRow}>
-          {price && <Text style={styles.price}>{price}</Text>}
+          {price ? (
+            <Text style={styles.price}>{price}</Text>
+          ) : (
+            <View />
+          )}
           {distance !== undefined && (
             <Text style={styles.distance}>{formatDistance(distance)}</Text>
           )}
@@ -159,8 +187,8 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   imageContainer: {
-    width: 120,
-    height: 140,
+    width: 130,
+    height: 150,
     position: 'relative',
   },
   imagePlaceholder: {
@@ -169,64 +197,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
   favoriteButton: {
     position: 'absolute',
     top: spacing.sm,
     left: spacing.sm,
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   content: {
     flex: 1,
     padding: spacing.md,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   name: {
-    fontSize: typography.fontSizes.xl,
+    fontSize: typography.fontSizes['2xl'],
     fontWeight: typography.fontWeights.semibold,
     color: colors.neutral[900],
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   location: {
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.lg,
     color: colors.neutral[500],
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
-  ratingContainer: {
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
     marginBottom: spacing.xs,
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.secondary[600],
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 3,
     borderRadius: borderRadius.sm,
-    gap: 2,
+    gap: 3,
   },
   ratingText: {
     fontSize: typography.fontSizes.md,
     fontWeight: typography.fontWeights.bold,
     color: colors.neutral[0],
   },
-  facilitiesRow: {
+  capacityContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+  },
+  capacityText: {
+    fontSize: typography.fontSizes.md,
+    color: colors.neutral[600],
+  },
+  openStatus: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.medium,
     marginBottom: spacing.xs,
   },
-  facilityText: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.secondary[600],
+  openStatusOpen: {
+    color: colors.primary[600],
+  },
+  openStatusClosed: {
+    color: colors.status.error,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -240,7 +276,7 @@ const styles = StyleSheet.create({
     color: colors.neutral[900],
   },
   distance: {
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.lg,
     color: colors.neutral[500],
   },
 });

@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { QuickFilterChip } from './QuickFilterChip';
@@ -17,6 +17,8 @@ interface FilterChipsBarProps {
   activeFilterCount: number;
   quickFilters: QuickFilter[];
   onToggleQuickFilter: (filterId: string) => void;
+  containerStyle?: ViewStyle;
+  useAbsolutePosition?: boolean;
 }
 
 export const FilterChipsBar = memo(function FilterChipsBar({
@@ -24,12 +26,18 @@ export const FilterChipsBar = memo(function FilterChipsBar({
   activeFilterCount,
   quickFilters,
   onToggleQuickFilter,
+  containerStyle,
+  useAbsolutePosition = true,
 }: FilterChipsBarProps) {
   const insets = useSafeAreaInsets();
   const topPosition = insets.top + 60; // Safe area + header height (48) + padding
 
+  const containerStyles = useAbsolutePosition
+    ? [styles.container, { top: topPosition }, containerStyle]
+    : [styles.containerRelative, containerStyle];
+
   return (
-    <View style={[styles.container, { top: topPosition }]}>
+    <View style={containerStyles}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -80,6 +88,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 9,
+  },
+  containerRelative: {
+    position: 'relative',
   },
   scrollContent: {
     paddingHorizontal: spacing.lg,

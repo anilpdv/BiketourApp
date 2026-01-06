@@ -7,7 +7,7 @@ import { MAP_STYLES } from '../../src/shared/config/mapbox.config';
 import { getAvailableRouteIds, ROUTE_CONFIGS } from '../../src/features/routes/services/routeLoader.service';
 import { POIDetailSheet, POIDetailSheetRef, usePOIStore } from '../../src/features/pois';
 import { FiltersModal } from '../../src/features/pois/components/FiltersModal';
-import { POIListView } from '../../src/features/pois/components/POIListView';
+import { POIListView, POIListHeader, SortOption } from '../../src/features/pois/components/POIListView';
 import { useFilterStore } from '../../src/features/pois/store/filterStore';
 import { usePOIDownloadStore } from '../../src/features/offline/store/poiDownloadStore';
 import { debugDatabasePOIs } from '../../src/features/offline/services/poiDownload.service';
@@ -57,6 +57,7 @@ export default function MapScreen() {
   const [isListView, setIsListView] = useState(false);
   const [showRoutesModal, setShowRoutesModal] = useState(false);
   const [mapCenter, setMapCenter] = useState<{lat: number; lon: number} | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('relevance');
 
   // Settling detection refs - prevent popup spam during navigation
   const lastMoveTimeRef = useRef<number>(Date.now());
@@ -154,6 +155,32 @@ export default function MapScreen() {
     updateViewportBounds,
     selectPOI,
   } = usePOIDisplay(location, enabledRoutes);
+
+  // Sort POIs based on sortBy
+  const sortedPOIs = useMemo(() => {
+    const sorted = [...filteredPOIs];
+    switch (sortBy) {
+      case 'distance':
+        return sorted.sort(
+          (a, b) => (a.distanceFromUser ?? Infinity) - (b.distanceFromUser ?? Infinity)
+        );
+      case 'rating':
+        return sorted.sort((a, b) => {
+          const ratingA = parseFloat(a.tags?.rating || a.tags?.stars || '0');
+          const ratingB = parseFloat(b.tags?.rating || b.tags?.stars || '0');
+          return ratingB - ratingA;
+        });
+      case 'price':
+        // Lower price first
+        return sorted.sort((a, b) => {
+          const priceA = parseFloat(a.tags?.fee?.match(/\d+/)?.[0] || '9999');
+          const priceB = parseFloat(b.tags?.fee?.match(/\d+/)?.[0] || '9999');
+          return priceA - priceB;
+        });
+      default:
+        return sorted; // relevance = default order
+    }
+  }, [filteredPOIs, sortBy]);
 
   // Diagnostic logging for POI rendering state
   useEffect(() => {
@@ -487,6 +514,11 @@ export default function MapScreen() {
     setIsListView((prev) => !prev);
   }, []);
 
+  // Handle sort change
+  const handleSortChange = useCallback((newSortBy: SortOption) => {
+    setSortBy(newSortBy);
+  }, []);
+
   // Handle zoom in
   const handleZoomIn = useCallback(() => {
     if (cameraRef.current) {
@@ -676,13 +708,15 @@ export default function MapScreen() {
         )) : <></>}
       </MapView>
 
-      {/* Map Header with Search and List Toggle */}
-      <MapHeader
-        isListView={isListView}
-        onToggleView={handleToggleView}
-        onSearchFocus={() => setIsSearchFocused(true)}
-        onSearchBlur={() => setIsSearchFocused(false)}
-      />
+      {/* Map Header with Search and List Toggle - hide in list view */}
+      {!isListView && (
+        <MapHeader
+          isListView={isListView}
+          onToggleView={handleToggleView}
+          onSearchFocus={() => setIsSearchFocused(true)}
+          onSearchBlur={() => setIsSearchFocused(false)}
+        />
+      )}
 
       {/* Search Results (when focused) */}
       {isSearchFocused && (
@@ -691,13 +725,15 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Filter Chips Bar */}
-      <FilterChipsBar
-        onOpenFilters={openFiltersModal}
-        activeFilterCount={getActiveFilterCount()}
-        quickFilters={getQuickFiltersWithCounts(poiCounts)}
-        onToggleQuickFilter={handleToggleQuickFilter}
-      />
+      {/* Filter Chips Bar - hide in list view */}
+      {!isListView && (
+        <FilterChipsBar
+          onOpenFilters={openFiltersModal}
+          activeFilterCount={getActiveFilterCount()}
+          quickFilters={getQuickFiltersWithCounts(poiCounts)}
+          onToggleQuickFilter={handleToggleQuickFilter}
+        />
+      )}
 
       {/* EuroVelo Routes Button */}
       <EuroVeloRoutesButton
@@ -812,24 +848,37 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* POI List View - shown when in list mode */}
+      {/* POI List View - Full screen with header when in list mode */}
       {isListView && (
-        <POIListView
-          pois={filteredPOIs}
-          userLocation={
-            location
-              ? {
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                }
-              : null
-          }
-          onSelectPOI={handleSelectPOIFromList}
-          onToggleFavorite={handleToggleFavoriteFromList}
-          favoriteIds={favoriteIds}
-          isLoading={poisLoading}
-          onRefresh={handleRefreshPOIs}
-        />
+        <View style={styles.listViewContainer}>
+          <POIListHeader
+            onToggleToMap={handleToggleView}
+            onOpenFilters={openFiltersModal}
+            activeFilterCount={getActiveFilterCount()}
+            quickFilters={getQuickFiltersWithCounts(poiCounts)}
+            onToggleQuickFilter={handleToggleQuickFilter}
+            onSearchFocus={() => setIsSearchFocused(true)}
+            onSearchBlur={() => setIsSearchFocused(false)}
+          />
+          <POIListView
+            pois={sortedPOIs}
+            userLocation={
+              location
+                ? {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                  }
+                : null
+            }
+            onSelectPOI={handleSelectPOIFromList}
+            onToggleFavorite={handleToggleFavoriteFromList}
+            favoriteIds={favoriteIds}
+            isLoading={poisLoading}
+            onRefresh={handleRefreshPOIs}
+            sortBy={sortBy}
+            onSortChange={handleSortChange}
+          />
+        </View>
       )}
 
       {/* Filters Modal */}
@@ -898,5 +947,10 @@ const styles = StyleSheet.create({
     left: spacing.lg,
     right: spacing.lg,
     zIndex: 25,
+  },
+  listViewContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.neutral[50],
+    zIndex: 20,
   },
 });
