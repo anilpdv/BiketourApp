@@ -29,6 +29,10 @@ interface RoutingStore extends RoutingState {
   finishMoveWaypoint: () => void;
   reorderWaypoints: (fromIndex: number, toIndex: number) => void;
   clearWaypoints: () => void;
+  /** Insert a via waypoint at specified index (for drag-to-modify route) */
+  insertViaWaypoint: (coordinate: Coordinate, insertAtIndex: number) => void;
+  /** Reverse the route direction */
+  reverseRoute: () => void;
 
   // History actions
   undo: () => void;
@@ -233,6 +237,87 @@ export const useRoutingStore = create<RoutingStore>((set, get) => ({
       calculatedGeometry: [],
       ...historyUpdate,
     });
+  },
+
+  // Insert a via waypoint at a specific index (for drag-to-modify route line)
+  insertViaWaypoint: (coordinate, insertAtIndex) => {
+    const { waypoints, calculatedGeometry, history, historyIndex } = get();
+
+    if (waypoints.length < 2) {
+      // Need at least 2 waypoints to insert between
+      return;
+    }
+
+    // Clamp insertAtIndex to valid range (between first and last)
+    const clampedIndex = Math.max(1, Math.min(insertAtIndex, waypoints.length));
+
+    // Create new via waypoint
+    const newWaypoint: Waypoint = {
+      id: generateId(),
+      latitude: coordinate.latitude,
+      longitude: coordinate.longitude,
+      type: 'via',
+      order: clampedIndex,
+    };
+
+    // Insert the waypoint at the specified position
+    const newWaypoints = [
+      ...waypoints.slice(0, clampedIndex),
+      newWaypoint,
+      ...waypoints.slice(clampedIndex),
+    ];
+
+    // Re-assign types and orders
+    const updatedWaypoints = assignWaypointTypes(newWaypoints);
+
+    // Save to history
+    const historyUpdate = pushToHistory(
+      history,
+      historyIndex,
+      createHistoryEntry(updatedWaypoints, calculatedGeometry)
+    );
+
+    set({
+      waypoints: updatedWaypoints,
+      ...historyUpdate,
+    });
+
+    // Trigger route recalculation
+    get().calculateCurrentRoute();
+  },
+
+  // Reverse the route direction
+  reverseRoute: () => {
+    const { waypoints, calculatedGeometry, history, historyIndex } = get();
+
+    if (waypoints.length < 2) {
+      return;
+    }
+
+    // Reverse waypoints array
+    const reversedWaypoints = [...waypoints].reverse();
+
+    // Re-assign types (first becomes start, last becomes end)
+    const updatedWaypoints = assignWaypointTypes(reversedWaypoints);
+
+    // Reverse geometry for immediate visual feedback
+    const reversedGeometry = [...calculatedGeometry].reverse();
+
+    // Save to history
+    const historyUpdate = pushToHistory(
+      history,
+      historyIndex,
+      createHistoryEntry(updatedWaypoints, reversedGeometry)
+    );
+
+    set({
+      waypoints: updatedWaypoints,
+      calculatedGeometry: reversedGeometry,
+      ...historyUpdate,
+    });
+
+    // Recalculate route for proper directions
+    get().calculateCurrentRoute();
   },
 
   undo: () => {

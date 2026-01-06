@@ -14,31 +14,35 @@ import {
  */
 
 // Category colors (used for circle backgrounds)
+// Vibrant, distinct colors grouped by category type
 export const CATEGORY_COLORS: Record<POICategory, string> = {
-  // Existing categories
-  campsite: '#228B22', // Forest Green
-  drinking_water: '#1E90FF', // Dodger Blue
-  bike_shop: '#FF6347', // Tomato
-  bike_repair: '#FF8C00', // Dark Orange
-  hotel: '#9370DB', // Medium Purple
-  hostel: '#20B2AA', // Light Sea Green
-  guest_house: '#DEB887', // Burlywood
-  shelter: '#8B4513', // Saddle Brown
-  supermarket: '#32CD32', // Lime Green
-  restaurant: '#DC143C', // Crimson
-  // Camping-focused categories
-  motorhome_spot: '#6B5B95', // Purple
-  service_area: '#45B7D1', // Teal
-  wild_camping: '#2D5016', // Dark Green
-  caravan_site: '#FF6B35', // Orange
-  picnic_site: '#98D8C8', // Mint
-  toilet: '#7A8B8B', // Gray
-  shower: '#4ECDC4', // Cyan
-  laundry: '#FFE66D', // Yellow
-  // Emergency categories
-  hospital: '#E53935', // Red
-  pharmacy: '#43A047', // Green
-  police: '#1565C0', // Blue
+  // Camping - Greens
+  campsite: '#16A34A', // Vibrant Green
+  motorhome_spot: '#22C55E', // Bright Green
+  wild_camping: '#15803D', // Forest Green
+  caravan_site: '#4ADE80', // Light Green
+  picnic_site: '#059669', // Emerald
+  // Services - Teals/Blues
+  drinking_water: '#0EA5E9', // Sky Blue
+  service_area: '#06B6D4', // Cyan
+  toilet: '#0891B2', // Teal
+  shower: '#14B8A6', // Teal
+  laundry: '#0D9488', // Teal Dark
+  // Accommodation - Purples
+  hotel: '#8B5CF6', // Violet
+  hostel: '#A78BFA', // Light Purple
+  guest_house: '#7C3AED', // Purple
+  shelter: '#6D28D9', // Deep Purple
+  // Bike - Oranges
+  bike_shop: '#F97316', // Orange
+  bike_repair: '#EA580C', // Dark Orange
+  // Food - Reds
+  restaurant: '#DC2626', // Red
+  supermarket: '#EF4444', // Light Red
+  // Emergency - Red accents
+  hospital: '#E53935', // Emergency Red
+  pharmacy: '#43A047', // Green (medical)
+  police: '#1E40AF', // Police Blue
 };
 
 // Map POI categories to Mapbox Maki icon names

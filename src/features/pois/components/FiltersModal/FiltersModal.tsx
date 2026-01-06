@@ -16,7 +16,6 @@ import {
   spacing,
   borderRadius,
   typography,
-  shadows,
 } from '../../../../shared/design/tokens';
 
 interface FiltersModalProps {
@@ -190,9 +189,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
+    borderTopColor: colors.neutral[200],
     backgroundColor: colors.neutral[0],
-    ...shadows.lg,
   },
   clearButton: {
     paddingHorizontal: spacing.lg,

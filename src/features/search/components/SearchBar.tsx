@@ -4,10 +4,9 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Text,
   ActivityIndicator,
-  Keyboard,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSearchStore } from '../store/searchStore';
 import { colors, spacing, borderRadius } from '../../../shared/design/tokens';
 
@@ -70,9 +69,12 @@ export function SearchBar({ onFocus, onBlur, placeholder = 'Search places...' }:
 
   return (
     <View style={[styles.container, isFocused && styles.containerFocused]}>
-      <View style={styles.searchIcon}>
-        <Text style={styles.iconText}>🔍</Text>
-      </View>
+      <MaterialCommunityIcons
+        name="magnify"
+        size={22}
+        color={colors.neutral[400]}
+        style={styles.searchIcon}
+      />
 
       <TextInput
         ref={inputRef}
@@ -95,7 +97,7 @@ export function SearchBar({ onFocus, onBlur, placeholder = 'Search places...' }:
 
       {query.length > 0 && !isSearching && (
         <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-          <Text style={styles.clearIcon}>✕</Text>
+          <MaterialCommunityIcons name="close-circle" size={20} color={colors.neutral[400]} />
         </TouchableOpacity>
       )}
     </View>
@@ -125,9 +127,6 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: spacing.sm,
   },
-  iconText: {
-    fontSize: 18,
-  },
   input: {
     flex: 1,
     fontSize: 16,
@@ -140,9 +139,5 @@ const styles = StyleSheet.create({
   clearButton: {
     marginLeft: spacing.sm,
     padding: spacing.xs,
-  },
-  clearIcon: {
-    fontSize: 16,
-    color: colors.neutral[400],
   },
 });

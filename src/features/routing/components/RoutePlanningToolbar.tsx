@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRoutingStore } from '../store/routingStore';
 import { RoutePlanningMode } from '../types';
 
@@ -8,10 +9,12 @@ interface RoutePlanningToolbarProps {
   onCancel?: () => void;
 }
 
-const MODE_LABELS: Record<RoutePlanningMode, { label: string; icon: string }> = {
-  'point-to-point': { label: 'Route', icon: '🛣️' },
-  freeform: { label: 'Draw', icon: '✏️' },
-  'modify-existing': { label: 'Modify', icon: '🔧' },
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const MODE_CONFIG: Record<RoutePlanningMode, { label: string; icon: IconName }> = {
+  'point-to-point': { label: 'Route', icon: 'map-marker-path' },
+  freeform: { label: 'Draw', icon: 'pencil' },
+  'modify-existing': { label: 'Modify', icon: 'wrench' },
 };
 
 function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolbarProps) {
@@ -26,20 +29,20 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
     canRedo,
     clearWaypoints,
     calculateCurrentRoute,
+    reverseRoute,
   } = useRoutingStore();
 
   if (!isPlanning || !mode) {
     return null;
   }
 
-  const modeInfo = MODE_LABELS[mode];
+  const modeConfig = MODE_CONFIG[mode];
 
   return (
     <View style={styles.container}>
-      {/* Mode indicator */}
+      {/* Mode indicator - icon only */}
       <View style={styles.modeIndicator}>
-        <Text style={styles.modeIcon}>{modeInfo.icon}</Text>
-        <Text style={styles.modeLabel}>{modeInfo.label}</Text>
+        <MaterialCommunityIcons name={modeConfig.icon} size={20} color="#1976D2" />
       </View>
 
       {/* Action buttons */}
@@ -54,7 +57,11 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
           accessibilityLabel="Undo last action"
           accessibilityState={{ disabled: !canUndo() }}
         >
-          <Text style={styles.actionIcon}>↩️</Text>
+          <MaterialCommunityIcons
+            name="undo"
+            size={20}
+            color={canUndo() ? '#555' : '#999'}
+          />
         </TouchableOpacity>
 
         {/* Redo */}
@@ -67,7 +74,11 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
           accessibilityLabel="Redo last action"
           accessibilityState={{ disabled: !canRedo() }}
         >
-          <Text style={styles.actionIcon}>↪️</Text>
+          <MaterialCommunityIcons
+            name="redo"
+            size={20}
+            color={canRedo() ? '#555' : '#999'}
+          />
         </TouchableOpacity>
 
         {/* Clear */}
@@ -80,13 +91,34 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
           accessibilityLabel="Clear all waypoints"
           accessibilityState={{ disabled: waypoints.length === 0 }}
         >
-          <Text style={styles.actionIcon}>🗑️</Text>
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color={waypoints.length > 0 ? '#555' : '#999'}
+          />
+        </TouchableOpacity>
+
+        {/* Reverse Route */}
+        <TouchableOpacity
+          style={[styles.actionButton, waypoints.length < 2 && styles.actionButtonDisabled]}
+          onPress={reverseRoute}
+          disabled={waypoints.length < 2}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Reverse route direction"
+          accessibilityState={{ disabled: waypoints.length < 2 }}
+        >
+          <MaterialCommunityIcons
+            name="swap-horizontal"
+            size={20}
+            color={waypoints.length >= 2 ? '#555' : '#999'}
+          />
         </TouchableOpacity>
 
         {/* Calculate Route */}
         {mode === 'point-to-point' && waypoints.length >= 2 && (
           <TouchableOpacity
-            style={[styles.actionButton, styles.calculateButton]}
+            style={[styles.actionButton, styles.calculateButton, isCalculating && styles.actionButtonDisabled]}
             onPress={calculateCurrentRoute}
             disabled={isCalculating}
             accessible={true}
@@ -94,7 +126,11 @@ function RoutePlanningToolbarComponent({ onSave, onCancel }: RoutePlanningToolba
             accessibilityLabel={isCalculating ? 'Calculating route' : 'Calculate route'}
             accessibilityState={{ disabled: isCalculating }}
           >
-            <Text style={styles.actionIcon}>{isCalculating ? '⏳' : '🔄'}</Text>
+            <MaterialCommunityIcons
+              name={isCalculating ? 'loading' : 'lightning-bolt'}
+              size={20}
+              color={isCalculating ? '#999' : '#1976D2'}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -134,8 +170,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -144,31 +180,22 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   modeIndicator: {
-    flexDirection: 'row',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#e3f2fd',
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f7ff',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  modeIcon: {
-    fontSize: 16,
-    marginRight: 4,
-  },
-  modeLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1976D2',
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
   },
   actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#f5f5f5',
     justifyContent: 'center',
     alignItems: 'center',
@@ -179,33 +206,30 @@ const styles = StyleSheet.create({
   calculateButton: {
     backgroundColor: '#e3f2fd',
   },
-  actionIcon: {
-    fontSize: 16,
-  },
   saveCancel: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   cancelButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   cancelText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
   },
   saveButton: {
     backgroundColor: '#2196F3',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
   },
   saveButtonDisabled: {
     backgroundColor: '#bdbdbd',
   },
   saveText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#fff',
   },

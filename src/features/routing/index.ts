@@ -61,3 +61,4 @@ export { EuroVeloRoutesList } from './components/EuroVeloRoutesList';
 export { MyRoutesList } from './components/MyRoutesList';
 export { SaveRouteDialog } from './components/SaveRouteDialog';
 export type { SaveRouteDialogProps } from './components/SaveRouteDialog';
+export { RouteDragPreview } from './components/RouteDragPreview';

@@ -13,7 +13,7 @@ import { usePOIDownloadStore } from '../../src/features/offline/store/poiDownloa
 import { debugDatabasePOIs } from '../../src/features/offline/services/poiDownload.service';
 import { POIDownloadPrompt } from '../../src/features/offline/components/POIDownloadPrompt';
 import { POIDownloadProgress } from '../../src/features/offline/components/POIDownloadProgress';
-import { RoutePlanningToolbar, SaveRouteDialog, DraggableWaypointMarker } from '../../src/features/routing';
+import { RoutePlanningToolbar, SaveRouteDialog, DraggableWaypointMarker, RouteDragPreview } from '../../src/features/routing';
 import { useActiveNavigation, NavigationOverlay, NavigationStartButton } from '../../src/features/navigation';
 import { SearchResults, SearchResult } from '../../src/features/search';
 import { LoadingSpinner, ErrorMessage, ErrorBoundary } from '../../src/shared/components';
@@ -29,6 +29,7 @@ import {
   useMapCamera,
   useRoutePlanning,
   useMarkerImages,
+  useRouteDrag,
 } from '../../src/features/map/hooks';
 
 // Map feature components
@@ -114,6 +115,15 @@ export default function MapScreen() {
     handleWaypointDragEnd,
     handleSaveRoute,
   } = useRoutePlanning();
+
+  // Route drag-to-modify (Komoot-style)
+  const {
+    isDraggingRoute,
+    dragPreviewCoordinate,
+    handleRouteLinePress,
+    confirmRouteDrag,
+    cancelRouteDrag,
+  } = useRouteDrag();
 
   const {
     routes,
@@ -670,9 +680,24 @@ export default function MapScreen() {
           markerImages={markerImages}
         />
 
-        {/* Planned Route Line with Casing */}
+        {/* Planned Route Line with Casing - tap to add via waypoints */}
         {isPlanning && plannedRouteGeoJSON ? (
-          <ShapeSource id="planned-route" shape={plannedRouteGeoJSON}>
+          <ShapeSource
+            id="planned-route"
+            shape={plannedRouteGeoJSON}
+            onPress={(e) => {
+              // Handle route line press for drag-to-modify
+              if (e.features && e.features.length > 0) {
+                const feature = e.features[0];
+                if (feature.geometry.type === 'Point') {
+                  handleRouteLinePress({
+                    geometry: { coordinates: feature.geometry.coordinates as [number, number] },
+                  });
+                }
+              }
+            }}
+            hitbox={{ width: 30, height: 30 }} // Larger hit area for easier tapping
+          >
             {/* Route casing (dark outline) */}
             <LineLayer
               id="planned-route-casing"
@@ -695,6 +720,15 @@ export default function MapScreen() {
             />
           </ShapeSource>
         ) : <></>}
+
+        {/* Route Drag Preview - shows when user taps on route line */}
+        {isDraggingRoute && dragPreviewCoordinate && (
+          <RouteDragPreview
+            coordinate={dragPreviewCoordinate}
+            onConfirm={confirmRouteDrag}
+            onCancel={cancelRouteDrag}
+          />
+        )}
 
         {/* Waypoints with MarkerView - supports gestures and nested views */}
         {isPlanning ? waypoints.map((waypoint) => (
@@ -936,9 +970,9 @@ const styles = StyleSheet.create({
   },
   toolbarContainer: {
     position: 'absolute',
-    bottom: spacing['3xl'],
+    bottom: 75,
     left: spacing.lg,
-    right: spacing.lg,
+    right: 70,
     zIndex: 10,
   },
   searchResultsContainer: {

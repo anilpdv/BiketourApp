@@ -1,9 +1,9 @@
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { getCategoryIcon, CATEGORY_NAMES } from '../../config/poiIcons';
+import { getCategoryGroupColor, CATEGORY_TO_GROUP, CATEGORY_GROUP_COLORS } from '../../config/poiGroupColors';
 import { getPOIContactInfo } from '../../utils/poiTagParser';
 import { parseOpeningHours } from '../../utils/openingHoursParser';
 import {
@@ -11,8 +11,17 @@ import {
   spacing,
   borderRadius,
   typography,
-  shadows,
 } from '../../../../shared/design/tokens';
+
+// Light background colors for each group
+const GROUP_BG_COLORS: Record<string, string> = {
+  camping: '#E8F5E9',
+  services: '#E0F7FA',
+  accommodation: '#EDE7F6',
+  bike: '#FFF3E0',
+  food: '#FFEBEE',
+  emergency: '#FFEBEE',
+};
 
 interface POIListCardProps {
   poi: POI;
@@ -49,6 +58,9 @@ export const POIListCard = memo(function POIListCard({
 }: POIListCardProps) {
   const categoryConfig = getCategoryIcon(poi.category);
   const contactInfo = getPOIContactInfo(poi);
+  const groupKey = CATEGORY_TO_GROUP[poi.category];
+  const groupColor = CATEGORY_GROUP_COLORS[groupKey];
+  const groupBgColor = GROUP_BG_COLORS[groupKey] || colors.neutral[100];
 
   // Get rating if available
   const rating = poi.tags?.stars || poi.tags?.rating;
@@ -56,227 +68,202 @@ export const POIListCard = memo(function POIListCard({
   // Get price info
   const price = poi.tags?.fee;
 
-  // Get capacity
-  const capacity = poi.tags?.capacity;
-
   // Get opening hours status
   const openingHours = parseOpeningHours(poi.tags?.opening_hours);
 
-  // Format location (city, country)
-  const location = formatLocation(contactInfo) || CATEGORY_NAMES[poi.category];
+  // Format location (city, country) - don't show category name as fallback
+  const location = formatLocation(contactInfo);
+
+  // Display name - use POI name or category name
+  const displayName = poi.name || CATEGORY_NAMES[poi.category];
 
   return (
-    <TouchableOpacity
-      style={styles.card}
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onPress}
-      activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityLabel={`${poi.name || CATEGORY_NAMES[poi.category]}${distance ? `, ${formatDistance(distance)} away` : ''}`}
+      accessibilityLabel={`${displayName}${distance ? `, ${formatDistance(distance)} away` : ''}`}
     >
-      {/* Image section with gradient */}
-      <View style={styles.imageContainer}>
-        <LinearGradient
-          colors={[categoryConfig.color + '15', categoryConfig.color + '45']}
-          style={styles.imagePlaceholder}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        >
-          <MaterialCommunityIcons
-            name={categoryConfig.vectorIcon as any}
-            size={48}
-            color={categoryConfig.color}
-          />
-        </LinearGradient>
-
-        {/* Favorite button */}
-        <TouchableOpacity
-          style={styles.favoriteButton}
-          onPress={(e) => {
-            e.stopPropagation?.();
-            onToggleFavorite();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isFavorite ? 'Remove from favorites' : 'Add to favorites'
-          }
-          activeOpacity={0.7}
-        >
-          <MaterialCommunityIcons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={22}
-            color={isFavorite ? colors.status.favorite : colors.neutral[0]}
-          />
-        </TouchableOpacity>
+      {/* Icon section */}
+      <View style={[styles.iconContainer, { backgroundColor: groupBgColor }]}>
+        <MaterialCommunityIcons
+          name={categoryConfig.vectorIcon as any}
+          size={28}
+          color={groupColor}
+        />
       </View>
 
       {/* Content section */}
       <View style={styles.content}>
-        {/* Name */}
-        <Text style={styles.name} numberOfLines={1}>
-          {poi.name || CATEGORY_NAMES[poi.category]}
-        </Text>
+        {/* Top row: Name and favorite */}
+        <View style={styles.topRow}>
+          <Text style={styles.name} numberOfLines={1}>
+            {displayName}
+          </Text>
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              onToggleFavorite();
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <MaterialCommunityIcons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={20}
+              color={isFavorite ? '#E53935' : colors.neutral[400]}
+            />
+          </TouchableOpacity>
+        </View>
 
-        {/* Location (city, country) */}
-        <Text style={styles.location} numberOfLines={1}>
-          {location}
-        </Text>
-
-        {/* Rating and capacity row */}
-        <View style={styles.infoRow}>
-          {/* Rating badge - GREEN */}
-          {rating && (
-            <View style={styles.ratingBadge}>
-              <MaterialCommunityIcons
-                name="star"
-                size={12}
-                color={colors.neutral[0]}
-              />
-              <Text style={styles.ratingText}>{rating}</Text>
-            </View>
-          )}
-
-          {/* Capacity with icon */}
-          {capacity && (
-            <View style={styles.capacityContainer}>
-              <MaterialCommunityIcons
-                name="tent"
-                size={14}
-                color={colors.neutral[500]}
-              />
-              <Text style={styles.capacityText}>{capacity}</Text>
-            </View>
+        {/* Category chip + Location */}
+        <View style={styles.metaRow}>
+          <View style={[styles.categoryChip, { backgroundColor: groupColor }]}>
+            <Text style={styles.categoryText}>{CATEGORY_NAMES[poi.category]}</Text>
+          </View>
+          {location && (
+            <Text style={styles.location} numberOfLines={1}>
+              {location}
+            </Text>
           )}
         </View>
 
-        {/* Opening hours status */}
-        {openingHours && (
-          <Text
-            style={[
-              styles.openStatus,
-              openingHours.isOpen ? styles.openStatusOpen : styles.openStatusClosed,
-            ]}
-          >
-            {openingHours.isOpen ? 'Open today' : 'Closed'}
-          </Text>
-        )}
-
-        {/* Bottom row: price and distance */}
+        {/* Bottom row: Rating, Opening status, Price, Distance */}
         <View style={styles.bottomRow}>
-          {price ? (
-            <Text style={styles.price}>{price}</Text>
-          ) : (
-            <View />
-          )}
+          <View style={styles.leftInfo}>
+            {rating && (
+              <View style={styles.ratingBadge}>
+                <MaterialCommunityIcons name="star" size={12} color="#FFC107" />
+                <Text style={styles.ratingText}>{rating}</Text>
+              </View>
+            )}
+            {openingHours && (
+              <Text style={[
+                styles.openStatus,
+                { color: openingHours.isOpen ? '#4CAF50' : '#9E9E9E' }
+              ]}>
+                {openingHours.isOpen ? 'Open' : 'Closed'}
+              </Text>
+            )}
+            {price && <Text style={styles.price}>{price}</Text>}
+          </View>
           {distance !== undefined && (
-            <Text style={styles.distance}>{formatDistance(distance)}</Text>
+            <View style={styles.distanceContainer}>
+              <MaterialCommunityIcons name="map-marker-distance" size={14} color={colors.neutral[500]} />
+              <Text style={styles.distance}>{formatDistance(distance)}</Text>
+            </View>
           )}
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 });
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.sm,
-    overflow: 'hidden',
-    ...shadows.md,
+    borderRadius: 16,
+    marginHorizontal: spacing.md,
+    marginVertical: 6,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
   },
-  imageContainer: {
-    width: 130,
-    height: 150,
-    position: 'relative',
+  cardPressed: {
+    backgroundColor: colors.neutral[50],
+    transform: [{ scale: 0.99 }],
   },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
-    width: 34,
-    height: 34,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginRight: spacing.md,
   },
   content: {
     flex: 1,
-    padding: spacing.md,
-    justifyContent: 'flex-start',
+    gap: 4,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   name: {
-    fontSize: typography.fontSizes['2xl'],
+    flex: 1,
+    fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.semibold,
     color: colors.neutral[900],
-    marginBottom: 2,
+    marginRight: spacing.sm,
   },
-  location: {
-    fontSize: typography.fontSizes.lg,
-    color: colors.neutral[500],
-    marginBottom: spacing.sm,
+  favoriteButton: {
+    padding: 4,
   },
-  infoRow: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.xs,
   },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[600],
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: borderRadius.sm,
-    gap: 3,
+  categoryChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
-  ratingText: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.neutral[0],
+  categoryText: {
+    fontSize: 11,
+    fontWeight: typography.fontWeights.semibold,
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
-  capacityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  capacityText: {
-    fontSize: typography.fontSizes.md,
-    color: colors.neutral[600],
-  },
-  openStatus: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.medium,
-    marginBottom: spacing.xs,
-  },
-  openStatusOpen: {
-    color: colors.primary[600],
-  },
-  openStatusClosed: {
-    color: colors.status.error,
+  location: {
+    flex: 1,
+    fontSize: typography.fontSizes.sm,
+    color: colors.neutral[500],
   },
   bottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: 2,
+  },
+  leftInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  ratingText: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.neutral[700],
+  },
+  openStatus: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
   },
   price: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.neutral[700],
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   distance: {
-    fontSize: typography.fontSizes.lg,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
     color: colors.neutral[500],
   },
 });
