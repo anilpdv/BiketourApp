@@ -1,14 +1,23 @@
 /**
+ * Debounced function interface with cancel method
+ */
+export interface DebouncedFunction<T extends (...args: any[]) => any> {
+  (...args: Parameters<T>): void;
+  cancel: () => void;
+}
+
+/**
  * Creates a debounced function that delays invoking func until after wait milliseconds
  * have elapsed since the last time the debounced function was invoked.
+ * Includes a cancel method to clear pending invocations.
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => void {
+): DebouncedFunction<T> {
   let timeoutId: NodeJS.Timeout | null = null;
 
-  return function debounced(...args: Parameters<T>) {
+  const debounced = function (...args: Parameters<T>) {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
@@ -16,7 +25,16 @@ export function debounce<T extends (...args: any[]) => any>(
       func(...args);
       timeoutId = null;
     }, wait);
+  } as DebouncedFunction<T>;
+
+  debounced.cancel = function () {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
   };
+
+  return debounced;
 }
 
 /**

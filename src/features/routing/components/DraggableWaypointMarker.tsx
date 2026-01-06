@@ -1,8 +1,14 @@
-import React, { memo, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { Text, StyleSheet } from 'react-native';
 import { MarkerView } from '@maplibre/maplibre-react-native';
 import type { MapViewRef } from '@maplibre/maplibre-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Waypoint, Coordinate } from '../types';
 import { colors, shadows } from '../../../shared/design/tokens';
 
@@ -23,29 +29,57 @@ export const DraggableWaypointMarker = memo(function DraggableWaypointMarker({
   onDragEnd,
   mapRef,
 }: DraggableWaypointMarkerProps) {
-  const [isDragging, setIsDragging] = useState(false);
+  // Use shared values for smooth animations (runs on UI thread)
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
 
-  // Convert screen coords to map coords during drag
+  // Handler that runs on JS thread - converts screen coords to map coords
+  const handleDragUpdate = useCallback(
+    (absoluteX: number, absoluteY: number) => {
+      mapRef.current
+        ?.getCoordinateFromView([absoluteX, absoluteY])
+        .then((coords) => {
+          if (coords) {
+            onDrag(waypoint.id, {
+              latitude: coords[1],
+              longitude: coords[0],
+            });
+          }
+        })
+        .catch(() => {
+          // Ignore errors during rapid updates
+        });
+    },
+    [mapRef, onDrag, waypoint.id]
+  );
+
+  // Handler for drag end - runs on JS thread
+  const handleDragEnd = useCallback(() => {
+    onDragEnd();
+  }, [onDragEnd]);
+
+  // Animated style for smooth drag feedback
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  // Pan gesture with proper worklet handling
   const panGesture = Gesture.Pan()
     .onStart(() => {
-      setIsDragging(true);
+      'worklet';
+      scale.value = withSpring(1.2, { damping: 15, stiffness: 200 });
+      opacity.value = withSpring(0.85);
     })
-    .onUpdate(async (e) => {
-      try {
-        const coords = await mapRef.current?.getCoordinateFromView([e.absoluteX, e.absoluteY]);
-        if (coords) {
-          onDrag(waypoint.id, {
-            latitude: coords[1],
-            longitude: coords[0],
-          });
-        }
-      } catch (error) {
-        // Ignore errors during rapid updates
-      }
+    .onUpdate((e) => {
+      'worklet';
+      runOnJS(handleDragUpdate)(e.absoluteX, e.absoluteY);
     })
     .onEnd(() => {
-      setIsDragging(false);
-      onDragEnd();
+      'worklet';
+      scale.value = withSpring(1, { damping: 15, stiffness: 200 });
+      opacity.value = withSpring(1);
+      runOnJS(handleDragEnd)();
     });
 
   // Color based on waypoint type
@@ -63,12 +97,12 @@ export const DraggableWaypointMarker = memo(function DraggableWaypointMarker({
       allowOverlap={true}
     >
       <GestureDetector gesture={panGesture}>
-        <View style={[styles.markerContainer, isDragging && styles.dragging]}>
-          <View style={[styles.marker, { backgroundColor: color }]}>
+        <Animated.View style={[styles.markerContainer, animatedStyle]}>
+          <Animated.View style={[styles.marker, { backgroundColor: color }]}>
             <Text style={styles.number}>{waypoint.order + 1}</Text>
-          </View>
-          <View style={[styles.pointer, { borderTopColor: color }]} />
-        </View>
+          </Animated.View>
+          <Animated.View style={[styles.pointer, { borderTopColor: color }]} />
+        </Animated.View>
       </GestureDetector>
     </MarkerView>
   );
@@ -77,10 +111,6 @@ export const DraggableWaypointMarker = memo(function DraggableWaypointMarker({
 const styles = StyleSheet.create({
   markerContainer: {
     alignItems: 'center',
-  },
-  dragging: {
-    transform: [{ scale: 1.2 }],
-    opacity: 0.9,
   },
   marker: {
     width: 36,

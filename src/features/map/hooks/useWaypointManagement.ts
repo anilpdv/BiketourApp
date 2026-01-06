@@ -33,18 +33,22 @@ export function useWaypointManagement(
   // Drag state - which waypoint is currently being dragged
   const [draggingWaypointId, setDraggingWaypointId] = useState<string | null>(null);
 
-  // Stable ref for calculateCurrentRoute to avoid debounce resets
+  // Stable refs to avoid callback recreations
   const calculateRouteRef = useRef(calculateCurrentRoute);
   calculateRouteRef.current = calculateCurrentRoute;
 
-  // Debounced route calculation - 300ms delay prevents excessive API calls during drag
-  const debouncedCalculateRoute = useMemo(
-    () =>
-      debounce(() => {
+  const waypointCountRef = useRef(waypoints.length);
+  waypointCountRef.current = waypoints.length;
+
+  // Debounced route calculation - 500ms delay for better performance during active drag
+  const debouncedCalculateRoute = useMemo(() => {
+    const debouncedFn = debounce(() => {
+      if (waypointCountRef.current >= 2) {
         calculateRouteRef.current();
-      }, 300),
-    []
-  );
+      }
+    }, 500);
+    return debouncedFn;
+  }, []);
 
   // Handle waypoint press - select for dragging
   const handleWaypointPress = useCallback((waypointId: string) => {
@@ -56,22 +60,22 @@ export function useWaypointManagement(
     (waypointId: string, newCoordinate: Coordinate) => {
       moveWaypoint(waypointId, newCoordinate);
       // Recalculate route with debounce to avoid excessive API calls
-      if (waypoints.length >= 2) {
-        debouncedCalculateRoute();
-      }
+      debouncedCalculateRoute();
     },
-    [moveWaypoint, waypoints.length, debouncedCalculateRoute]
+    [moveWaypoint, debouncedCalculateRoute]
   );
 
   // Handle waypoint drag end - save to history and clear drag state
   const handleWaypointDragEnd = useCallback(() => {
+    // Cancel any pending debounced calculation
+    debouncedCalculateRoute.cancel();
     finishMoveWaypoint();
     setDraggingWaypointId(null);
-    // Force final calculation
-    if (waypoints.length >= 2) {
-      calculateCurrentRoute();
+    // Force immediate final calculation
+    if (waypointCountRef.current >= 2) {
+      calculateRouteRef.current();
     }
-  }, [finishMoveWaypoint, waypoints.length, calculateCurrentRoute]);
+  }, [finishMoveWaypoint, debouncedCalculateRoute]);
 
   return {
     draggingWaypointId,
