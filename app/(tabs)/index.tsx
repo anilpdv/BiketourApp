@@ -727,8 +727,8 @@ export default function MapScreen() {
         />
       )}
 
-      {/* Map Legend - only show for cycling style */}
-      <MapLegend visible={currentMapStyle === 'cycling'} />
+      {/* Map Legend - only show for CyclOSM raster style */}
+      <MapLegend visible={currentMapStyle === 'cyclosm'} />
 
       {/* Map Style Selector */}
       <MapStyleSelector

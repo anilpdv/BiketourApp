@@ -52,6 +52,7 @@ export const RouteLayer = memo(function RouteLayer({
           ],
           lineCap: 'round',
           lineJoin: 'round',
+          lineBlur: 0,
         }}
       />
 
@@ -65,6 +66,7 @@ export const RouteLayer = memo(function RouteLayer({
           lineOpacity: 1,
           lineCap: 'round',
           lineJoin: 'round',
+          lineBlur: 0,
         }}
         aboveLayerID="route-background"
       />
@@ -79,6 +81,7 @@ export const RouteLayer = memo(function RouteLayer({
           lineOpacity: 0.6,
           lineDasharray: [2, 4],
           lineCap: 'round',
+          lineBlur: 0,
         }}
         aboveLayerID="route-highlight"
       />

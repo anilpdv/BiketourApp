@@ -12,9 +12,9 @@ export interface MapStyleOption {
 }
 
 export const MAP_STYLE_OPTIONS: MapStyleOption[] = [
-  { key: 'cycling', label: 'Cycling', icon: 'bicycle' },
   { key: 'outdoors', label: 'Outdoors', icon: 'pine-tree' },
   { key: 'streets', label: 'Streets', icon: 'city' },
+  { key: 'cyclosm', label: 'Cycling', icon: 'bicycle' },
   { key: 'satellite', label: 'Satellite', icon: 'satellite-variant' },
   { key: 'topo', label: 'Topo', icon: 'terrain' },
   { key: 'terrain', label: 'Terrain', icon: 'image-filter-hdr' },
@@ -44,7 +44,7 @@ export interface UseMapSettingsReturn {
 export function useMapSettings(): UseMapSettingsReturn {
   const [show3DTerrain, setShow3DTerrain] = useState(false);
   const [show3DBuildings, setShow3DBuildings] = useState(true);
-  const [currentMapStyle, setCurrentMapStyle] = useState<MapStyleKey>('cycling');
+  const [currentMapStyle, setCurrentMapStyle] = useState<MapStyleKey>('outdoors');
   const [showStylePicker, setShowStylePicker] = useState(false);
 
   const toggle3DTerrain = useCallback(() => {

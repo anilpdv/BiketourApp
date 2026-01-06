@@ -11,6 +11,7 @@ import { paperLightTheme } from '../src/shared/design/paperTheme';
 // See: https://github.com/gorhom/react-native-bottom-sheet/issues/1983
 LogBox.ignoreLogs([
   '[Worklets] Tried to modify key',
+  'Tried to modify key',
 ]);
 
 // Initialize Mapbox at app startup

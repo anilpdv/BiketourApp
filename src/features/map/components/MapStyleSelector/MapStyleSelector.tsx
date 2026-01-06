@@ -22,11 +22,6 @@ const STYLE_PREVIEWS: Record<MapStyleKey, {
   colors: [string, string, string];
   icon: string;
 }> = {
-  cycling: {
-    label: 'Cycling',
-    colors: ['#FF6B00', '#FF8F00', '#FFB300'],
-    icon: 'bicycle',
-  },
   outdoors: {
     label: 'Outdoors',
     colors: ['#4CAF50', '#8BC34A', '#CDDC39'],
@@ -36,6 +31,11 @@ const STYLE_PREVIEWS: Record<MapStyleKey, {
     label: 'Streets',
     colors: ['#607D8B', '#90A4AE', '#CFD8DC'],
     icon: 'city',
+  },
+  cyclosm: {
+    label: 'Cycling',
+    colors: ['#0066FF', '#2196F3', '#64B5F6'],
+    icon: 'bicycle',
   },
   satellite: {
     label: 'Satellite',

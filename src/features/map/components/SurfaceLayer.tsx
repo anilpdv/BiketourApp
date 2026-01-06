@@ -58,6 +58,7 @@ export const SurfaceLayer = memo(function SurfaceLayer({
             lineOpacity: 0.9,
             lineCap: 'round',
             lineJoin: 'round',
+            lineBlur: 0,
           }}
         />
 
@@ -71,6 +72,7 @@ export const SurfaceLayer = memo(function SurfaceLayer({
             lineOpacity: 0.5,
             lineDasharray: [4, 4],
             lineCap: 'round',
+            lineBlur: 0,
           }}
           aboveLayerID="surface-line"
         />
@@ -85,6 +87,7 @@ export const SurfaceLayer = memo(function SurfaceLayer({
             lineOpacity: 0.5,
             lineDasharray: [2, 6],
             lineCap: 'round',
+            lineBlur: 0,
           }}
           aboveLayerID="surface-line"
         />

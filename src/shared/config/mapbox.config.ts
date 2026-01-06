@@ -41,11 +41,11 @@ const CYCLOSM_STYLE = {
 
 // Map Style URLs and Objects (free providers)
 export const MAP_STYLES: Record<string, string | object> = {
-  // CyclOSM - cycling-focused map (best for bike touring!)
-  cycling: CYCLOSM_STYLE,
-  // OpenFreeMap - 100% free, no limits (no /style.json suffix!)
+  // OpenFreeMap - 100% free, no limits, vector tiles (sharp at all zoom levels)
   outdoors: 'https://tiles.openfreemap.org/styles/liberty',
   streets: 'https://tiles.openfreemap.org/styles/bright',
+  // CyclOSM - raster tiles with cycling-specific rendering (bike lanes, routes)
+  cyclosm: CYCLOSM_STYLE,
   // ESRI - free for non-commercial with attribution
   satellite: SATELLITE_STYLE,
   topo: TOPO_STYLE,
@@ -56,7 +56,7 @@ export const MAP_STYLES: Record<string, string | object> = {
   dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
 };
 
-export type MapStyleKey = 'cycling' | 'outdoors' | 'streets' | 'satellite' | 'topo' | 'terrain' | 'natgeo' | 'light' | 'dark';
+export type MapStyleKey = 'outdoors' | 'streets' | 'cyclosm' | 'satellite' | 'topo' | 'terrain' | 'natgeo' | 'light' | 'dark';
 
 // Default map style for cycling app (must be a URL string for offline packs)
 export const DEFAULT_MAP_STYLE = MAP_STYLES.outdoors as string;
