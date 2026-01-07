@@ -108,7 +108,7 @@ export const POILayer = memo(function POILayer({
         )}
 
         {/* Individual POIs - use custom markers if available, otherwise circles */}
-        {hasCustomMarkers ? (
+        {hasCustomMarkers && (
           <SymbolLayer
             id="poi-markers"
             filter={['!', ['has', 'point_count']]}
@@ -122,30 +122,31 @@ export const POILayer = memo(function POILayer({
               iconAllowOverlap: true,
             }}
           />
-        ) : (
-          <>
-            {/* Fallback: colored circle background */}
-            <CircleLayer
-              id="poi-points"
-              filter={['!', ['has', 'point_count']]}
-              style={{
-                circleColor: ['coalesce', ['get', 'groupColor'], colors.primary[500]],
-                circleRadius: 14,
-                circleStrokeWidth: 2,
-                circleStrokeColor: colors.neutral[0],
-              }}
-            />
-            {/* Fallback: sprite icon on top */}
-            <SymbolLayer
-              id="poi-icons"
-              filter={['!', ['has', 'point_count']]}
-              style={{
-                iconImage: ['coalesce', ['get', 'spriteIcon'], 'marker'],
-                iconSize: 0.7,
-                iconAllowOverlap: true,
-              }}
-            />
-          </>
+        )}
+        {/* Fallback: colored circle background (when custom markers not ready) */}
+        {!hasCustomMarkers && (
+          <CircleLayer
+            id="poi-points"
+            filter={['!', ['has', 'point_count']]}
+            style={{
+              circleColor: ['coalesce', ['get', 'groupColor'], colors.primary[500]],
+              circleRadius: 14,
+              circleStrokeWidth: 2,
+              circleStrokeColor: colors.neutral[0],
+            }}
+          />
+        )}
+        {/* Fallback: sprite icon on top (when custom markers not ready) */}
+        {!hasCustomMarkers && (
+          <SymbolLayer
+            id="poi-icons"
+            filter={['!', ['has', 'point_count']]}
+            style={{
+              iconImage: ['coalesce', ['get', 'spriteIcon'], 'marker'],
+              iconSize: 0.7,
+              iconAllowOverlap: true,
+            }}
+          />
         )}
       </ShapeSource>
     </>
