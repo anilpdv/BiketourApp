@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import {
   TouchableOpacity,
-  Text,
   StyleSheet,
   ActivityIndicator,
   View,
 } from 'react-native';
+import { Text } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../types';
 import { usePOIStore } from '../store/poiStore';
 import { colors } from '../../../shared/design/tokens';
@@ -60,9 +61,11 @@ export function FavoriteButton({
         />
       ) : (
         <View style={styles.content}>
-          <Text style={[styles.icon, { fontSize: sizeConfig.icon }]}>
-            {isFav ? '❤️' : '🤍'}
-          </Text>
+          <MaterialCommunityIcons
+            name={isFav ? 'heart' : 'heart-outline'}
+            size={sizeConfig.icon}
+            color={isFav ? colors.status.favorite : colors.neutral[500]}
+          />
           {showLabel && (
             <Text style={[styles.label, isFav && styles.labelActive]}>
               {isFav ? 'Saved' : 'Save'}
@@ -91,9 +94,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  icon: {
-    lineHeight: undefined,
   },
   label: {
     fontSize: 14,

@@ -36,14 +36,6 @@ export const API_CONFIG = {
     timeout: 35000, // 35s - must be > Overpass query timeout (25s) + network overhead
     rateLimit: 100, // 10 requests per second (kumi.systems can handle this)
   },
-
-  googlePlaces: {
-    baseUrl: 'https://maps.googleapis.com/maps/api/place',
-    photoBaseUrl: 'https://maps.googleapis.com/maps/api/place/photo',
-    timeout: 8000,
-    rateLimit: 100, // Be conservative to manage costs
-    maxPhotoWidth: 400, // Reasonable for mobile display
-  },
 } as const;
 
 /**

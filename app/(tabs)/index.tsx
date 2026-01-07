@@ -155,7 +155,6 @@ export default function MapScreen() {
   } = useMapSettings();
 
   const {
-    showPOIs,
     pois,
     filteredPOIs,
     poiCounts,
@@ -163,7 +162,6 @@ export default function MapScreen() {
     isLoading: poisLoading,
     filters,
     favoriteIds,
-    togglePOIs,
     toggleCategory,
     loadPOIsForBounds,
     updateViewportBounds,
@@ -199,12 +197,11 @@ export default function MapScreen() {
   // Diagnostic logging for POI rendering state
   useEffect(() => {
     logger.info('poi', '[DIAGNOSTIC] POI rendering state', {
-      showPOIs,
       poiGeoJSONFeatures: poiGeoJSON.features.length,
       filteredPOIsCount: filteredPOIs.length,
       poisLoading,
     });
-  }, [showPOIs, poiGeoJSON.features.length, filteredPOIs.length, poisLoading]);
+  }, [poiGeoJSON.features.length, filteredPOIs.length, poisLoading]);
 
   const {
     cameraRef,
@@ -269,7 +266,7 @@ export default function MapScreen() {
     });
   }, []);
 
-  // Load POIs after download completes - fly to downloaded region and show POIs
+  // Load POIs after download completes - fly to downloaded region
   useEffect(() => {
     if (downloadCompletedRegion) {
       // Calculate center of downloaded region from bounding box
@@ -282,19 +279,13 @@ export default function MapScreen() {
         center: { lat: centerLat, lon: centerLon },
       });
 
-      // Auto-enable POI visibility after download so user sees their downloaded POIs
-      if (!showPOIs) {
-        logger.info('offline', 'Auto-enabling POI visibility after download');
-        togglePOIs();
-      }
-
       // Fly to the center of downloaded region immediately
       flyTo([centerLon, centerLat], 12);
 
       // Clear the completion flag
       clearDownloadCompletedRegion();
     }
-  }, [downloadCompletedRegion, showPOIs, togglePOIs, clearDownloadCompletedRegion, flyTo]);
+  }, [downloadCompletedRegion, clearDownloadCompletedRegion, flyTo]);
 
   // Auto-prompt for POI download when user has SETTLED in a new region
   // Uses settling detection: only prompt after 5+ seconds of no movement
@@ -428,13 +419,8 @@ export default function MapScreen() {
     // Always update viewport bounds for filtering (shows only POIs in view)
     updateViewportBounds(bounds);
 
-    // Load POIs when zoomed in enough (DEBOUNCED)
-    // Always load - downloaded POIs will always be fetched
-    // API POIs will only be fetched when showPOIs is true
-    const latDelta = bounds.ne[1] - bounds.sw[1];
-    if (latDelta < 0.5) {
-      debouncedLoadPOIs(bounds);
-    }
+    // Load downloaded POIs for current viewport (DEBOUNCED)
+    debouncedLoadPOIs(bounds);
   }, [baseCameraChanged, debouncedLoadPOIs, updateViewportBounds]);
 
   // Handle POI press from map

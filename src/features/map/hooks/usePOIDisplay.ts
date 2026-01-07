@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import type { FeatureCollection, Point } from 'geojson';
 import * as Location from 'expo-location';
 import { usePOIStore, POI, POICategory, BoundingBox } from '../../pois';
@@ -9,7 +9,6 @@ import { debounce } from '../../../shared/utils';
 import { usePOIFiltering } from './usePOIFiltering';
 import { usePOIGeoJSON, POIFeatureProperties } from './usePOIGeoJSON';
 import { usePOIFetching } from './usePOIFetching';
-import { usePOIVisibility } from './usePOIVisibility';
 import { usePOISelection } from './usePOISelection';
 
 // Debounce delay for viewport bounds updates during pan (ms)
@@ -18,7 +17,6 @@ const VIEWPORT_UPDATE_DEBOUNCE = 150;
 export { MapBounds } from '../../../shared/types';
 
 export interface UsePOIDisplayReturn {
-  showPOIs: boolean;
   pois: POI[];
   filteredPOIs: POI[];
   poiCounts: Record<POICategory, number>;
@@ -28,7 +26,6 @@ export interface UsePOIDisplayReturn {
   favoriteIds: Set<string>;
 
   // Actions
-  togglePOIs: () => void;
   toggleCategory: (category: POICategory) => void;
   loadPOIsForBounds: (bounds: MapBounds) => void;
   updateViewportBounds: (bounds: MapBounds) => void;
@@ -38,14 +35,14 @@ export interface UsePOIDisplayReturn {
 
 /**
  * Hook for managing POI display and filtering
- * Composes focused hooks for visibility, selection, filtering, GeoJSON, and fetching
+ * Simplified: POIs are always visible (no toggle)
+ * Loads only downloaded POIs from local database
  */
 export function usePOIDisplay(
-  location: Location.LocationObject | null,
-  enabledRoutes: ParsedRoute[]
+  _location: Location.LocationObject | null,
+  _enabledRoutes: ParsedRoute[]
 ): UsePOIDisplayReturn {
-  // Focused hooks for specific concerns
-  const { showPOIs, togglePOIs } = usePOIVisibility();
+  // Selection hook
   const { selectPOI, handlePOIPress } = usePOISelection();
 
   // Use Zustand selectors for granular subscriptions
@@ -77,12 +74,8 @@ export function usePOIDisplay(
   // Compose GeoJSON hook
   const { poiGeoJSON } = usePOIGeoJSON(throttledFilteredPOIs, favoriteIds);
 
-  // Compose fetching hook
-  const { loadPOIsForBounds, lastBoundsRef } = usePOIFetching({
-    showPOIs,
-    categories: filterCategories,
-    onBoundsUpdate: setViewportBounds,
-  });
+  // Compose fetching hook (simplified - no options needed)
+  const { loadPOIsForBounds, lastBoundsRef } = usePOIFetching();
 
   // Debounced viewport bounds setter to reduce filtering frequency during pan
   const debouncedSetViewportBounds = useMemo(
@@ -93,7 +86,7 @@ export function usePOIDisplay(
   // Update viewport bounds for filtering (called on camera changes)
   const updateViewportBounds = useCallback(
     (bounds: MapBounds) => {
-      // Store bounds immediately for auto-loading when POIs enabled
+      // Store bounds immediately for reference
       lastBoundsRef.current = bounds;
 
       // Debounce the viewport bounds update to reduce filtering frequency
@@ -109,7 +102,6 @@ export function usePOIDisplay(
   );
 
   return {
-    showPOIs,
     pois,
     filteredPOIs,
     poiCounts,
@@ -117,7 +109,6 @@ export function usePOIDisplay(
     isLoading,
     filters,
     favoriteIds,
-    togglePOIs,
     toggleCategory,
     loadPOIsForBounds,
     updateViewportBounds,

@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { View, Linking, Platform, Share } from 'react-native';
+import { View, Linking, Share } from 'react-native';
 import { Button } from 'react-native-paper';
 import { POI } from '../../types';
 import { getCategoryConfig } from '../../services/overpass.service';
@@ -22,16 +22,10 @@ export const POIDetailActions = memo(function POIDetailActions({
 }: POIDetailActionsProps) {
   const { phone, website } = contactInfo;
 
-  const openInMaps = useCallback(() => {
-    const label = poi.name || getCategoryConfig(poi.category)?.name || 'POI';
-    const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${poi.latitude},${poi.longitude}`,
-      android: `geo:0,0?q=${poi.latitude},${poi.longitude}(${label})`,
-    });
-
-    if (url) {
-      Linking.openURL(url);
-    }
+  // Navigate using Google Maps directions
+  const navigateInGoogleMaps = useCallback(() => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${poi.latitude},${poi.longitude}`;
+    Linking.openURL(url);
   }, [poi]);
 
   const openWebsite = useCallback(() => {
@@ -62,31 +56,23 @@ export const POIDetailActions = memo(function POIDetailActions({
     }
   }, [poi]);
 
-  const openGoogleMaps = useCallback(() => {
-    const label = poi.name || getCategoryConfig(poi.category)?.name || 'POI';
-    // Use name + coordinates for better search results with reviews/photos
-    const query = encodeURIComponent(`${label} ${poi.latitude},${poi.longitude}`);
-    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    Linking.openURL(url);
-  }, [poi]);
-
   return (
     <View style={styles.container}>
-      {/* Primary Navigate Button */}
+      {/* Primary Navigate Button - Opens Google Maps directions */}
       <Button
         mode="contained"
         icon="navigation-variant"
-        onPress={openInMaps}
+        onPress={navigateInGoogleMaps}
         style={styles.primaryButton}
         contentStyle={styles.primaryButtonContent}
         labelStyle={styles.primaryButtonLabel}
-        accessibilityLabel="Navigate to this location"
+        accessibilityLabel="Navigate in Google Maps"
         accessibilityRole="button"
       >
         Navigate
       </Button>
 
-      {/* Secondary Icon Buttons */}
+      {/* Secondary Icon Buttons - only show if relevant */}
       <View style={styles.secondaryRow}>
         {phone && (
           <LabeledIconButton
@@ -107,16 +93,10 @@ export const POIDetailActions = memo(function POIDetailActions({
           />
         )}
         <LabeledIconButton
-          icon="google-maps"
-          label="Maps"
-          onPress={openGoogleMaps}
-          color={colors.status.error}
-          accessibilityLabel="Open in Google Maps"
-        />
-        <LabeledIconButton
           icon="share-variant"
           label="Share"
           onPress={sharePOI}
+          color={colors.primary[500]}
           accessibilityLabel="Share this location"
         />
       </View>

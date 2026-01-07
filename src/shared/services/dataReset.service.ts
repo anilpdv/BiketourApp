@@ -12,7 +12,6 @@ import {
   tilesCollection,
   regionsCollection,
 } from '../database/watermelon/database';
-import { photoCacheRepository } from '../../features/pois/services/photoCache.repository';
 import { usePOIStore } from '../../features/pois/store/poiStore';
 import { useDownloadedRegionsStore } from '../../features/offline/store/downloadedRegionsStore';
 import { logger } from '../utils';
@@ -23,13 +22,12 @@ export interface DataResetResult {
   clearedItems: {
     sqliteTables: number;
     watermelonRecords: number;
-    photoCacheCleared: boolean;
     gpxFilesDeleted: number;
   };
 }
 
 export interface DeleteProgress {
-  phase: 'counting' | 'watermelon' | 'photoCache' | 'sqlite' | 'files' | 'stores' | 'complete';
+  phase: 'counting' | 'watermelon' | 'sqlite' | 'files' | 'stores' | 'complete';
   progress: number; // 0-100
   message: string;
 }
@@ -45,7 +43,6 @@ export async function deleteAllAppData(
   const clearedItems = {
     sqliteTables: 0,
     watermelonRecords: 0,
-    photoCacheCleared: false,
     gpxFilesDeleted: 0,
   };
 
@@ -67,19 +64,7 @@ export async function deleteAllAppData(
     logger.error('database', 'Failed to clear WatermelonDB', error);
   }
 
-  // 2. Clear Photo Cache Database
-  onProgress?.({ phase: 'photoCache', progress: 85, message: 'Clearing photo cache...' });
-  try {
-    await photoCacheRepository.clearAll();
-    clearedItems.photoCacheCleared = true;
-    logger.info('database', 'Cleared photo cache');
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    errors.push(`Photo cache: ${message}`);
-    logger.error('database', 'Failed to clear photo cache', error);
-  }
-
-  // 3. Clear Main SQLite Database (all tables)
+  // 2. Clear Main SQLite Database (all tables)
   onProgress?.({ phase: 'sqlite', progress: 90, message: 'Clearing database...' });
   try {
     await databaseService.deleteAllData();
@@ -91,7 +76,7 @@ export async function deleteAllAppData(
     logger.error('database', 'Failed to clear SQLite database', error);
   }
 
-  // 4. Delete GPX files from document directory
+  // 3. Delete GPX files from document directory
   onProgress?.({ phase: 'files', progress: 95, message: 'Deleting files...' });
   try {
     const deletedCount = await clearGPXFiles();
@@ -105,7 +90,7 @@ export async function deleteAllAppData(
     logger.error('database', 'Failed to delete GPX files', error);
   }
 
-  // 5. Reset Zustand stores (immediate in-memory state reset)
+  // 4. Reset Zustand stores (immediate in-memory state reset)
   onProgress?.({ phase: 'stores', progress: 98, message: 'Resetting app state...' });
   try {
     resetZustandStores();

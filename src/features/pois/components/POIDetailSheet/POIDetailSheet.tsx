@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
 import { usePOIStore } from '../../store/poiStore';
 import { getPOIContactInfo, isCampingCategory } from '../../utils/poiTagParser';
-import { POIPhotoGallery } from './POIPhotoGallery';
+import { POIHeroHeader } from './POIHeroHeader';
 import { POIQuickInfo } from './POIQuickInfo';
 import { POIFacilities } from './POIFacilities';
 import { POISurroundings } from './POISurroundings';
@@ -13,7 +13,6 @@ import { POITerrain } from './POITerrain';
 import { POIDetailInfo } from './POIDetailInfo';
 import { POIDetailActions } from './POIDetailActions';
 import { POIDetailNotes } from './POIDetailNotes';
-import { POIMiniMap } from './POIMiniMap';
 import { POIStickyBottomBar } from './POIStickyBottomBar';
 import { styles, descriptionStyles } from './POIDetailSheet.styles';
 import { colors } from '../../../../shared/design/tokens';
@@ -98,8 +97,8 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={true}
               >
-                {/* Hero Photo Gallery with Header */}
-                <POIPhotoGallery poi={poi} onClose={handleClose} />
+                {/* Hero Header with Icon, Name, and Open in Maps */}
+                <POIHeroHeader poi={poi} />
 
                 {/* Quick Info Bar (capacity, status, rating) */}
                 <POIQuickInfo poi={poi} />
@@ -116,12 +115,8 @@ export const POIDetailSheet = forwardRef<POIDetailSheetRef, POIDetailSheetProps>
                 {/* Contact & Location Info */}
                 <POIDetailInfo
                   poi={poi}
-                  distanceFromUser={poi.distanceFromUser}
                   contactInfo={contactInfo}
                 />
-
-                {/* Mini Map Preview */}
-                <POIMiniMap poi={poi} />
 
                 {/* Action Buttons */}
                 <POIDetailActions poi={poi} contactInfo={contactInfo} />

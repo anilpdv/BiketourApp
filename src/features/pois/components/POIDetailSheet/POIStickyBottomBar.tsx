@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { View, StyleSheet, Pressable, Linking, Platform } from 'react-native';
+import { View, StyleSheet, Linking } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { POI } from '../../types';
@@ -12,18 +12,12 @@ interface POIStickyBottomBarProps {
 }
 
 /**
- * Open directions to POI in maps app
+ * Open directions to POI in Google Maps (consistent across platforms)
  */
 function openDirections(lat: number, lon: number, name?: string) {
   const label = encodeURIComponent(name || 'POI');
-
-  if (Platform.OS === 'ios') {
-    // Apple Maps
-    Linking.openURL(`http://maps.apple.com/?daddr=${lat},${lon}&q=${label}`);
-  } else {
-    // Google Maps
-    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`);
-  }
+  // Always use Google Maps for directions
+  Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&destination_place_id=${label}`);
 }
 
 /**

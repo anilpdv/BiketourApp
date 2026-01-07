@@ -1,15 +1,7 @@
 import { create } from 'zustand';
-import { POI, POICategory, BoundingBox } from '../types';
+import { POI, POICategory } from '../types';
 import { poiRepository } from '../services/poi.repository';
-import {
-  fetchPOIsWithCache,
-  fetchPOIsProgressively,
-  fetchPOIsForViewport,
-} from '../services/overpass.service';
-import { logger, withTimeout, isTimeoutError } from '../../../shared/utils';
-
-// Loading timeout to prevent forever loading (30 seconds - matches API timeout)
-const LOADING_TIMEOUT_MS = 30000;
+import { logger } from '../../../shared/utils';
 
 interface POIState {
   // All loaded POIs
@@ -46,19 +38,6 @@ interface POIState {
   toggleFavorite: (poi: POI, note?: string) => Promise<void>;
   updateFavoriteNote: (poiId: string, note: string) => Promise<void>;
   isFavorite: (poiId: string) => boolean;
-
-  // Cache-aware loading
-  loadPOIsForBounds: (bbox: BoundingBox, categories?: POICategory[]) => Promise<void>;
-
-  // Progressive loading (show cached immediately, fetch fresh in background)
-  loadPOIsProgressively: (bbox: BoundingBox, categories?: POICategory[]) => Promise<void>;
-
-  // Viewport-based loading (only fetch uncached tiles)
-  loadPOIsForViewport: (
-    bbox: BoundingBox,
-    categories?: POICategory[],
-    onProgress?: (loaded: number, total: number) => void
-  ) => Promise<void>;
 }
 
 export const usePOIStore = create<POIState>((set, get) => ({
@@ -200,80 +179,6 @@ export const usePOIStore = create<POIState>((set, get) => ({
   // Check if POI is favorite
   isFavorite: (poiId: string) => {
     return get().favoriteIds.has(poiId);
-  },
-
-  // Load POIs with cache-first strategy (with timeout)
-  loadPOIsForBounds: async (bbox: BoundingBox, categories?: POICategory[]) => {
-    set({ isLoading: true, error: null });
-    try {
-      const pois = await withTimeout(
-        fetchPOIsWithCache(bbox, categories),
-        LOADING_TIMEOUT_MS,
-        'POI loading timed out'
-      );
-      get().addPOIs(pois);
-      set({ isLoading: false });
-    } catch (error: unknown) {
-      const errorMessage = isTimeoutError(error)
-        ? 'POI loading timed out. Try zooming in.'
-        : 'Failed to load POIs';
-      logger.error('store', errorMessage, error);
-      set({ isLoading: false, error: errorMessage });
-    }
-  },
-
-  // Progressive loading: show cached POIs immediately, fetch fresh in background (with timeout)
-  loadPOIsProgressively: async (bbox: BoundingBox, categories?: POICategory[]) => {
-    set({ isLoading: true, error: null });
-    try {
-      await withTimeout(
-        fetchPOIsProgressively(
-          bbox,
-          (cachedPOIs) => {
-            // Show cached data immediately
-            get().addPOIs(cachedPOIs);
-          },
-          (freshPOIs) => {
-            // Update with fresh data
-            get().addPOIs(freshPOIs);
-          },
-          categories
-        ),
-        LOADING_TIMEOUT_MS,
-        'POI loading timed out'
-      );
-      set({ isLoading: false });
-    } catch (error: unknown) {
-      const errorMessage = isTimeoutError(error)
-        ? 'POI loading timed out. Try zooming in.'
-        : 'Failed to load POIs';
-      logger.error('store', errorMessage, error);
-      set({ isLoading: false, error: errorMessage });
-    }
-  },
-
-  // Viewport-based loading: only fetch uncached tiles (with timeout)
-  loadPOIsForViewport: async (
-    bbox: BoundingBox,
-    categories?: POICategory[],
-    onProgress?: (loaded: number, total: number) => void
-  ) => {
-    set({ isLoading: true, error: null });
-    try {
-      const pois = await withTimeout(
-        fetchPOIsForViewport(bbox, categories, true, onProgress),  // Always fetch API POIs when called from store
-        LOADING_TIMEOUT_MS,
-        'POI loading timed out'
-      );
-      get().addPOIs(pois);
-      set({ isLoading: false });
-    } catch (error: unknown) {
-      const errorMessage = isTimeoutError(error)
-        ? 'POI loading timed out. Try zooming in.'
-        : 'Failed to load POIs';
-      logger.error('store', errorMessage, error);
-      set({ isLoading: false, error: errorMessage });
-    }
   },
 }));
 

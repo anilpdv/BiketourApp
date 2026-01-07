@@ -6,9 +6,8 @@
 export { POIDetailSheet } from './POIDetailSheet';
 export type { POIDetailSheetRef, POIDetailSheetProps } from './POIDetailSheet';
 
-// Header components
-export { POIDetailHeader } from './POIDetailHeader';
-export type { POIDetailHeaderProps } from './POIDetailHeader';
+// Hero header
+export { POIHeroHeader } from './POIHeroHeader';
 
 // Info sections
 export { POIDetailInfo } from './POIDetailInfo';
