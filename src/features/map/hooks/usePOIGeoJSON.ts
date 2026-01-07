@@ -7,7 +7,8 @@ import { useMemo, useCallback, useRef } from 'react';
 import type { Feature, FeatureCollection, Point } from 'geojson';
 import { POI, POICategory } from '../../pois';
 import { getCategoryIcon } from '../../pois/config/poiIcons';
-import type { POIGroupKey } from '../../pois/config/poiGroupColors';
+import type { POIGroupKey, POIPriority } from '../../pois/config/poiGroupColors';
+import { getCategoryPriority } from '../../pois/config/poiGroupColors';
 
 export interface POIFeatureProperties {
   id: string;
@@ -16,6 +17,7 @@ export interface POIFeatureProperties {
   color: string;
   group: POIGroupKey;
   groupColor: string;
+  priority: POIPriority;
   makiIcon: string;
   spriteIcon: string;
   emoji: string;
@@ -41,6 +43,7 @@ export function usePOIGeoJSON(
   const createPOIFeature = useCallback(
     (poi: POI, isFavorite: boolean): Feature<Point, POIFeatureProperties> => {
       const styling = getCategoryIcon(poi.category);
+      const priority = getCategoryPriority(poi.category);
       return {
         type: 'Feature' as const,
         id: poi.id,
@@ -51,6 +54,7 @@ export function usePOIGeoJSON(
           color: styling.color,
           group: styling.group,
           groupColor: styling.groupColor,
+          priority,
           makiIcon: styling.makiIcon,
           spriteIcon: styling.spriteIcon,
           emoji: styling.emoji,

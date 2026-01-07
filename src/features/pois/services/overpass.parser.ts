@@ -140,7 +140,19 @@ export function parsePOIFromElement(element: OverpassElement): POI | null {
 }
 
 /**
+ * Custom error class for Overpass API errors
+ * Allows us to propagate meaningful error messages to the UI
+ */
+export class OverpassAPIError extends Error {
+  constructor(message: string, public readonly remark?: string) {
+    super(message);
+    this.name = 'OverpassAPIError';
+  }
+}
+
+/**
  * Parse Overpass response to POIs
+ * Throws OverpassAPIError if the API returned an error
  */
 export function parseOverpassResponse(response: OverpassResponse): POI[] {
   // Check for Overpass error responses (HTTP 200 but with remark)
@@ -148,13 +160,25 @@ export function parseOverpassResponse(response: OverpassResponse): POI[] {
     logger.error('offline', 'Overpass API error in response', {
       remark: response.remark,
     });
-    return [];
+    // Parse common Overpass error types for user-friendly messages
+    const remark = response.remark.toLowerCase();
+    let userMessage: string;
+    if (remark.includes('timeout') || remark.includes('timed out')) {
+      userMessage = 'Query timed out - try downloading a smaller area';
+    } else if (remark.includes('rate') || remark.includes('too many')) {
+      userMessage = 'Rate limited - please try again in a few minutes';
+    } else if (remark.includes('memory') || remark.includes('out of')) {
+      userMessage = 'Area too large - try downloading a smaller region';
+    } else {
+      userMessage = `Download failed: ${response.remark}`;
+    }
+    throw new OverpassAPIError(userMessage, response.remark);
   }
 
   // Validate elements array exists (missing on error responses)
   if (!response.elements || !Array.isArray(response.elements)) {
     logger.error('offline', 'Overpass response missing elements array');
-    return [];
+    throw new OverpassAPIError('Invalid response from server - please try again');
   }
 
   const pois: POI[] = [];

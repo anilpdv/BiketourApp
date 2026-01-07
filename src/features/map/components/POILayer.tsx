@@ -113,8 +113,11 @@ export const POILayer = memo(function POILayer({
             id="poi-markers"
             filter={['!', ['has', 'point_count']]}
             style={{
-              iconImage: ['concat', 'marker-', ['get', 'group']],
-              iconSize: 0.3,
+              // Dynamic marker selection: marker-{category}-{priority}
+              // e.g., marker-campsite-essential, marker-wild_camping-essential
+              iconImage: ['concat', 'marker-', ['get', 'category'], '-', ['get', 'priority']],
+              iconSize: 0.6,
+              // All markers anchor at bottom since all have pointers/notches
               iconAnchor: 'bottom',
               iconAllowOverlap: true,
             }}

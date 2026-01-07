@@ -12,6 +12,7 @@ import {
 } from '../../pois';
 import { useFilterStore } from '../../pois/store/filterStore';
 import { useDownloadedRegionsStore } from '../../offline/store/downloadedRegionsStore';
+import { HIDDEN_BY_DEFAULT } from '../../pois/config/poiGroupColors';
 
 // Throttle delay for filtered POI updates (ms)
 const FILTER_UPDATE_THROTTLE = 100;
@@ -68,11 +69,13 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
 
     // Filter by selected categories
     const categoryFiltered = pois.filter((poi) => {
-      // If no categories selected, show all POIs (both downloaded and online)
+      // If no categories selected, show all POIs EXCEPT hidden-by-default ones
+      // (food/restaurants are hidden by default for cleaner cyclist-focused UX)
       if (filterCategories.length === 0) {
-        return true;
+        return !HIDDEN_BY_DEFAULT.includes(poi.category);
       }
-      // If categories selected, filter by category (downloaded or not)
+      // If categories selected, filter by category
+      // This allows users to explicitly enable hidden categories via filter
       return filterCategories.includes(poi.category);
     });
 

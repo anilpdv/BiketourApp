@@ -59,19 +59,28 @@ export const POIDownloadProgress = memo(function POIDownloadProgress({
   const poiPhase = poiProgress?.phase as DownloadPhase;
   const tilePhase = tileProgress?.phase;
 
+  const isPOIError = poiPhase === 'error';
   const isPOIFinished = poiPhase ? isPhaseFinished(poiPhase) : true;
   const isTileFinished = tilePhase === 'complete' || tilePhase === 'error' || tilePhase === 'cancelled';
 
   // Overall status
   const isFinished = (!hasPOIDownload || isPOIFinished) && (!hasTileDownload || isTileFinished);
+  const hasError = isPOIError || tilePhase === 'error';
 
-  // Phase config for display
-  const activePhase = hasPOIDownload && !isPOIFinished ? poiPhase : (hasTileDownload ? 'downloading' : 'complete');
+  // Phase config for display - use error phase if there's an error
+  const activePhase = hasError
+    ? 'error'
+    : hasPOIDownload && !isPOIFinished
+    ? poiPhase
+    : (hasTileDownload ? 'downloading' : 'complete');
   const phaseConfig = getPhaseConfig(activePhase as DownloadPhase);
 
   // Status text
   let statusText = '';
-  if (hasPOIDownload && !isPOIFinished && poiProgress) {
+  if (isPOIError && poiProgress?.message) {
+    // Show the error message from the download service
+    statusText = poiProgress.message;
+  } else if (hasPOIDownload && !isPOIFinished && poiProgress) {
     statusText = formatStatusText(
       poiPhase,
       poiProgress.currentTile,

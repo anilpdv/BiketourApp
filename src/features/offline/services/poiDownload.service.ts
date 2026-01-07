@@ -10,6 +10,7 @@ import {
   buildMultiCategoryQuery,
   parseOverpassResponse,
 } from '../../pois/services/overpass.service';
+import { OverpassAPIError } from '../../pois/services/overpass.parser';
 import { poiRepositoryWM } from '../../pois/services/poi.repository.watermelon';
 import { logger } from '../../../shared/utils';
 import { fetchWithTimeout } from '../../../shared/api/httpClient';
@@ -114,6 +115,7 @@ const RETRY_DELAYS = [500, 1000, 2000]; // Faster exponential backoff: 0.5s, 1s,
 /**
  * Fetch POIs for a tile with retry logic and exponential backoff
  * This bypasses the shared rate limiter for faster parallel fetches
+ * Throws OverpassAPIError if the API returns an error (so caller can track failures)
  */
 async function fetchPOIsForTileBulk(
   bbox: BoundingBox,
@@ -148,15 +150,7 @@ async function fetchPOIsForTileBulk(
 
       if (response.ok) {
         const data: OverpassResponse = await response.json();
-
-        // Check for Overpass error (HTTP 200 but with remark/error message)
-        if (data.remark) {
-          logger.warn('offline', 'Overpass API returned error in response', {
-            remark: data.remark,
-          });
-          return [];  // Return empty but don't throw (allow other tiles to succeed)
-        }
-
+        // parseOverpassResponse throws OverpassAPIError if data.remark is present
         return parseOverpassResponse(data);
       }
 
@@ -175,18 +169,27 @@ async function fetchPOIsForTileBulk(
         continue;
       }
 
-      // Non-retryable error - log it so we can diagnose
+      // Non-retryable HTTP error
       const errorText = await response.text().catch(() => 'Unable to read response');
-      logger.error('offline', 'Overpass API error (non-retryable)', {
+      logger.error('offline', 'Overpass API HTTP error', {
         status: response.status,
         statusText: response.statusText,
         body: errorText.slice(0, 500),
       });
-      return [];
+      throw new OverpassAPIError(
+        response.status === 429
+          ? 'Rate limited - please try again in a few minutes'
+          : `Server error (${response.status}) - please try again`
+      );
     } catch (error) {
       // AbortError - don't retry, just return empty
       if (error instanceof Error && error.name === 'AbortError') {
         return [];
+      }
+
+      // OverpassAPIError - don't retry, propagate
+      if (error instanceof OverpassAPIError) {
+        throw error;
       }
 
       // Network error - retry with backoff
@@ -199,7 +202,7 @@ async function fetchPOIsForTileBulk(
 
       // All retries exhausted
       logger.warn('offline', 'Bulk tile fetch failed after retries', error);
-      return [];
+      throw new OverpassAPIError('Network error - please check your connection and try again');
     }
   }
 
@@ -262,6 +265,7 @@ export async function downloadPOIsForArea(
 
   // Track failed tiles for user feedback
   let failedTileCount = 0;
+  let lastErrorMessage: string | null = null; // Store last error for user feedback
 
   // Progress reporting
   const reportProgress = (progress: Partial<DownloadProgress>) => {
@@ -342,8 +346,6 @@ export async function downloadPOIsForArea(
         chunk.map(async (tile) => {
           try {
             const pois = await fetchPOIsForTileBulk(tile, categories, abortSignal);
-            // If tile returned empty due to non-abort error, count as potential failure
-            // (fetchPOIsForTileBulk returns [] on error)
             return pois;
           } catch (error) {
             // Don't log AbortErrors - they're expected when cancelling
@@ -351,7 +353,16 @@ export async function downloadPOIsForArea(
               return [];
             }
             failedTileCount++;
-            logger.warn('offline', 'Failed to fetch tile (continuing)', error);
+            // Store the error message for user feedback
+            if (error instanceof OverpassAPIError) {
+              lastErrorMessage = error.message;
+            } else if (error instanceof Error) {
+              lastErrorMessage = error.message;
+            }
+            logger.warn('offline', 'Failed to fetch tile (continuing)', {
+              error: error instanceof Error ? error.message : String(error),
+              failedCount: failedTileCount,
+            });
             return [];
           }
         })
@@ -418,6 +429,47 @@ export async function downloadPOIsForArea(
   // WatermelonDB handles deduplication via ON CONFLICT - no need to dedup in memory
   const poiCount = allPOIs.length;
   logger.info('offline', `Fetched ${poiCount} POIs (dedup handled by DB)`);
+
+  // Check if ALL tiles failed - this is a complete download failure
+  if (failedTileCount === totalTiles) {
+    const errorMsg = lastErrorMessage || 'Download failed - unable to fetch POI data';
+    logger.error('offline', 'All tiles failed to download', {
+      failedTileCount,
+      totalTiles,
+      lastError: lastErrorMessage,
+    });
+    reportProgress({
+      phase: 'error',
+      currentPOIs: 0,
+      totalPOIs: 0,
+      percentage: 0,
+      currentTile: 0,
+      totalTiles,
+      failedTiles: failedTileCount,
+      message: errorMsg,
+    });
+    throw new OverpassAPIError(errorMsg);
+  }
+
+  // Check if some tiles failed (partial failure) - warn but continue
+  if (failedTileCount > 0) {
+    const successRate = Math.round(((totalTiles - failedTileCount) / totalTiles) * 100);
+    logger.warn('offline', `Partial download success: ${successRate}% of tiles completed`, {
+      failedTileCount,
+      totalTiles,
+      poiCount,
+    });
+  }
+
+  // Check for suspiciously low POI count (possible silent failure)
+  const regionArea = (bounds.north - bounds.south) * (bounds.east - bounds.west) * 111 * 111; // km²
+  if (poiCount === 0 && regionArea > 100) {
+    logger.warn('offline', 'Suspicious: 0 POIs downloaded for large region', {
+      regionArea: `${regionArea.toFixed(0)} km²`,
+      bounds,
+    });
+    // Don't throw - region might legitimately have no POIs, but log for diagnosis
+  }
 
   // Check for abort before saving
   if (abortSignal?.aborted) {

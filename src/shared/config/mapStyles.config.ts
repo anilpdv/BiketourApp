@@ -22,7 +22,7 @@ const CYCLOSM_STYLE = {
         'https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
         'https://c.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
       ],
-      tileSize: 256,
+      tileSize: 512, // Request higher zoom tiles for crisp display on Retina screens
       attribution: '© CyclOSM | Map data © OpenStreetMap contributors',
       maxzoom: 20,
     },
