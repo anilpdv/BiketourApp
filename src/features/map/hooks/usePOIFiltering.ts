@@ -11,7 +11,6 @@ import {
   BoundingBox,
 } from '../../pois';
 import { useFilterStore } from '../../pois/store/filterStore';
-import { useDownloadedRegionsStore } from '../../offline/store/downloadedRegionsStore';
 import { HIDDEN_BY_DEFAULT } from '../../pois/config/poiGroupColors';
 
 // Throttle delay for filtered POI updates (ms)
@@ -20,19 +19,6 @@ const FILTER_UPDATE_THROTTLE = 100;
 // Maximum number of markers to render to prevent Yoga layout crash
 // MarkerView creates React Native Views, which can overwhelm the layout engine
 const MAX_RENDERED_MARKERS = 200;
-
-/**
- * Check if two bounding boxes overlap
- * Used to detect if viewport is within a downloaded region
- */
-function boundsOverlap(a: BoundingBox, b: BoundingBox): boolean {
-  return !(
-    a.east < b.west ||
-    a.west > b.east ||
-    a.north < b.south ||
-    a.south > b.north
-  );
-}
 
 export interface UsePOIFilteringReturn {
   filteredPOIs: POI[];
@@ -79,17 +65,9 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
       return filterCategories.includes(poi.category);
     });
 
-    // Check if viewport overlaps with a downloaded region
-    // If so, use the full region bounds to show all downloaded POIs (not just viewport)
-    const { downloadedRegions } = useDownloadedRegionsStore.getState();
-    const overlappingRegion = viewportBounds
-      ? downloadedRegions.find((region) => boundsOverlap(viewportBounds, region.bounds))
-      : null;
-
-    // Determine which bounds to use for filtering:
-    // - If in a downloaded region: use the FULL region bounds (keeps POIs visible when panning)
-    // - Otherwise: use viewport bounds (normal behavior)
-    const filterBounds = overlappingRegion ? overlappingRegion.bounds : viewportBounds;
+    // Use viewport bounds directly for filtering
+    // (buffered query in usePOIFetching already loads nearby POIs)
+    const filterBounds = viewportBounds;
 
     // If no bounds at all, return category-filtered POIs (limited)
     if (!filterBounds) {

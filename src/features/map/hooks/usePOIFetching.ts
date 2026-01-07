@@ -7,7 +7,6 @@
 import { useCallback, useRef } from 'react';
 import { usePOIStore, BoundingBox } from '../../pois';
 import { poiRepositoryWM as poiRepository } from '../../pois/services/poi.repository.watermelon';
-import { useDownloadedRegionsStore } from '../../offline/store/downloadedRegionsStore';
 import { logger } from '../../../shared/utils';
 import { MapBounds } from '../../../shared/types';
 
@@ -38,19 +37,6 @@ function boundsAreSimilar(a: BoundingBox, b: BoundingBox, threshold = 0.005): bo
     Math.abs(a.north - b.north) < threshold &&
     Math.abs(a.west - b.west) < threshold &&
     Math.abs(a.east - b.east) < threshold
-  );
-}
-
-/**
- * Check if two bounding boxes overlap
- * Used to determine if viewport is within a downloaded region
- */
-function boundsOverlap(a: BoundingBox, b: BoundingBox): boolean {
-  return !(
-    a.east < b.west ||
-    a.west > b.east ||
-    a.north < b.south ||
-    a.south > b.north
   );
 }
 
@@ -106,16 +92,15 @@ export function usePOIFetching(): UsePOIFetchingReturn {
       const startTime = Date.now();
 
       try {
-        // Check if viewport overlaps with any downloaded region
-        // If so, use the full region bounds to ensure all POIs are visible
-        const { downloadedRegions } = useDownloadedRegionsStore.getState();
-        const overlappingRegion = downloadedRegions.find((region) =>
-          boundsOverlap(bbox, region.bounds)
-        );
-
-        // Use region bounds if viewport overlaps with a downloaded region
-        // This ensures POIs remain visible when panning within downloaded area
-        const queryBounds = overlappingRegion ? overlappingRegion.bounds : bbox;
+        // Expand viewport by buffer to preload nearby POIs
+        // This provides smooth panning without loading entire regions
+        const BUFFER = 0.2; // ~22km buffer for smoother panning
+        const queryBounds = {
+          south: bbox.south - BUFFER,
+          north: bbox.north + BUFFER,
+          west: bbox.west - BUFFER,
+          east: bbox.east + BUFFER,
+        };
 
         const downloadedPOIs = await poiRepository.getDownloadedPOIsInBounds(queryBounds);
 
@@ -127,7 +112,6 @@ export function usePOIFetching(): UsePOIFetchingReturn {
         logger.info('poi', 'Loaded downloaded POIs', {
           count: downloadedPOIs.length,
           elapsed: Date.now() - startTime,
-          usingRegionBounds: !!overlappingRegion,
         });
       } catch (error) {
         logger.error('poi', 'Failed to load downloaded POIs', error);
