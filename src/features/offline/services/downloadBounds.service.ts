@@ -8,12 +8,14 @@ import { BoundingBox } from '../../pois/types';
 // Grid size for tile-based downloading (0.5 degrees = ~55km at equator)
 export const DOWNLOAD_TILE_SIZE = 0.5;
 
-// Larger tiles for bulk downloads - bypasses rate limiter (1.0° ≈ 111km)
-export const BULK_DOWNLOAD_TILE_SIZE = 1.0;
+// Tile size for bulk downloads (0.5° ≈ 55km)
+// Reduced from 1.0° to prevent Overpass API timeouts on complex queries
+export const BULK_DOWNLOAD_TILE_SIZE = 0.5;
 
 // Maximum region size for single-query mode (in degrees)
 // Regions smaller than this use ONE API call instead of tile-by-tile
-export const SINGLE_QUERY_MAX_SIZE_DEG = 3.0;
+// 0.45° ≈ 50km - larger regions use tile-based downloads for reliability
+export const SINGLE_QUERY_MAX_SIZE_DEG = 0.45;
 
 /**
  * Calculate bounding box from center point and radius

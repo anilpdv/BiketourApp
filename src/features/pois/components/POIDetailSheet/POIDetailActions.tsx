@@ -23,8 +23,15 @@ export const POIDetailActions = memo(function POIDetailActions({
   const { phone, website } = contactInfo;
 
   // Navigate using Google Maps directions
+  // Uses POI name as destination when available for better place recognition
   const navigateInGoogleMaps = useCallback(() => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${poi.latitude},${poi.longitude}`;
+    let destination: string;
+    if (poi.name) {
+      destination = encodeURIComponent(poi.name);
+    } else {
+      destination = `${poi.latitude},${poi.longitude}`;
+    }
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
     Linking.openURL(url);
   }, [poi]);
 
@@ -44,7 +51,9 @@ export const POIDetailActions = memo(function POIDetailActions({
 
   const sharePOI = useCallback(async () => {
     const label = poi.name || getCategoryConfig(poi.category)?.name || 'POI';
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${poi.latitude},${poi.longitude}`;
+    // Use POI name in URL when available for better place recognition
+    const query = poi.name ? encodeURIComponent(poi.name) : `${poi.latitude},${poi.longitude}`;
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
 
     try {
       await Share.share({

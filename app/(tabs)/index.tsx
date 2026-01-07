@@ -11,7 +11,7 @@ import { FiltersModal } from '../../src/features/pois/components/FiltersModal';
 import { POIListView, POIListHeader, SortOption } from '../../src/features/pois/components/POIListView';
 import { useFilterStore } from '../../src/features/pois/store/filterStore';
 import { usePOIDownloadStore } from '../../src/features/offline/store/poiDownloadStore';
-import { debugDatabasePOIs } from '../../src/features/offline/services/poiDownload.service';
+import { debugDatabasePOIs, isLocationCoveredByDownload } from '../../src/features/offline/services/poiDownload.service';
 import { POIDownloadPrompt } from '../../src/features/offline/components/POIDownloadPrompt';
 import { POIDownloadProgress } from '../../src/features/offline/components/POIDownloadProgress';
 import { RoutePlanningToolbar, SaveRouteDialog, DraggableWaypointMarker, RouteDragPreview } from '../../src/features/routing';
@@ -48,7 +48,7 @@ import { FilterChipsBar } from '../../src/features/map/components/FilterChipsBar
 import { MapControlsBottom } from '../../src/features/map/components/MapControlsBottom';
 
 // Settling detection constants
-const SETTLE_TIMEOUT_MS = 5000; // Wait 5 seconds of no movement before prompting
+const SETTLE_TIMEOUT_MS = 2000; // Wait 2 seconds of no movement before prompting
 
 export default function MapScreen() {
   // Get route params for "View on Map" from route details
@@ -68,6 +68,8 @@ export default function MapScreen() {
   const lastMoveTimeRef = useRef<number>(Date.now());
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPromptedRegionRef = useRef<string | null>(null);
+  // Track current map center in a ref so setTimeout callbacks get current value
+  const currentMapCenterRef = useRef<{lat: number; lon: number} | null>(null);
 
   // Filter store for advanced filtering
   const {
@@ -284,6 +286,14 @@ export default function MapScreen() {
 
       // Clear the completion flag
       clearDownloadCompletedRegion();
+
+      // Clear download protection after camera animation settles (3 seconds)
+      // This allows normal POI fetching to resume for the new viewport
+      setTimeout(() => {
+        const { clearDownloadProtection } = usePOIStore.getState();
+        clearDownloadProtection();
+        logger.info('offline', 'Download protection cleared after fly animation');
+      }, 3000);
     }
   }, [downloadCompletedRegion, clearDownloadCompletedRegion, flyTo]);
 
@@ -292,6 +302,9 @@ export default function MapScreen() {
   // Prevents popup spam during navigation
   useEffect(() => {
     if (!mapCenter) return;
+
+    // Update ref with current center (so setTimeout callback gets latest value)
+    currentMapCenterRef.current = mapCenter;
 
     // Clear any pending settle check when user moves again
     if (settleTimerRef.current) {
@@ -303,34 +316,66 @@ export default function MapScreen() {
       // Double-check user hasn't moved since timer started
       const timeSinceLastMove = Date.now() - lastMoveTimeRef.current;
       if (timeSinceLastMove < SETTLE_TIMEOUT_MS) {
-        // User moved during the wait - skip this check
+        logger.info('offline', 'Skip prompt: user moved during settle wait');
+        return;
+      }
+
+      // Get current center from ref (not stale closure value)
+      const currentCenter = currentMapCenterRef.current;
+      if (!currentCenter) {
+        logger.info('offline', 'Skip prompt: no current center');
         return;
       }
 
       // Don't show download prompt if another modal is already open
-      if (
-        isFiltersModalVisible ||
-        showStylePicker ||
-        showRoutesModal ||
-        isDownloading ||
-        poiDetailSheetRef.current?.isOpen()
-      ) {
+      if (isFiltersModalVisible) {
+        logger.info('offline', 'Skip prompt: filters modal visible');
         return;
       }
+      if (showStylePicker) {
+        logger.info('offline', 'Skip prompt: style picker visible');
+        return;
+      }
+      if (showRoutesModal) {
+        logger.info('offline', 'Skip prompt: routes modal visible');
+        return;
+      }
+      if (isDownloading) {
+        logger.info('offline', 'Skip prompt: download in progress');
+        return;
+      }
+      if (poiDetailSheetRef.current?.isOpen()) {
+        logger.info('offline', 'Skip prompt: POI detail sheet open');
+        return;
+      }
+
+      logger.info('offline', 'Checking if should prompt for region', {
+        lat: currentCenter.lat,
+        lon: currentCenter.lon,
+      });
 
       const result = await checkShouldPromptForRegion(
-        mapCenter.lat,
-        mapCenter.lon
+        currentCenter.lat,
+        currentCenter.lon
       );
 
-      // Don't re-prompt for the same region in this session
-      if (result.region && lastPromptedRegionRef.current === result.region.displayName) {
+      logger.info('offline', 'checkShouldPromptForRegion result', {
+        shouldPrompt: result.shouldPrompt,
+        region: result.region?.displayName,
+        lastPrompted: lastPromptedRegionRef.current,
+      });
+
+      // Check if this location is actually covered by downloaded bounds
+      const isCovered = await isLocationCoveredByDownload(currentCenter.lat, currentCenter.lon);
+      if (isCovered) {
+        logger.info('offline', 'Skip prompt: location covered by existing download');
         return;
       }
 
+      // Location is NOT covered by any download - show prompt
+      // (even if same region name was prompted before, user may have only downloaded part of it)
       if (result.shouldPrompt && result.region) {
-        // Remember this region so we don't re-prompt
-        lastPromptedRegionRef.current = result.region.displayName;
+        logger.info('offline', 'Showing download prompt for region', { region: result.region.displayName });
         showRegionDownloadPrompt(result.region);
       }
     }, SETTLE_TIMEOUT_MS);

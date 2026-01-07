@@ -13,11 +13,18 @@ interface POIStickyBottomBarProps {
 
 /**
  * Open directions to POI in Google Maps (consistent across platforms)
+ * Uses POI name as destination when available for better place recognition
  */
 function openDirections(lat: number, lon: number, name?: string) {
-  const label = encodeURIComponent(name || 'POI');
-  // Always use Google Maps for directions
-  Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&destination_place_id=${label}`);
+  let destination: string;
+  if (name) {
+    // Use name for better place recognition in Google Maps
+    destination = encodeURIComponent(name);
+  } else {
+    // Fallback to coordinates for unnamed POIs
+    destination = `${lat},${lon}`;
+  }
+  Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destination}`);
 }
 
 /**

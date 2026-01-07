@@ -25,6 +25,12 @@ interface POIState {
   favorites: POI[];
   favoritesLoading: boolean;
 
+  // Download protection - prevents setPOIs from wiping recently downloaded POIs
+  downloadProtection: {
+    isActive: boolean;
+    expiresAt: number;
+  };
+
   // Actions
   setPOIs: (pois: POI[]) => void;
   addPOIs: (pois: POI[]) => void;
@@ -32,6 +38,8 @@ interface POIState {
   selectPOI: (poi: POI | null) => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
+  setDownloadProtection: (durationMs?: number) => void;
+  clearDownloadProtection: () => void;
 
   // Favorites actions
   loadFavorites: () => Promise<void>;
@@ -50,8 +58,23 @@ export const usePOIStore = create<POIState>((set, get) => ({
   favoriteIds: new Set(),
   favorites: [],
   favoritesLoading: false,
+  downloadProtection: { isActive: false, expiresAt: 0 },
 
   setPOIs: (pois) => {
+    const { downloadProtection, pois: existingPOIs } = get();
+    const now = Date.now();
+
+    // During protection: skip empty replacement to preserve downloaded POIs
+    if (downloadProtection.isActive && now < downloadProtection.expiresAt) {
+      if (pois.length === 0 && existingPOIs.length > 0) {
+        logger.info('poi', 'Skipping empty setPOIs during download protection', {
+          existingCount: existingPOIs.length,
+          remainingMs: downloadProtection.expiresAt - now,
+        });
+        return;
+      }
+    }
+
     const byCategory = new Map<POICategory, POI[]>();
     const ids = new Set<string>();
     for (const poi of pois) {
@@ -117,6 +140,22 @@ export const usePOIStore = create<POIState>((set, get) => ({
   setLoading: (isLoading) => set({ isLoading }),
 
   setError: (error) => set({ error }),
+
+  // Download protection actions
+  setDownloadProtection: (durationMs = 5000) => {
+    set({
+      downloadProtection: {
+        isActive: true,
+        expiresAt: Date.now() + durationMs,
+      },
+    });
+    logger.info('poi', 'Download protection enabled', { durationMs });
+  },
+
+  clearDownloadProtection: () => {
+    set({ downloadProtection: { isActive: false, expiresAt: 0 } });
+    logger.info('poi', 'Download protection cleared');
+  },
 
   // Load favorites from database
   loadFavorites: async () => {

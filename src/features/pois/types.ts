@@ -56,7 +56,8 @@ export { BoundingBox } from '../../shared/types/geo.types';
 export interface OverpassResponse {
   version: number;
   generator: string;
-  elements: OverpassElement[];
+  elements?: OverpassElement[];  // Optional - missing on error responses
+  remark?: string;               // Error message from Overpass (e.g., "Query timed out")
 }
 
 export interface OverpassElement {

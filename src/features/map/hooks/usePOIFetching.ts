@@ -28,6 +28,19 @@ function mapBoundsToBBox(bounds: MapBounds): BoundingBox {
 }
 
 /**
+ * Check if two bounding boxes are similar (within threshold)
+ * This prevents redundant database queries when the viewport barely moved
+ */
+function boundsAreSimilar(a: BoundingBox, b: BoundingBox, threshold = 0.005): boolean {
+  return (
+    Math.abs(a.south - b.south) < threshold &&
+    Math.abs(a.north - b.north) < threshold &&
+    Math.abs(a.west - b.west) < threshold &&
+    Math.abs(a.east - b.east) < threshold
+  );
+}
+
+/**
  * Hook for loading downloaded POIs from local database
  * Simple and fast - no API calls, no caching logic
  */
@@ -38,6 +51,9 @@ export function usePOIFetching(): UsePOIFetchingReturn {
   // Store last bounds for reference
   const lastBoundsRef = useRef<MapBounds | null>(null);
 
+  // Track last LOADED bounds to avoid redundant database queries
+  const lastLoadedBboxRef = useRef<BoundingBox | null>(null);
+
   // Track if fetch is in progress to prevent concurrent loads
   const isFetchingRef = useRef(false);
 
@@ -46,6 +62,24 @@ export function usePOIFetching(): UsePOIFetchingReturn {
     async (bounds: MapBounds) => {
       // Store bounds for reference
       lastBoundsRef.current = bounds;
+
+      const bbox = mapBoundsToBBox(bounds);
+
+      // Skip if bounds are similar to last loaded bounds (prevents redundant loads)
+      if (lastLoadedBboxRef.current && boundsAreSimilar(lastLoadedBboxRef.current, bbox)) {
+        return;
+      }
+
+      // Check download protection - skip fetch during grace period after download
+      // This prevents wiping recently downloaded POIs during fly-to animation
+      const { downloadProtection } = usePOIStore.getState();
+      const now = Date.now();
+      if (downloadProtection.isActive && now < downloadProtection.expiresAt) {
+        logger.info('poi', 'Skipping fetch during download protection', {
+          remainingMs: downloadProtection.expiresAt - now,
+        });
+        return;
+      }
 
       // Don't start new fetch if one is already in progress
       if (isFetchingRef.current) {
@@ -56,11 +90,13 @@ export function usePOIFetching(): UsePOIFetchingReturn {
       setPOIsLoading(true);
 
       const startTime = Date.now();
-      const bbox = mapBoundsToBBox(bounds);
 
       try {
         // Simple database query - only downloaded POIs
         const downloadedPOIs = await poiRepository.getDownloadedPOIsInBounds(bbox);
+
+        // Update last loaded bounds AFTER successful load
+        lastLoadedBboxRef.current = bbox;
 
         setPOIs(downloadedPOIs);
 

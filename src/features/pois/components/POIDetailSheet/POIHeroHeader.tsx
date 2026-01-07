@@ -26,11 +26,18 @@ function formatDistance(meters?: number): string {
 
 /**
  * Open location in Google Maps (consistent across platforms)
+ * Uses POI name as search query when available, coordinates as fallback
  */
 function openInGoogleMaps(lat: number, lon: number, name?: string) {
-  const label = encodeURIComponent(name || 'Location');
-  // Always use Google Maps for consistency
-  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}&query_place_id=${label}`);
+  let query: string;
+  if (name) {
+    // Search by name - Google Maps will find the place
+    query = encodeURIComponent(name);
+  } else {
+    // Fallback to coordinates for unnamed POIs (shelters, toilets, etc.)
+    query = `${lat},${lon}`;
+  }
+  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
 }
 
 /**

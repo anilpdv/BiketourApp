@@ -4,6 +4,7 @@
  */
 
 import { POI, POICategory, OverpassResponse, OverpassElement } from '../types';
+import { logger } from '../../../shared/utils';
 
 /**
  * Essential tags to keep - reduces memory by ~80%
@@ -142,6 +143,20 @@ export function parsePOIFromElement(element: OverpassElement): POI | null {
  * Parse Overpass response to POIs
  */
 export function parseOverpassResponse(response: OverpassResponse): POI[] {
+  // Check for Overpass error responses (HTTP 200 but with remark)
+  if (response.remark) {
+    logger.error('offline', 'Overpass API error in response', {
+      remark: response.remark,
+    });
+    return [];
+  }
+
+  // Validate elements array exists (missing on error responses)
+  if (!response.elements || !Array.isArray(response.elements)) {
+    logger.error('offline', 'Overpass response missing elements array');
+    return [];
+  }
+
   const pois: POI[] = [];
 
   for (const element of response.elements) {

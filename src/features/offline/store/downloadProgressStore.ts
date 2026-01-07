@@ -143,10 +143,16 @@ export const useDownloadProgressStore = create<DownloadProgressState>((set, get)
       // Add downloaded POIs directly to the store for immediate display
       // This avoids timing issues with database queries
       if (result.pois && result.pois.length > 0) {
-        const { addPOIs } = usePOIStore.getState();
+        const { addPOIs, setDownloadProtection } = usePOIStore.getState();
+
+        // Enable protection BEFORE adding POIs (5 second grace period)
+        // This prevents subsequent setPOIs calls from wiping these POIs during fly animation
+        setDownloadProtection(5000);
+
         addPOIs(result.pois);
-        logger.info('offline', 'Added downloaded POIs to store for immediate display', {
+        logger.info('offline', 'Added downloaded POIs to store with protection', {
           count: result.pois.length,
+          protectionMs: 5000,
         });
       }
 

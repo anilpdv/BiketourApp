@@ -14,16 +14,21 @@ interface POIMiniMapProps {
 
 /**
  * Open directions to POI in maps app
+ * Uses POI name as destination when available for better place recognition
  */
 function openDirections(lat: number, lon: number, name?: string) {
-  const label = encodeURIComponent(name || 'POI');
-
   if (Platform.OS === 'ios') {
-    // Apple Maps
-    Linking.openURL(`http://maps.apple.com/?daddr=${lat},${lon}&q=${label}`);
+    // Apple Maps: use name if available, coordinates as fallback
+    if (name) {
+      // daddr with name, ll as location hint
+      Linking.openURL(`http://maps.apple.com/?daddr=${encodeURIComponent(name)}&ll=${lat},${lon}`);
+    } else {
+      Linking.openURL(`http://maps.apple.com/?daddr=${lat},${lon}`);
+    }
   } else {
-    // Google Maps
-    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`);
+    // Google Maps: use name if available, coordinates as fallback
+    const destination = name ? encodeURIComponent(name) : `${lat},${lon}`;
+    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destination}`);
   }
 }
 

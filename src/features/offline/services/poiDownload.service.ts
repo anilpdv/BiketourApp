@@ -148,6 +148,15 @@ async function fetchPOIsForTileBulk(
 
       if (response.ok) {
         const data: OverpassResponse = await response.json();
+
+        // Check for Overpass error (HTTP 200 but with remark/error message)
+        if (data.remark) {
+          logger.warn('offline', 'Overpass API returned error in response', {
+            remark: data.remark,
+          });
+          return [];  // Return empty but don't throw (allow other tiles to succeed)
+        }
+
         return parseOverpassResponse(data);
       }
 
@@ -166,7 +175,13 @@ async function fetchPOIsForTileBulk(
         continue;
       }
 
-      // Non-retryable error
+      // Non-retryable error - log it so we can diagnose
+      const errorText = await response.text().catch(() => 'Unable to read response');
+      logger.error('offline', 'Overpass API error (non-retryable)', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText.slice(0, 500),
+      });
       return [];
     } catch (error) {
       // AbortError - don't retry, just return empty
