@@ -5,7 +5,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 2,
+  version: 3,
   tables: [
     // POIs table - stores all points of interest
     tableSchema({
@@ -66,6 +66,25 @@ export const schema = appSchema({
         { name: 'size_bytes', type: 'number' },
         { name: 'downloaded_at', type: 'number' },
         { name: 'categories_json', type: 'string' },
+      ],
+    }),
+
+    // Cached Tile Regions - tracks offline map tile downloads
+    tableSchema({
+      name: 'cached_tile_regions',
+      columns: [
+        { name: 'region_id', type: 'string', isIndexed: true },
+        { name: 'style_key', type: 'string', isIndexed: true },
+        { name: 'name', type: 'string' },
+        { name: 'min_lat', type: 'number' },
+        { name: 'max_lat', type: 'number' },
+        { name: 'min_lon', type: 'number' },
+        { name: 'max_lon', type: 'number' },
+        { name: 'min_zoom', type: 'number' },
+        { name: 'max_zoom', type: 'number' },
+        { name: 'tile_count', type: 'number' },
+        { name: 'size_bytes', type: 'number' },
+        { name: 'downloaded_at', type: 'number' },
       ],
     }),
   ],

@@ -11,6 +11,7 @@ import { FiltersModal } from '../../src/features/pois/components/FiltersModal';
 import { POIListView, POIListHeader, SortOption } from '../../src/features/pois/components/POIListView';
 import { useFilterStore } from '../../src/features/pois/store/filterStore';
 import { usePOIDownloadStore } from '../../src/features/offline/store/poiDownloadStore';
+import { useTileDownloadStore } from '../../src/features/offline/store/tileDownloadStore';
 import { debugDatabasePOIs, isLocationCoveredByDownload } from '../../src/features/offline/services/poiDownload.service';
 import { POIDownloadPrompt } from '../../src/features/offline/components/POIDownloadPrompt';
 import { POIDownloadProgress } from '../../src/features/offline/components/POIDownloadProgress';
@@ -98,6 +99,13 @@ export default function MapScreen() {
     loadDownloadedRegions,
     clearDownloadCompletedRegion,
   } = usePOIDownloadStore();
+
+  // Tile download store for offline map tiles
+  const {
+    isDownloadingTiles,
+    startTileDownload,
+    loadCachedRegions,
+  } = useTileDownloadStore();
 
   // Custom hooks for state management
   const { location, errorMsg, refreshLocation } = useLocation();
@@ -221,10 +229,11 @@ export default function MapScreen() {
   // Marker images for POIs (generated once at startup)
   const { markerImages, MarkerGenerator } = useMarkerImages();
 
-  // Load downloaded regions on mount
+  // Load downloaded regions and cached tile regions on mount
   useEffect(() => {
     loadDownloadedRegions();
-  }, [loadDownloadedRegions]);
+    loadCachedRegions();
+  }, [loadDownloadedRegions, loadCachedRegions]);
 
   // Handle "View on Map" from route details - auto-enable route and fly to it
   useEffect(() => {
@@ -268,34 +277,28 @@ export default function MapScreen() {
     });
   }, []);
 
-  // Load POIs after download completes - fly to downloaded region
+  // Handle download completion - stay at current location
   useEffect(() => {
     if (downloadCompletedRegion) {
-      // Calculate center of downloaded region from bounding box
-      const { boundingBox } = downloadCompletedRegion;
-      const centerLat = (boundingBox.south + boundingBox.north) / 2;
-      const centerLon = (boundingBox.west + boundingBox.east) / 2;
-
-      logger.info('offline', 'Download completed, flying to region center', {
+      logger.info('offline', 'Download completed, staying at current location', {
         region: downloadCompletedRegion.displayName,
-        center: { lat: centerLat, lon: centerLon },
       });
 
-      // Fly to the center of downloaded region immediately
-      flyTo([centerLon, centerLat], 12);
+      // DON'T fly anywhere - user is already where they want to be
+      // The region bounds are for the entire state/province (e.g., 170km x 170km)
+      // Flying to the region center would take the user far from their current location
 
-      // Clear the completion flag
+      // Just clear the completion flag and let POIs load naturally
       clearDownloadCompletedRegion();
 
-      // Clear download protection after camera animation settles (3 seconds)
-      // This allows normal POI fetching to resume for the new viewport
+      // Clear download protection to allow POI fetching
       setTimeout(() => {
         const { clearDownloadProtection } = usePOIStore.getState();
         clearDownloadProtection();
-        logger.info('offline', 'Download protection cleared after fly animation');
-      }, 3000);
+        logger.info('offline', 'Download protection cleared');
+      }, 1000); // Reduced timeout - no animation to wait for
     }
-  }, [downloadCompletedRegion, clearDownloadCompletedRegion, flyTo]);
+  }, [downloadCompletedRegion, clearDownloadCompletedRegion]);
 
   // Auto-prompt for POI download when user has SETTLED in a new region
   // Uses settling detection: only prompt after 5+ seconds of no movement
@@ -651,11 +654,24 @@ export default function MapScreen() {
     }
   }, [currentBounds, loadPOIsForBounds]);
 
-  // Handle POI download from prompt (region-based)
-  const handleStartPOIDownload = useCallback(async () => {
+  // Handle POI download from prompt (region-based) with optional tile download
+  const handleStartPOIDownload = useCallback(async (options: { downloadPOIs: boolean; downloadTiles: boolean }) => {
     if (!currentRegion) return;
-    await startRegionDownload(currentRegion);
-  }, [currentRegion, startRegionDownload]);
+
+    // Start POI download if requested
+    if (options.downloadPOIs) {
+      await startRegionDownload(currentRegion);
+    }
+
+    // Start tile download if requested
+    if (options.downloadTiles && currentRegion.boundingBox) {
+      await startTileDownload(
+        currentRegion.boundingBox,
+        currentMapStyle,
+        currentRegion.displayName
+      );
+    }
+  }, [currentRegion, startRegionDownload, startTileDownload, currentMapStyle]);
 
   // Handle dismiss download prompt (region-based)
   const handleDismissDownload = useCallback(() => {
@@ -997,13 +1013,15 @@ export default function MapScreen() {
       <POIDownloadPrompt
         visible={showDownloadPrompt}
         region={currentRegion}
+        currentMapStyle={currentMapStyle}
         onClose={handleDismissDownload}
         onDownload={handleStartPOIDownload}
       />
 
       {/* POI Download Progress */}
       <POIDownloadProgress
-        visible={isDownloading}
+        visible={isDownloading || isDownloadingTiles}
+        showTileProgress={isDownloadingTiles}
         onComplete={handleDownloadComplete}
       />
 

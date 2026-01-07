@@ -66,3 +66,44 @@ export const TERRAIN_SOURCES = {
   // AWS Terrain Tiles - free, global coverage
   aws: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
 };
+
+// Styles that support offline raster tile caching
+export const OFFLINE_RASTER_STYLES: MapStyleKey[] = ['cyclosm', 'satellite', 'topo'];
+
+// Styles that support offline vector tile caching (via MapLibre OfflineManager)
+export const OFFLINE_VECTOR_STYLES: MapStyleKey[] = ['outdoors'];
+
+// All styles that support some form of offline caching
+export const OFFLINE_SUPPORTED_STYLES: MapStyleKey[] = [...OFFLINE_RASTER_STYLES, ...OFFLINE_VECTOR_STYLES];
+
+/**
+ * Check if a style supports offline raster tile caching
+ */
+export function isRasterStyle(styleKey: MapStyleKey): boolean {
+  return OFFLINE_RASTER_STYLES.includes(styleKey);
+}
+
+/**
+ * Check if a style supports offline caching
+ */
+export function isOfflineSupportedStyle(styleKey: MapStyleKey): boolean {
+  return OFFLINE_SUPPORTED_STYLES.includes(styleKey);
+}
+
+/**
+ * Get display name for a style
+ */
+export function getStyleDisplayName(styleKey: MapStyleKey): string {
+  const names: Record<MapStyleKey, string> = {
+    outdoors: 'Outdoors',
+    streets: 'Streets',
+    cyclosm: 'CyclOSM (Cycling)',
+    satellite: 'Satellite',
+    topo: 'Topographic',
+    terrain: 'Terrain',
+    natgeo: 'National Geographic',
+    light: 'Light',
+    dark: 'Dark',
+  };
+  return names[styleKey] || styleKey;
+}

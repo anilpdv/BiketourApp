@@ -11,6 +11,7 @@ import {
   BoundingBox,
 } from '../../pois';
 import { useFilterStore } from '../../pois/store/filterStore';
+import { useDownloadedRegionsStore } from '../../offline/store/downloadedRegionsStore';
 
 // Throttle delay for filtered POI updates (ms)
 const FILTER_UPDATE_THROTTLE = 100;
@@ -18,6 +19,19 @@ const FILTER_UPDATE_THROTTLE = 100;
 // Maximum number of markers to render to prevent Yoga layout crash
 // MarkerView creates React Native Views, which can overwhelm the layout engine
 const MAX_RENDERED_MARKERS = 200;
+
+/**
+ * Check if two bounding boxes overlap
+ * Used to detect if viewport is within a downloaded region
+ */
+function boundsOverlap(a: BoundingBox, b: BoundingBox): boolean {
+  return !(
+    a.east < b.west ||
+    a.west > b.east ||
+    a.north < b.south ||
+    a.south > b.north
+  );
+}
 
 export interface UsePOIFilteringReturn {
   filteredPOIs: POI[];
@@ -62,27 +76,59 @@ export function usePOIFiltering(): UsePOIFilteringReturn {
       return filterCategories.includes(poi.category);
     });
 
-    // If no viewport bounds, return category-filtered POIs
-    if (!viewportBounds) {
-      return categoryFiltered;
+    // Check if viewport overlaps with a downloaded region
+    // If so, use the full region bounds to show all downloaded POIs (not just viewport)
+    const { downloadedRegions } = useDownloadedRegionsStore.getState();
+    const overlappingRegion = viewportBounds
+      ? downloadedRegions.find((region) => boundsOverlap(viewportBounds, region.bounds))
+      : null;
+
+    // Determine which bounds to use for filtering:
+    // - If in a downloaded region: use the FULL region bounds (keeps POIs visible when panning)
+    // - Otherwise: use viewport bounds (normal behavior)
+    const filterBounds = overlappingRegion ? overlappingRegion.bounds : viewportBounds;
+
+    // If no bounds at all, return category-filtered POIs (limited)
+    if (!filterBounds) {
+      const limited = categoryFiltered.slice(0, MAX_RENDERED_MARKERS);
+      lastValidPOIsRef.current = limited;
+      return limited;
     }
 
-    // Filter by viewport bounds - ALL POIs (including downloaded) must be in viewport
+    // Filter by bounds (either region bounds or viewport bounds)
     // This prevents Yoga layout crash from rendering 36,000+ MarkerView components
-    const viewportFiltered = categoryFiltered.filter(
+    const boundsFiltered = categoryFiltered.filter(
       (poi) =>
-        poi.latitude >= viewportBounds.south &&
-        poi.latitude <= viewportBounds.north &&
-        poi.longitude >= viewportBounds.west &&
-        poi.longitude <= viewportBounds.east
+        poi.latitude >= filterBounds.south &&
+        poi.latitude <= filterBounds.north &&
+        poi.longitude >= filterBounds.west &&
+        poi.longitude <= filterBounds.east
     );
 
     // Limit number of markers to prevent Yoga layout crash
+    // When in a downloaded region, sort by distance to viewport center
+    // This ensures POIs nearest to the user's view are prioritized
     let result: POI[];
-    if (viewportFiltered.length > MAX_RENDERED_MARKERS) {
-      result = viewportFiltered.slice(0, MAX_RENDERED_MARKERS);
+    if (boundsFiltered.length > MAX_RENDERED_MARKERS) {
+      // Sort POIs by distance to viewport center, then take nearest 200
+      // This ensures visible POIs are prioritized over distant ones
+      if (viewportBounds) {
+        const centerLat = (viewportBounds.south + viewportBounds.north) / 2;
+        const centerLon = (viewportBounds.west + viewportBounds.east) / 2;
+
+        // Sort by distance to viewport center (squared distance for performance)
+        const sorted = [...boundsFiltered].sort((a, b) => {
+          const distA = Math.pow(a.latitude - centerLat, 2) + Math.pow(a.longitude - centerLon, 2);
+          const distB = Math.pow(b.latitude - centerLat, 2) + Math.pow(b.longitude - centerLon, 2);
+          return distA - distB;
+        });
+
+        result = sorted.slice(0, MAX_RENDERED_MARKERS);
+      } else {
+        result = boundsFiltered.slice(0, MAX_RENDERED_MARKERS);
+      }
     } else {
-      result = viewportFiltered;
+      result = boundsFiltered;
     }
 
     // Store result for next loading cycle (prevents flicker)
