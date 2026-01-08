@@ -34,13 +34,13 @@ import {
   sortExpenses,
 } from '../../../../src/features/planner/utils/expenseUtils';
 
-const CATEGORY_FILTERS: Array<{ key: ExpenseCategory | 'all'; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'accommodation', label: 'Stay' },
-  { key: 'food', label: 'Food' },
-  { key: 'transport', label: 'Transport' },
-  { key: 'repairs', label: 'Repairs' },
-  { key: 'other', label: 'Other' },
+const CATEGORY_FILTERS: Array<{ key: ExpenseCategory | 'all'; label: string; icon: string }> = [
+  { key: 'all', label: 'All', icon: 'view-grid' },
+  { key: 'accommodation', label: 'Stay', icon: 'bed' },
+  { key: 'food', label: 'Food', icon: 'food' },
+  { key: 'transport', label: 'Transport', icon: 'train' },
+  { key: 'repairs', label: 'Repairs', icon: 'wrench' },
+  { key: 'other', label: 'Other', icon: 'dots-horizontal' },
 ];
 
 export default function TripExpensesTab() {
@@ -82,11 +82,12 @@ export default function TripExpensesTab() {
     }))
   );
 
+  // Always reload expenses when tripId changes
   useEffect(() => {
-    if (tripId && !expensesLoaded) {
+    if (tripId) {
       loadExpenses(tripId);
     }
-  }, [tripId, expensesLoaded, loadExpenses]);
+  }, [tripId, loadExpenses]);
 
   useEffect(() => {
     if (tripId) {
@@ -100,12 +101,15 @@ export default function TripExpensesTab() {
     return getBudgetStatus(tripId);
   }, [tripId, getBudgetStatus, expenses, tripPlan?.budget]);
 
-  // Filter expenses by category
+  // Filter expenses by tripId and category
   const filteredExpenses = useMemo(() => {
+    // First filter by current trip
+    const tripExpenses = expenses.filter((exp) => exp.tripPlanId === tripId);
+    // Then filter by category if selected
     return selectedCategory === 'all'
-      ? expenses
-      : expenses.filter((exp) => exp.category === selectedCategory);
-  }, [expenses, selectedCategory]);
+      ? tripExpenses
+      : tripExpenses.filter((exp) => exp.category === selectedCategory);
+  }, [expenses, selectedCategory, tripId]);
 
   // Sort expenses
   const sortedExpenses = useMemo(() => {

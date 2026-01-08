@@ -242,12 +242,12 @@ export function DayPlanCard({
 
         {shouldShowExpense && (
           <TouchableOpacity
-            style={styles.expenseLink}
+            style={styles.expenseButton}
             onPress={onAddExpense}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="plus" size={14} color={colors.neutral[500]} />
-            <Text style={styles.expenseLinkText}>Add expense</Text>
+            <MaterialCommunityIcons name="wallet-plus-outline" size={16} color={colors.primary[600]} />
+            <Text style={styles.expenseButtonText}>Add Expense</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -403,15 +403,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: 0.3,
   },
-  expenseLink: {
+  expenseButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: spacing.sm,
-    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
   },
-  expenseLinkText: {
-    color: colors.neutral[500],
-    fontSize: 12,
+  expenseButtonText: {
+    color: colors.primary[600],
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

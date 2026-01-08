@@ -36,6 +36,14 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
     });
   };
 
+  // Check if description is meaningful (not same as category label)
+  const hasCustomDescription = expense.description &&
+    expense.description.toLowerCase() !== categoryConfig.label.toLowerCase() &&
+    expense.description.toLowerCase() !== expense.category.toLowerCase();
+
+  // Title is custom description or category label
+  const title = hasCustomDescription ? expense.description : categoryConfig.label;
+
   return (
     <TouchableOpacity onPress={onPress} disabled={!onPress}>
       <Card style={styles.card} mode="elevated">
@@ -55,12 +63,14 @@ export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
             </View>
             <View style={styles.details}>
               <Text variant="titleMedium" style={styles.description}>
-                {expense.description || categoryConfig.label}
+                {title}
               </Text>
               <View style={styles.metaRow}>
-                <Text variant="bodySmall" style={styles.category}>
-                  {categoryConfig.label}
-                </Text>
+                {hasCustomDescription && (
+                  <Text variant="bodySmall" style={styles.category}>
+                    {categoryConfig.label}
+                  </Text>
+                )}
                 <Text variant="bodySmall" style={styles.date}>
                   {formatDate(expense.date)}
                 </Text>
