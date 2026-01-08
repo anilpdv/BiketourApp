@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import {
-  Appbar,
   FAB,
   Text,
   Chip,
@@ -12,9 +11,9 @@ import {
 } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
-import { ExpenseCard } from '../../src/features/planner/components/Expenses';
-import { usePlannerStore } from '../../src/features/planner/store/plannerStore';
-import { Expense, ExpenseCategory, ExpenseSummary } from '../../src/features/planner/types';
+import { ExpenseCard } from '../../../../src/features/planner/components/Expenses';
+import { usePlannerStore } from '../../../../src/features/planner/store/plannerStore';
+import { Expense, ExpenseCategory, ExpenseSummary } from '../../../../src/features/planner/types';
 
 const CATEGORY_FILTERS: Array<{ key: ExpenseCategory | 'all'; label: string }> = [
   { key: 'all', label: 'All' },
@@ -25,10 +24,10 @@ const CATEGORY_FILTERS: Array<{ key: ExpenseCategory | 'all'; label: string }> =
   { key: 'other', label: 'Other' },
 ];
 
-export default function ExpensesScreen() {
+export default function TripExpensesTab() {
   const theme = useTheme();
   const router = useRouter();
-  const { tripPlanId } = useLocalSearchParams<{ tripPlanId: string }>();
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
 
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | 'all'>('all');
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
@@ -52,16 +51,16 @@ export default function ExpensesScreen() {
   );
 
   useEffect(() => {
-    if (tripPlanId && !expensesLoaded) {
-      loadExpenses(tripPlanId);
+    if (tripId && !expensesLoaded) {
+      loadExpenses(tripId);
     }
-  }, [tripPlanId, expensesLoaded, loadExpenses]);
+  }, [tripId, expensesLoaded, loadExpenses]);
 
   useEffect(() => {
-    if (tripPlanId) {
-      getExpenseSummary(tripPlanId).then(setSummary);
+    if (tripId) {
+      getExpenseSummary(tripId).then(setSummary);
     }
-  }, [tripPlanId, expenses, getExpenseSummary]);
+  }, [tripId, expenses, getExpenseSummary]);
 
   const filteredExpenses = selectedCategory === 'all'
     ? expenses
@@ -72,7 +71,7 @@ export default function ExpensesScreen() {
   );
 
   const handleAddExpense = () => {
-    router.push(`/planner/add-expense?tripPlanId=${tripPlanId}`);
+    router.push(`/planner/add-expense?tripPlanId=${tripId}`);
   };
 
   const handleDeleteExpense = useCallback((expense: Expense) => {
@@ -164,7 +163,7 @@ export default function ExpensesScreen() {
     </View>
   );
 
-  if (!tripPlanId) {
+  if (!tripId) {
     return (
       <View style={styles.container}>
         <View style={styles.emptyContainer}>

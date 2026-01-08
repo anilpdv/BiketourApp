@@ -149,7 +149,8 @@ export default function CreateTripScreen() {
     );
 
     setActiveTripPlan(tripPlan);
-    router.back();
+    // Navigate to the new trip dashboard
+    router.replace(`/planner/trip/${tripPlan.id}`);
   };
 
   const formatDate = (date: Date) => {

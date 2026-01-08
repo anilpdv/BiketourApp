@@ -5,9 +5,12 @@ import type { TabParamList } from './types';
 
 import { MapScreen } from '../features/map/screens/MapScreen';
 import { RoutesListScreen } from '../features/routes/screens/RoutesListScreen';
-import { PlannerScreen } from '../features/planner/screens/PlannerScreen';
 import { JournalScreen } from '../features/journal/screens/JournalScreen';
 import { SettingsScreen } from '../features/settings/screens/SettingsScreen';
+
+// Note: PlannerScreen is now handled by Expo Router at app/(tabs)/planner.tsx
+// This legacy TabNavigator is kept for reference only
+const PlannerScreen = () => null;
 
 const Tab = createBottomTabNavigator<TabParamList>();
 

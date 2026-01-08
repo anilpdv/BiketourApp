@@ -11,6 +11,8 @@ interface DayPlanCardProps {
   isToday?: boolean;
   onPress?: () => void;
   onMarkComplete?: () => void;
+  onAddExpense?: () => void;
+  showAddExpense?: boolean;
 }
 
 const STATUS_CONFIG: Record<DayPlanStatus, { color: string; icon: string; label: string }> = {
@@ -26,6 +28,8 @@ export function DayPlanCard({
   isToday = false,
   onPress,
   onMarkComplete,
+  onAddExpense,
+  showAddExpense = false,
 }: DayPlanCardProps) {
   const theme = useTheme();
   const statusConfig = STATUS_CONFIG[dayPlan.status];
@@ -114,6 +118,18 @@ export function DayPlanCard({
           <Text style={styles.completeButtonText}>Mark as Complete</Text>
         </TouchableOpacity>
       )}
+
+      {showAddExpense && onAddExpense && (
+        <TouchableOpacity
+          style={[styles.addExpenseButton, { borderColor: theme.colors.primary }]}
+          onPress={onAddExpense}
+        >
+          <MaterialCommunityIcons name="plus" size={16} color={theme.colors.primary} />
+          <Text style={[styles.addExpenseButtonText, { color: theme.colors.primary }]}>
+            Add Expense
+          </Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 }
@@ -180,5 +196,19 @@ const styles = StyleSheet.create({
   completeButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  addExpenseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+  },
+  addExpenseButtonText: {
+    fontWeight: '500',
+    fontSize: 13,
   },
 });

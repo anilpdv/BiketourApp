@@ -13,16 +13,22 @@ export default function PlannerLayout() {
       }}
     >
       <Stack.Screen
-        name="expenses"
+        name="create-trip"
         options={{
-          title: 'Expenses',
-          headerRight: () => (
+          title: 'Create Trip',
+          headerLeft: () => (
             <IconButton
-              icon="close"
+              icon="arrow-left"
               iconColor={theme.colors.onPrimary}
               onPress={() => router.back()}
             />
           ),
+        }}
+      />
+      <Stack.Screen
+        name="trip"
+        options={{
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -30,32 +36,6 @@ export default function PlannerLayout() {
         options={{
           title: 'Add Expense',
           presentation: 'modal',
-          headerRight: () => (
-            <IconButton
-              icon="close"
-              iconColor={theme.colors.onPrimary}
-              onPress={() => router.back()}
-            />
-          ),
-        }}
-      />
-      <Stack.Screen
-        name="create-trip"
-        options={{
-          title: 'Create Trip',
-          headerRight: () => (
-            <IconButton
-              icon="close"
-              iconColor={theme.colors.onPrimary}
-              onPress={() => router.back()}
-            />
-          ),
-        }}
-      />
-      <Stack.Screen
-        name="trip/[tripId]"
-        options={{
-          title: 'Trip Details',
           headerRight: () => (
             <IconButton
               icon="close"

@@ -10,9 +10,10 @@ import { colors, spacing, borderRadius } from '../../../shared/design/tokens';
 interface TripCardProps {
   tripPlan: EuroVeloTripPlan;
   onPress?: () => void;
+  isActive?: boolean;
 }
 
-export function TripCard({ tripPlan, onPress }: TripCardProps) {
+export function TripCard({ tripPlan, onPress, isActive = false }: TripCardProps) {
   const theme = useTheme();
   const stats = calculateTripStats(tripPlan);
   const routeColor = getRouteColor(tripPlan.euroVeloId, tripPlan.variant);
@@ -25,10 +26,20 @@ export function TripCard({ tripPlan, onPress }: TripCardProps) {
 
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor: theme.colors.surface }]}
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.surface },
+        isActive && styles.activeContainer,
+        isActive && { borderColor: routeColor },
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
+      {isActive && (
+        <View style={[styles.activeBadge, { backgroundColor: routeColor }]}>
+          <Text style={styles.activeBadgeText}>ACTIVE</Text>
+        </View>
+      )}
       <View style={styles.header}>
         <View style={[styles.routeIndicator, { backgroundColor: routeColor }]} />
         <View style={styles.headerText}>
@@ -109,11 +120,28 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
+    marginBottom: spacing.md,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+  },
+  activeContainer: {
+    borderWidth: 2,
+  },
+  activeBadge: {
+    position: 'absolute',
+    top: -10,
+    left: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  activeBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   header: {
     flexDirection: 'row',
