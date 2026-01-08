@@ -1,28 +1,56 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Chip, useTheme, IconButton } from 'react-native-paper';
+import { Text, useTheme, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { DayPlan, DayPlanStatus } from '../types';
-import { colors, spacing, borderRadius } from '../../../shared/design/tokens';
+import { colors, spacing, borderRadius, shadows } from '../../../shared/design/tokens';
 
 interface DayPlanCardProps {
   dayPlan: DayPlan;
   dayNumber: number;
   isToday?: boolean;
+  isPast?: boolean;
   onPress?: () => void;
   onMarkComplete?: () => void;
   onAddExpense?: () => void;
   showAddExpense?: boolean;
 }
 
-const STATUS_CONFIG: Record<DayPlanStatus, { color: string; icon: string; label: string }> = {
-  planned: { color: colors.primary[500], icon: 'clock-outline', label: 'Planned' },
-  in_progress: { color: colors.status.warning, icon: 'bike', label: 'In Progress' },
-  completed: { color: colors.status.success, icon: 'check-circle', label: 'Completed' },
-  skipped: { color: colors.neutral[400], icon: 'close-circle', label: 'Skipped' },
+// Distinct colors for each status - NOT all green
+const STATUS_CONFIG: Record<DayPlanStatus, { color: string; bgColor: string; icon: string; label: string }> = {
+  planned: {
+    color: colors.secondary[600],
+    bgColor: colors.secondary[50],
+    icon: 'clock-outline',
+    label: 'Planned'
+  },
+  in_progress: {
+    color: colors.status.warning,
+    bgColor: '#FFF3E0',
+    icon: 'bike',
+    label: 'In Progress'
+  },
+  completed: {
+    color: colors.status.success,
+    bgColor: colors.primary[50],
+    icon: 'check-circle',
+    label: 'Done'
+  },
+  skipped: {
+    color: colors.neutral[500],
+    bgColor: colors.neutral[100],
+    icon: 'close-circle',
+    label: 'Skipped'
+  },
 };
 
-// Check if a day is a rest day
+const REST_DAY_CONFIG = {
+  color: colors.neutral[400],
+  bgColor: colors.neutral[50],
+  icon: 'coffee',
+  label: 'Rest',
+};
+
 const isRestDay = (dayPlan: DayPlan): boolean => {
   return dayPlan.targetKm === 0;
 };
@@ -31,6 +59,7 @@ export function DayPlanCard({
   dayPlan,
   dayNumber,
   isToday = false,
+  isPast = false,
   onPress,
   onMarkComplete,
   onAddExpense,
@@ -38,11 +67,12 @@ export function DayPlanCard({
 }: DayPlanCardProps) {
   const theme = useTheme();
   const restDay = isRestDay(dayPlan);
+  const isCompleted = dayPlan.status === 'completed';
 
-  // Get status config - use 'Rest' for rest days
+  // Get status config
   const getStatusConfig = () => {
-    if (restDay && dayPlan.status !== 'completed') {
-      return { color: colors.neutral[500], icon: 'bed', label: 'Rest Day' };
+    if (restDay && !isCompleted) {
+      return REST_DAY_CONFIG;
     }
     return STATUS_CONFIG[dayPlan.status];
   };
@@ -57,248 +87,331 @@ export function DayPlanCard({
     });
   };
 
+  // Determine left accent color based on state
+  const getAccentColor = () => {
+    if (isToday) return colors.status.warning;
+    if (isCompleted) return colors.status.success;
+    if (isPast && !isCompleted) return colors.neutral[300];
+    return colors.secondary[400];
+  };
+
+  // Only show Add Expense on today, completed, or in_progress days
+  const shouldShowExpense = showAddExpense && onAddExpense &&
+    (isToday || isCompleted || dayPlan.status === 'in_progress');
+
   return (
     <View
       style={[
         styles.container,
         { backgroundColor: theme.colors.surface },
+        isPast && !isCompleted && !isToday && styles.pastContainer,
         isToday && styles.todayContainer,
-        restDay && styles.restDayContainer,
       ]}
     >
-      {isToday && (
-        <View style={[styles.todayBadge, { backgroundColor: theme.colors.primary }]}>
-          <Text style={styles.todayText}>TODAY</Text>
-        </View>
-      )}
+      {/* Left accent bar */}
+      <View style={[styles.accentBar, { backgroundColor: getAccentColor() }]} />
 
-      <View style={styles.header}>
-        <View style={styles.dayInfo}>
-          <Text variant="titleMedium" style={{ fontWeight: '600' }}>
-            Day {dayNumber}
-          </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-            {formatDate(dayPlan.date)}
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <Chip
-            mode="flat"
-            compact
-            icon={() => (
+      <View style={styles.content}>
+        {/* Header Row */}
+        <View style={styles.header}>
+          <View style={styles.dayInfo}>
+            <View style={styles.dayRow}>
+              <Text
+                variant="titleMedium"
+                style={[
+                  styles.dayTitle,
+                  isPast && !isCompleted && !isToday && styles.mutedText
+                ]}
+              >
+                Day {dayNumber}
+              </Text>
+              {isToday && (
+                <View style={styles.todayBadge}>
+                  <Text style={styles.todayText}>TODAY</Text>
+                </View>
+              )}
+            </View>
+            <Text
+              variant="bodySmall"
+              style={[
+                styles.dateText,
+                { color: theme.colors.onSurfaceVariant },
+                isPast && !isToday && styles.mutedText
+              ]}
+            >
+              {formatDate(dayPlan.date)}
+            </Text>
+          </View>
+
+          <View style={styles.headerRight}>
+            {/* Status badge - small and subtle */}
+            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
               <MaterialCommunityIcons
                 name={statusConfig.icon as any}
-                size={14}
+                size={12}
                 color={statusConfig.color}
               />
+              <Text style={[styles.statusText, { color: statusConfig.color }]}>
+                {statusConfig.label}
+              </Text>
+            </View>
+            {onPress && (
+              <IconButton
+                icon="pencil-outline"
+                size={18}
+                iconColor={colors.neutral[400]}
+                style={styles.editButton}
+                onPress={onPress}
+              />
             )}
-            style={{ backgroundColor: `${statusConfig.color}15` }}
-            textStyle={{ color: statusConfig.color, fontSize: 12 }}
-          >
-            {statusConfig.label}
-          </Chip>
-          {onPress && (
-            <IconButton
-              icon="pencil"
-              size={18}
-              iconColor={theme.colors.primary}
-              style={styles.editButton}
-              onPress={onPress}
-            />
-          )}
+          </View>
         </View>
-      </View>
 
-      {/* Distance Row - Show differently for rest days */}
-      {restDay ? (
-        <View style={styles.restDayContent}>
-          <MaterialCommunityIcons
-            name="bed"
-            size={20}
-            color={colors.neutral[400]}
-          />
-          <Text variant="bodyMedium" style={styles.restDayText}>
-            No cycling today
-          </Text>
-        </View>
-      ) : (
-        <>
+        {/* Main content - compact for rest days */}
+        {restDay ? (
+          <View style={styles.restDayRow}>
+            <MaterialCommunityIcons
+              name="coffee"
+              size={16}
+              color={colors.neutral[400]}
+            />
+            <Text variant="bodySmall" style={styles.restDayText}>
+              Rest day
+            </Text>
+          </View>
+        ) : (
           <View style={styles.distanceRow}>
             <MaterialCommunityIcons
-              name="map-marker-distance"
-              size={20}
-              color={theme.colors.primary}
+              name="bike"
+              size={18}
+              color={isPast && !isToday ? colors.neutral[400] : colors.neutral[600]}
             />
-            <Text variant="bodyLarge" style={styles.distanceText}>
+            <Text
+              variant="bodyLarge"
+              style={[
+                styles.distanceText,
+                isPast && !isToday && styles.mutedText
+              ]}
+            >
               {Math.round(dayPlan.targetKm)} km
             </Text>
             {dayPlan.actualKm !== null && (
-              <Text variant="bodySmall" style={{ color: colors.status.success }}>
-                (actual: {dayPlan.actualKm} km)
+              <View style={styles.actualBadge}>
+                <Text style={styles.actualText}>
+                  {dayPlan.actualKm} km done
+                </Text>
+              </View>
+            )}
+            {dayPlan.euroVeloSegment && (
+              <Text variant="bodySmall" style={styles.segmentText}>
+                km {Math.round(dayPlan.euroVeloSegment.startKm)}-{Math.round(dayPlan.euroVeloSegment.endKm)}
               </Text>
             )}
           </View>
+        )}
 
-          {dayPlan.euroVeloSegment && (
-            <View style={styles.segmentInfo}>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                km {Math.round(dayPlan.euroVeloSegment.startKm)} - {Math.round(dayPlan.euroVeloSegment.endKm)}
-              </Text>
-            </View>
-          )}
-        </>
-      )}
+        {/* Notes - only if present and meaningful */}
+        {dayPlan.notes && dayPlan.notes.length > 0 && dayPlan.notes !== 'Rest day' && (
+          <View style={styles.notesRow}>
+            <MaterialCommunityIcons
+              name="note-text-outline"
+              size={12}
+              color={colors.neutral[400]}
+            />
+            <Text
+              variant="bodySmall"
+              numberOfLines={1}
+              style={styles.notesText}
+            >
+              {dayPlan.notes}
+            </Text>
+          </View>
+        )}
 
-      {/* Notes Preview */}
-      {dayPlan.notes && dayPlan.notes.length > 0 && dayPlan.notes !== 'Rest day' && (
-        <View style={styles.notesPreview}>
-          <MaterialCommunityIcons
-            name="note-text-outline"
-            size={14}
-            color={theme.colors.onSurfaceVariant}
-          />
-          <Text
-            variant="bodySmall"
-            numberOfLines={1}
-            style={[styles.notesText, { color: theme.colors.onSurfaceVariant }]}
+        {/* Action buttons - only show when relevant */}
+        {isToday && dayPlan.status === 'planned' && onMarkComplete && !restDay && (
+          <TouchableOpacity
+            style={styles.completeButton}
+            onPress={onMarkComplete}
+            activeOpacity={0.8}
           >
-            {dayPlan.notes}
-          </Text>
-        </View>
-      )}
+            <MaterialCommunityIcons name="check" size={16} color="#fff" />
+            <Text style={styles.completeButtonText}>Complete Day</Text>
+          </TouchableOpacity>
+        )}
 
-      {isToday && dayPlan.status === 'planned' && onMarkComplete && !restDay && (
-        <TouchableOpacity
-          style={[styles.completeButton, { backgroundColor: theme.colors.primary }]}
-          onPress={onMarkComplete}
-        >
-          <MaterialCommunityIcons name="check" size={18} color="#fff" />
-          <Text style={styles.completeButtonText}>Mark as Complete</Text>
-        </TouchableOpacity>
-      )}
-
-      {showAddExpense && onAddExpense && (
-        <TouchableOpacity
-          style={[styles.addExpenseButton, { borderColor: theme.colors.primary }]}
-          onPress={onAddExpense}
-        >
-          <MaterialCommunityIcons name="plus" size={16} color={theme.colors.primary} />
-          <Text style={[styles.addExpenseButtonText, { color: theme.colors.primary }]}>
-            Add Expense
-          </Text>
-        </TouchableOpacity>
-      )}
+        {shouldShowExpense && (
+          <TouchableOpacity
+            style={styles.expenseLink}
+            onPress={onAddExpense}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="plus" size={14} color={colors.neutral[500]} />
+            <Text style={styles.expenseLinkText}>Add expense</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
     marginBottom: spacing.sm,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
+    ...shadows.sm,
+    overflow: 'hidden',
+  },
+  pastContainer: {
+    opacity: 0.6,
   },
   todayContainer: {
-    borderWidth: 2,
-    borderColor: colors.primary[500],
+    ...shadows.md,
+    borderWidth: 0,
   },
-  restDayContainer: {
-    opacity: 0.85,
+  accentBar: {
+    width: 4,
+  },
+  content: {
+    flex: 1,
+    padding: spacing.md,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  dayInfo: {
+    flex: 1,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  dayTitle: {
+    fontWeight: '600',
+    color: colors.neutral[800],
+  },
+  dateText: {
+    marginTop: 2,
+  },
+  mutedText: {
+    color: colors.neutral[400],
   },
   todayBadge: {
-    position: 'absolute',
-    top: -10,
-    left: spacing.md,
+    backgroundColor: colors.status.warning,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
   },
   todayText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  dayInfo: {
-    flex: 1,
+    letterSpacing: 0.5,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
   },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
   editButton: {
-    margin: -4,
+    margin: -8,
+  },
+  restDayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  restDayText: {
+    color: colors.neutral[400],
   },
   distanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   distanceText: {
     fontWeight: '600',
-    marginLeft: spacing.xs,
+    color: colors.neutral[700],
   },
-  segmentInfo: {
-    marginTop: spacing.xs,
-    paddingLeft: spacing.lg + spacing.xs,
+  actualBadge: {
+    backgroundColor: colors.primary[50],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
   },
-  restDayContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+  actualText: {
+    fontSize: 11,
+    color: colors.status.success,
+    fontWeight: '500',
   },
-  restDayText: {
-    color: colors.neutral[500],
-    fontStyle: 'italic',
+  segmentText: {
+    color: colors.neutral[400],
+    fontSize: 11,
   },
-  notesPreview: {
+  notesRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.neutral[200],
   },
   notesText: {
     flex: 1,
+    color: colors.neutral[500],
+    fontSize: 12,
   },
   completeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.status.warning,
+    borderRadius: borderRadius.xl,
+    // Shadow for depth - makes it look tappable
+    shadowColor: colors.status.warning,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   completeButtonText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 15,
+    letterSpacing: 0.3,
   },
-  addExpenseButton: {
+  expenseLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
+    gap: 4,
     marginTop: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
+    alignSelf: 'flex-start',
   },
-  addExpenseButtonText: {
-    fontWeight: '500',
-    fontSize: 13,
+  expenseLinkText: {
+    color: colors.neutral[500],
+    fontSize: 12,
   },
 });

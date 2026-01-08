@@ -118,6 +118,7 @@ export default function TripScheduleTab() {
   const renderDayPlan = ({ item, index }: { item: DayPlan; index: number }) => {
     const dayNumber = index + 1;
     const isToday = item.date === today;
+    const isPast = item.date < today;
     const canComplete = item.status === 'planned' || item.status === 'in_progress';
 
     return (
@@ -125,6 +126,7 @@ export default function TripScheduleTab() {
         dayPlan={item}
         dayNumber={dayNumber}
         isToday={isToday}
+        isPast={isPast}
         onPress={() => handleEditDay(item, dayNumber)}
         onMarkComplete={canComplete ? () => handleMarkDayComplete(item) : undefined}
         onAddExpense={() => handleAddDayExpense(item)}
