@@ -13,6 +13,8 @@ import {
   POICacheTileModel,
   DownloadedRegionModel,
   CachedTileRegionModel,
+  ExpenseModel,
+  TripPlanModel,
 } from './models';
 
 // Create the SQLite adapter with JSI for better performance
@@ -35,6 +37,8 @@ export const database = new Database({
     POICacheTileModel,
     DownloadedRegionModel,
     CachedTileRegionModel,
+    ExpenseModel,
+    TripPlanModel,
   ],
 });
 
@@ -44,3 +48,5 @@ export const favoritesCollection = database.get<POIFavoriteModel>('poi_favorites
 export const tilesCollection = database.get<POICacheTileModel>('poi_cache_tiles');
 export const regionsCollection = database.get<DownloadedRegionModel>('poi_downloaded_regions');
 export const cachedTileRegionsCollection = database.get<CachedTileRegionModel>('cached_tile_regions');
+export const expensesCollection = database.get<ExpenseModel>('expenses');
+export const tripPlansCollection = database.get<TripPlanModel>('trip_plans');

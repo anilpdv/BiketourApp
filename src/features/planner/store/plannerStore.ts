@@ -6,13 +6,21 @@ import {
   TripSummary,
   PlannerSettings,
   EuroVeloTripPlan,
+  TripPlan,
+  RouteSource,
+  Expense,
+  ExpenseCategory,
+  ExpenseSummary,
 } from '../types';
 import { ParsedRoute } from '../../routes/types';
 import {
   createEuroVeloTripPlan,
+  createTripPlanFromRoute,
   calculateTripStats,
   adjustRemainingPlans,
 } from '../services/euroveloPlanningService';
+import { expenseRepository } from '../services/expense.repository';
+import { tripPlanRepository } from '../services/tripPlan.repository';
 
 // Generate unique ID
 function generateId(): string {
@@ -34,6 +42,13 @@ interface PlannerState {
 
   // Route progress
   routeProgress: Map<string, RouteProgress>;
+
+  // Expenses
+  expenses: Expense[];
+  expensesLoaded: boolean;
+
+  // Trip plans loaded state
+  tripPlansLoaded: boolean;
 
   // Settings
   settings: PlannerSettings;
@@ -57,18 +72,39 @@ interface PlannerState {
   getPlansForDateRange: (startDate: string, endDate: string) => DayPlan[];
   getPlanForDate: (date: string) => DayPlan | undefined;
 
-  // EuroVelo trip planning actions
+  // Trip plan loading
+  loadTripPlans: () => Promise<void>;
+
+  // EuroVelo trip planning actions (legacy)
   createTripPlan: (
     route: ParsedRoute,
     startDate: string,
     dailyDistanceKm?: number,
     name?: string
-  ) => EuroVeloTripPlan;
+  ) => Promise<EuroVeloTripPlan>;
+
+  // Universal trip planning action (supports any route type)
+  createTripPlanFromAnyRoute: (
+    route: ParsedRoute,
+    routeSource: RouteSource,
+    startDate: string,
+    dailyDistanceKm?: number,
+    name?: string
+  ) => Promise<TripPlan>;
+
   setActiveTripPlan: (tripPlan: EuroVeloTripPlan | null) => void;
-  updateTripPlan: (id: string, updates: Partial<EuroVeloTripPlan>) => void;
-  deleteTripPlan: (id: string) => void;
-  completeTripDayPlan: (tripId: string, dayPlanId: string, actualKm: number) => void;
+  updateTripPlan: (id: string, updates: Partial<EuroVeloTripPlan>) => Promise<void>;
+  deleteTripPlan: (id: string) => Promise<void>;
+  completeTripDayPlan: (tripId: string, dayPlanId: string, actualKm: number) => Promise<void>;
   getTripPlanStats: (tripId: string) => ReturnType<typeof calculateTripStats> | null;
+
+  // Expense actions
+  loadExpenses: (tripPlanId: string) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Expense>;
+  updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  getExpenseSummary: (tripPlanId: string) => Promise<ExpenseSummary>;
+  getExpensesForDay: (dayPlanId: string) => Expense[];
 }
 
 const defaultSettings: PlannerSettings = {
@@ -83,6 +119,9 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
   tripPlans: [],
   activeTripPlan: null,
   routeProgress: new Map(),
+  expenses: [],
+  expensesLoaded: false,
+  tripPlansLoaded: false,
   settings: defaultSettings,
   selectedDate: getTodayISO(),
   isLoading: false,
@@ -208,22 +247,57 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
     return get().plans.find((plan) => plan.date === date);
   },
 
-  // EuroVelo trip planning actions
-  createTripPlan: (route, startDate, dailyDistanceKm, name) => {
+  // Load trip plans from database
+  loadTripPlans: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const tripPlans = await tripPlanRepository.getAllTripPlans();
+      // Auto-activate the most recent active trip if any
+      const activeTripPlan = await tripPlanRepository.getActiveTripPlan();
+      set({ tripPlans, activeTripPlan, tripPlansLoaded: true, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false, tripPlansLoaded: true });
+    }
+  },
+
+  // EuroVelo trip planning actions (legacy - kept for backwards compatibility)
+  createTripPlan: async (route, startDate, dailyDistanceKm, name) => {
     const daily = dailyDistanceKm ?? get().settings.defaultDailyDistanceKm;
     const tripPlan = createEuroVeloTripPlan(route, startDate, daily, name);
 
+    // Persist to database
+    const saved = await tripPlanRepository.createTripPlan(tripPlan);
+
     set((state) => ({
-      tripPlans: [...state.tripPlans, tripPlan],
-      activeTripPlan: tripPlan,
+      tripPlans: [...state.tripPlans, saved],
+      activeTripPlan: saved,
     }));
 
-    return tripPlan;
+    return saved;
+  },
+
+  // Universal trip planning (supports EuroVelo, custom routes, imported routes)
+  createTripPlanFromAnyRoute: async (route, routeSource, startDate, dailyDistanceKm, name) => {
+    const daily = dailyDistanceKm ?? get().settings.defaultDailyDistanceKm;
+    const tripPlan = createTripPlanFromRoute(route, routeSource, startDate, daily, name);
+
+    // Persist to database
+    const saved = await tripPlanRepository.createTripPlan(tripPlan as EuroVeloTripPlan);
+
+    set((state) => ({
+      tripPlans: [...state.tripPlans, saved],
+      activeTripPlan: saved,
+    }));
+
+    return saved as TripPlan;
   },
 
   setActiveTripPlan: (tripPlan) => set({ activeTripPlan: tripPlan }),
 
-  updateTripPlan: (id, updates) => {
+  updateTripPlan: async (id, updates) => {
+    // Persist to database
+    await tripPlanRepository.updateTripPlan(id, updates);
+
     set((state) => ({
       tripPlans: state.tripPlans.map((plan) =>
         plan.id === id
@@ -237,57 +311,65 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
     }));
   },
 
-  deleteTripPlan: (id) => {
+  deleteTripPlan: async (id) => {
+    // Delete from database
+    await tripPlanRepository.deleteTripPlan(id);
+
     set((state) => ({
       tripPlans: state.tripPlans.filter((plan) => plan.id !== id),
       activeTripPlan: state.activeTripPlan?.id === id ? null : state.activeTripPlan,
     }));
   },
 
-  completeTripDayPlan: (tripId, dayPlanId, actualKm) => {
-    set((state) => {
-      const tripPlan = state.tripPlans.find((t) => t.id === tripId);
-      if (!tripPlan) return state;
+  completeTripDayPlan: async (tripId, dayPlanId, actualKm) => {
+    const state = get();
+    const tripPlan = state.tripPlans.find((t) => t.id === tripId);
+    if (!tripPlan) return;
 
-      const dayPlanIndex = tripPlan.dayPlans.findIndex((d) => d.id === dayPlanId);
-      if (dayPlanIndex === -1) return state;
+    const dayPlanIndex = tripPlan.dayPlans.findIndex((d) => d.id === dayPlanId);
+    if (dayPlanIndex === -1) return;
 
-      // Update the day plan
-      const updatedDayPlans = tripPlan.dayPlans.map((plan) =>
-        plan.id === dayPlanId
-          ? {
-              ...plan,
-              status: 'completed' as DayPlanStatus,
-              actualKm,
-              updatedAt: new Date().toISOString(),
-            }
-          : plan
-      );
+    // Update the day plan
+    const updatedDayPlans = tripPlan.dayPlans.map((plan) =>
+      plan.id === dayPlanId
+        ? {
+            ...plan,
+            status: 'completed' as DayPlanStatus,
+            actualKm,
+            updatedAt: new Date().toISOString(),
+          }
+        : plan
+    );
 
-      // Optionally adjust remaining plans
-      const adjustedTripPlan: EuroVeloTripPlan = {
-        ...tripPlan,
-        dayPlans: updatedDayPlans,
-        updatedAt: new Date().toISOString(),
-      };
+    // Optionally adjust remaining plans
+    const adjustedTripPlan: EuroVeloTripPlan = {
+      ...tripPlan,
+      dayPlans: updatedDayPlans,
+      updatedAt: new Date().toISOString(),
+    };
 
-      // Check if all days are completed
-      const allCompleted = adjustedTripPlan.dayPlans.every(
-        (d) => d.status === 'completed' || d.status === 'skipped'
-      );
-      if (allCompleted) {
-        adjustedTripPlan.status = 'completed';
-      } else if (adjustedTripPlan.status === 'planning') {
-        adjustedTripPlan.status = 'active';
-      }
+    // Check if all days are completed
+    const allCompleted = adjustedTripPlan.dayPlans.every(
+      (d) => d.status === 'completed' || d.status === 'skipped'
+    );
+    if (allCompleted) {
+      adjustedTripPlan.status = 'completed';
+    } else if (adjustedTripPlan.status === 'planning') {
+      adjustedTripPlan.status = 'active';
+    }
 
-      return {
-        tripPlans: state.tripPlans.map((t) =>
-          t.id === tripId ? adjustedTripPlan : t
-        ),
-        activeTripPlan:
-          state.activeTripPlan?.id === tripId ? adjustedTripPlan : state.activeTripPlan,
-      };
+    // Persist to database
+    await tripPlanRepository.updateTripPlan(tripId, {
+      dayPlans: adjustedTripPlan.dayPlans,
+      status: adjustedTripPlan.status,
+    });
+
+    set({
+      tripPlans: state.tripPlans.map((t) =>
+        t.id === tripId ? adjustedTripPlan : t
+      ),
+      activeTripPlan:
+        state.activeTripPlan?.id === tripId ? adjustedTripPlan : state.activeTripPlan,
     });
   },
 
@@ -295,6 +377,72 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
     const tripPlan = get().tripPlans.find((t) => t.id === tripId);
     if (!tripPlan) return null;
     return calculateTripStats(tripPlan);
+  },
+
+  // Expense actions
+  loadExpenses: async (tripPlanId) => {
+    set({ isLoading: true, error: null });
+    try {
+      const expenses = await expenseRepository.getExpensesByTripPlan(tripPlanId);
+      set({ expenses, expensesLoaded: true, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
+  },
+
+  addExpense: async (expenseData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const newExpense = await expenseRepository.createExpense(expenseData);
+      set((state) => ({
+        expenses: [...state.expenses, newExpense],
+        isLoading: false,
+      }));
+      return newExpense;
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+      throw error;
+    }
+  },
+
+  updateExpense: async (id, updates) => {
+    set({ isLoading: true, error: null });
+    try {
+      const updatedExpense = await expenseRepository.updateExpense(id, updates);
+      if (updatedExpense) {
+        set((state) => ({
+          expenses: state.expenses.map((exp) =>
+            exp.id === id ? updatedExpense : exp
+          ),
+          isLoading: false,
+        }));
+      }
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+      throw error;
+    }
+  },
+
+  deleteExpense: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      await expenseRepository.deleteExpense(id);
+      set((state) => ({
+        expenses: state.expenses.filter((exp) => exp.id !== id),
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+      throw error;
+    }
+  },
+
+  getExpenseSummary: async (tripPlanId) => {
+    return expenseRepository.getExpenseSummary(tripPlanId);
+  },
+
+  getExpensesForDay: (dayPlanId) => {
+    return get().expenses.filter((exp) => exp.dayPlanId === dayPlanId);
   },
 }));
 
@@ -329,3 +477,19 @@ export const selectTripPlanById = (id: string) => (state: PlannerState) =>
 
 export const selectTripPlanByRouteId = (routeId: string) => (state: PlannerState) =>
   state.tripPlans.find((t) => t.dayPlans[0]?.routeId === routeId);
+
+// Expense selectors
+export const selectExpenses = (state: PlannerState) => state.expenses;
+
+export const selectExpensesByCategory = (category: ExpenseCategory) => (state: PlannerState) =>
+  state.expenses.filter((exp) => exp.category === category);
+
+export const selectExpensesByDate = (date: string) => (state: PlannerState) =>
+  state.expenses.filter((exp) => exp.date === date);
+
+export const selectTotalExpenses = (state: PlannerState) =>
+  state.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+export const selectExpensesLoaded = (state: PlannerState) => state.expensesLoaded;
+
+export const selectTripPlansLoaded = (state: PlannerState) => state.tripPlansLoaded;

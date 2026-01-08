@@ -44,5 +44,45 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    // Migration 3 → 4: Add expenses and trip_plans tables for trip planning
+    // Expenses tracks trip spending by category, trip_plans persists trip plans
+    {
+      toVersion: 4,
+      steps: [
+        createTable({
+          name: 'expenses',
+          columns: [
+            { name: 'trip_plan_id', type: 'string', isIndexed: true },
+            { name: 'day_plan_id', type: 'string', isOptional: true },
+            { name: 'date', type: 'string', isIndexed: true },
+            { name: 'amount', type: 'number' },
+            { name: 'currency', type: 'string' },
+            { name: 'category', type: 'string', isIndexed: true },
+            { name: 'description', type: 'string', isOptional: true },
+            { name: 'country', type: 'string', isOptional: true },
+            { name: 'created_at', type: 'number' },
+            { name: 'updated_at', type: 'number' },
+          ],
+        }),
+        createTable({
+          name: 'trip_plans',
+          columns: [
+            { name: 'name', type: 'string' },
+            { name: 'euro_velo_id', type: 'number', isOptional: true },
+            { name: 'route_id', type: 'string', isOptional: true },
+            { name: 'variant', type: 'string', isOptional: true },
+            { name: 'start_date', type: 'string' },
+            { name: 'end_date', type: 'string', isOptional: true },
+            { name: 'daily_distance_km', type: 'number' },
+            { name: 'total_distance_km', type: 'number' },
+            { name: 'estimated_days', type: 'number' },
+            { name: 'status', type: 'string', isIndexed: true },
+            { name: 'day_plans_json', type: 'string' },
+            { name: 'created_at', type: 'number' },
+            { name: 'updated_at', type: 'number' },
+          ],
+        }),
+      ],
+    },
   ],
 });

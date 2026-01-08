@@ -45,6 +45,12 @@ export default function RootLayout() {
             presentation: 'modal',
           }}
         />
+        <Stack.Screen
+          name="planner"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
       </PaperProvider>
     </GestureHandlerRootView>

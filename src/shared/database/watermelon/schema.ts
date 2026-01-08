@@ -1,11 +1,11 @@
 /**
  * WatermelonDB Schema
- * Defines the database structure for POI-related tables
+ * Defines the database structure for POI and Planner tables
  */
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 3,
+  version: 4,
   tables: [
     // POIs table - stores all points of interest
     tableSchema({
@@ -85,6 +85,43 @@ export const schema = appSchema({
         { name: 'tile_count', type: 'number' },
         { name: 'size_bytes', type: 'number' },
         { name: 'downloaded_at', type: 'number' },
+      ],
+    }),
+
+    // Expenses - trip expense tracking
+    tableSchema({
+      name: 'expenses',
+      columns: [
+        { name: 'trip_plan_id', type: 'string', isIndexed: true },
+        { name: 'day_plan_id', type: 'string', isOptional: true },
+        { name: 'date', type: 'string', isIndexed: true },
+        { name: 'amount', type: 'number' },
+        { name: 'currency', type: 'string' },
+        { name: 'category', type: 'string', isIndexed: true },
+        { name: 'description', type: 'string', isOptional: true },
+        { name: 'country', type: 'string', isOptional: true },
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+      ],
+    }),
+
+    // Trip Plans - persisted trip plans
+    tableSchema({
+      name: 'trip_plans',
+      columns: [
+        { name: 'name', type: 'string' },
+        { name: 'euro_velo_id', type: 'number', isOptional: true },
+        { name: 'route_id', type: 'string', isOptional: true },
+        { name: 'variant', type: 'string', isOptional: true },
+        { name: 'start_date', type: 'string' },
+        { name: 'end_date', type: 'string', isOptional: true },
+        { name: 'daily_distance_km', type: 'number' },
+        { name: 'total_distance_km', type: 'number' },
+        { name: 'estimated_days', type: 'number' },
+        { name: 'status', type: 'string', isIndexed: true },
+        { name: 'day_plans_json', type: 'string' },
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
       ],
     }),
   ],

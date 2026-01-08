@@ -1,9 +1,19 @@
+import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { usePlannerStore } from '../../src/features/planner/store/plannerStore';
 
 export default function TabLayout() {
   const theme = useTheme();
+  const { loadTripPlans, tripPlansLoaded } = usePlannerStore();
+
+  // Load trip plans from database on app start
+  useEffect(() => {
+    if (!tripPlansLoaded) {
+      loadTripPlans();
+    }
+  }, [tripPlansLoaded, loadTripPlans]);
 
   return (
     <Tabs

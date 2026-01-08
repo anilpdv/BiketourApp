@@ -1,5 +1,5 @@
 import { ParsedRoute, RoutePoint, RouteVariant } from '../../routes/types';
-import { DayPlan, EuroVeloSegment, EuroVeloTripPlan } from '../types';
+import { DayPlan, EuroVeloSegment, EuroVeloTripPlan, RouteSource, TripPlan } from '../types';
 
 /**
  * Generate a unique ID for entities
@@ -134,6 +134,52 @@ export function createEuroVeloTripPlan(
     name: name || `${route.name} Trip`,
     euroVeloId: route.euroVeloId,
     variant: route.variant,
+    startDate,
+    endDate,
+    dailyDistanceKm,
+    dayPlans,
+    totalDistanceKm: route.totalDistance,
+    estimatedDays: dayPlans.length,
+    status: 'planning',
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * Create a trip plan from any route type (EuroVelo, custom, or imported)
+ * This is the universal function that supports all route sources
+ */
+export function createTripPlanFromRoute(
+  route: ParsedRoute,
+  routeSource: RouteSource,
+  startDate: string,
+  dailyDistanceKm: number = 80,
+  name?: string
+): TripPlan {
+  const dayPlans = splitRouteIntoDays(route, dailyDistanceKm, startDate);
+  const now = new Date().toISOString();
+
+  // Calculate end date
+  const lastDayPlan = dayPlans[dayPlans.length - 1];
+  const endDate = lastDayPlan?.date;
+
+  // Determine default name based on route source
+  let defaultName = `${route.name} Trip`;
+  if (routeSource.type === 'custom') {
+    defaultName = `${route.name} Trip`;
+  } else if (routeSource.type === 'imported') {
+    defaultName = `${routeSource.name} Trip`;
+  }
+
+  return {
+    id: generateId(),
+    name: name || defaultName,
+    // Legacy fields for backwards compatibility
+    euroVeloId: routeSource.type === 'eurovelo' ? routeSource.euroVeloId : 0,
+    variant: routeSource.type === 'eurovelo' ? routeSource.variant : 'full',
+    // New route source field
+    routeSource,
     startDate,
     endDate,
     dailyDistanceKm,
