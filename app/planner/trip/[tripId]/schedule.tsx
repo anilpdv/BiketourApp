@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, useTheme, Button } from 'react-native-paper';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useTripContext } from './TripContext';
 import { usePlannerStore, selectTripPlanById } from '../../../../src/features/planner/store/plannerStore';
 import { DayPlanCard } from '../../../../src/features/planner/components/DayPlanCard';
 import { DayPlan } from '../../../../src/features/planner/types';
@@ -10,7 +11,7 @@ import { spacing } from '../../../../src/shared/design/tokens';
 export default function TripScheduleTab() {
   const theme = useTheme();
   const router = useRouter();
-  const { tripId } = useLocalSearchParams<{ tripId: string }>();
+  const { tripId } = useTripContext();
 
   const tripPlan = usePlannerStore((state) => selectTripPlanById(tripId || '')(state));
   const { completeTripDayPlan } = usePlannerStore();

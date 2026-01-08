@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { View, StyleSheet, SectionList, Alert } from 'react-native';
 import {
   FAB,
   Text,
@@ -7,13 +7,32 @@ import {
   Divider,
   useTheme,
   ActivityIndicator,
-  Card,
 } from 'react-native-paper';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useTripContext } from './TripContext';
 import { useShallow } from 'zustand/react/shallow';
-import { ExpenseCard } from '../../../../src/features/planner/components/Expenses';
-import { usePlannerStore } from '../../../../src/features/planner/store/plannerStore';
-import { Expense, ExpenseCategory, ExpenseSummary } from '../../../../src/features/planner/types';
+import {
+  ExpenseCard,
+  GroupSortControls,
+  ExpenseGroupSection,
+  BudgetSummaryCard,
+  BudgetSetupModal,
+  ExpenseCharts,
+} from '../../../../src/features/planner/components/Expenses';
+import { usePlannerStore, selectTripPlanById } from '../../../../src/features/planner/store/plannerStore';
+import {
+  Expense,
+  ExpenseCategory,
+  ExpenseSummary,
+  ExpenseGroupBy,
+  ExpenseSortBy,
+  ExpenseGroup,
+  BudgetStatus,
+} from '../../../../src/features/planner/types';
+import {
+  groupExpenses,
+  sortExpenses,
+} from '../../../../src/features/planner/utils/expenseUtils';
 
 const CATEGORY_FILTERS: Array<{ key: ExpenseCategory | 'all'; label: string }> = [
   { key: 'all', label: 'All' },
@@ -27,10 +46,19 @@ const CATEGORY_FILTERS: Array<{ key: ExpenseCategory | 'all'; label: string }> =
 export default function TripExpensesTab() {
   const theme = useTheme();
   const router = useRouter();
-  const { tripId } = useLocalSearchParams<{ tripId: string }>();
+  const { tripId } = useTripContext();
 
+  // State for filtering, grouping, and sorting
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | 'all'>('all');
+  const [groupBy, setGroupBy] = useState<ExpenseGroupBy>('none');
+  const [sortBy, setSortBy] = useState<ExpenseSortBy>('date_desc');
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [showCharts, setShowCharts] = useState(false);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
+
+  // Get trip plan for budget info
+  const tripPlan = usePlannerStore((state) => selectTripPlanById(tripId || '')(state));
 
   const {
     expenses,
@@ -39,6 +67,8 @@ export default function TripExpensesTab() {
     loadExpenses,
     deleteExpense,
     getExpenseSummary,
+    updateTripBudget,
+    getBudgetStatus,
   } = usePlannerStore(
     useShallow((state) => ({
       expenses: state.expenses,
@@ -47,6 +77,8 @@ export default function TripExpensesTab() {
       loadExpenses: state.loadExpenses,
       deleteExpense: state.deleteExpense,
       getExpenseSummary: state.getExpenseSummary,
+      updateTripBudget: state.updateTripBudget,
+      getBudgetStatus: state.getBudgetStatus,
     }))
   );
 
@@ -62,13 +94,35 @@ export default function TripExpensesTab() {
     }
   }, [tripId, expenses, getExpenseSummary]);
 
-  const filteredExpenses = selectedCategory === 'all'
-    ? expenses
-    : expenses.filter((exp) => exp.category === selectedCategory);
+  // Get budget status
+  const budgetStatus = useMemo(() => {
+    if (!tripId) return null;
+    return getBudgetStatus(tripId);
+  }, [tripId, getBudgetStatus, expenses, tripPlan?.budget]);
 
-  const sortedExpenses = [...filteredExpenses].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Filter expenses by category
+  const filteredExpenses = useMemo(() => {
+    return selectedCategory === 'all'
+      ? expenses
+      : expenses.filter((exp) => exp.category === selectedCategory);
+  }, [expenses, selectedCategory]);
+
+  // Sort expenses
+  const sortedExpenses = useMemo(() => {
+    return sortExpenses(filteredExpenses, sortBy);
+  }, [filteredExpenses, sortBy]);
+
+  // Group expenses
+  const groupedExpenses = useMemo(() => {
+    return groupExpenses(sortedExpenses, groupBy);
+  }, [sortedExpenses, groupBy]);
+
+  // Expand all sections by default when groupBy changes
+  useEffect(() => {
+    if (groupBy !== 'none') {
+      setExpandedSections(new Set(groupedExpenses.map((g) => g.key)));
+    }
+  }, [groupBy]);
 
   const handleAddExpense = () => {
     router.push(`/planner/add-expense?tripPlanId=${tripId}`);
@@ -89,51 +143,56 @@ export default function TripExpensesTab() {
     );
   }, [deleteExpense]);
 
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+  const handleToggleSection = useCallback((key: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
 
-  const renderExpenseItem = useCallback(
-    ({ item }: { item: Expense }) => (
-      <ExpenseCard
-        expense={item}
-        onDelete={() => handleDeleteExpense(item)}
-      />
-    ),
-    [handleDeleteExpense]
-  );
+  const handleSaveBudget = useCallback(async (budget: number, currency: string) => {
+    if (tripId) {
+      await updateTripBudget(tripId, budget, currency);
+    }
+  }, [tripId, updateTripBudget]);
 
   const renderHeader = () => (
     <View style={styles.header}>
-      {summary && (
-        <Card style={styles.summaryCard} mode="outlined">
-          <Card.Content>
-            <View style={styles.summaryRow}>
-              <View>
-                <Text variant="labelMedium" style={styles.summaryLabel}>
-                  Total Spent
-                </Text>
-                <Text variant="headlineSmall" style={styles.summaryAmount}>
-                  {formatCurrency(summary.totalAmount, summary.currency)}
-                </Text>
-              </View>
-              <View style={styles.summaryStats}>
-                <Text variant="bodySmall" style={styles.summaryStat}>
-                  Avg/day: {formatCurrency(summary.averagePerDay, summary.currency)}
-                </Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
+      {/* Budget Summary Card */}
+      <BudgetSummaryCard
+        summary={summary}
+        budgetStatus={budgetStatus}
+        onSetBudget={() => setShowBudgetModal(true)}
+      />
+
+      {/* Charts Section (Collapsible) */}
+      {summary && summary.totalAmount > 0 && (
+        <ExpenseCharts
+          summary={summary}
+          budget={tripPlan?.budget}
+          isExpanded={showCharts}
+          onToggle={() => setShowCharts(!showCharts)}
+        />
       )}
 
+      {/* Group and Sort Controls */}
+      <GroupSortControls
+        groupBy={groupBy}
+        sortBy={sortBy}
+        onGroupByChange={setGroupBy}
+        onSortByChange={setSortBy}
+      />
+
+      {/* Category Filter */}
       <View style={styles.filterContainer}>
-        <FlatList
+        <SectionList
           horizontal
-          data={CATEGORY_FILTERS}
+          sections={[{ data: CATEGORY_FILTERS }]}
           keyExtractor={(item) => item.key}
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
@@ -146,11 +205,46 @@ export default function TripExpensesTab() {
               {item.label}
             </Chip>
           )}
+          renderSectionHeader={() => null}
+          contentContainerStyle={styles.filterContent}
         />
       </View>
       <Divider style={styles.divider} />
     </View>
   );
+
+  const renderGroupedList = () => {
+    if (groupBy === 'none') {
+      // Render flat list when not grouping
+      return (
+        <>
+          {sortedExpenses.map((expense) => (
+            <ExpenseCard
+              key={expense.id}
+              expense={expense}
+              onDelete={() => handleDeleteExpense(expense)}
+            />
+          ))}
+        </>
+      );
+    }
+
+    // Render grouped sections
+    return (
+      <>
+        {groupedExpenses.map((group) => (
+          <ExpenseGroupSection
+            key={group.key}
+            group={group}
+            isExpanded={expandedSections.has(group.key)}
+            onToggle={() => handleToggleSection(group.key)}
+            onDeleteExpense={handleDeleteExpense}
+            currency={summary?.currency || 'EUR'}
+          />
+        ))}
+      </>
+    );
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -163,11 +257,11 @@ export default function TripExpensesTab() {
     </View>
   );
 
-  if (!tripId) {
+  if (!tripPlan) {
     return (
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
-          <Text variant="bodyLarge">No trip selected</Text>
+          <Text variant="bodyLarge">Trip not found</Text>
         </View>
       </View>
     );
@@ -180,13 +274,18 @@ export default function TripExpensesTab() {
           <ActivityIndicator size="large" />
         </View>
       ) : (
-        <FlatList
-          data={sortedExpenses}
-          keyExtractor={(item) => item.id}
-          renderItem={renderExpenseItem}
+        <SectionList
+          sections={[{ data: [1] }]} // Dummy section to enable header
+          keyExtractor={(_, index) => index.toString()}
           ListHeaderComponent={renderHeader}
-          ListEmptyComponent={renderEmpty}
-          contentContainerStyle={styles.listContent}
+          renderItem={() => (
+            <View style={styles.listContent}>
+              {sortedExpenses.length === 0 ? renderEmpty() : renderGroupedList()}
+            </View>
+          )}
+          renderSectionHeader={() => null}
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={styles.scrollContent}
         />
       )}
 
@@ -195,6 +294,14 @@ export default function TripExpensesTab() {
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={handleAddExpense}
         color={theme.colors.onPrimary}
+      />
+
+      <BudgetSetupModal
+        visible={showBudgetModal}
+        onDismiss={() => setShowBudgetModal(false)}
+        onSave={handleSaveBudget}
+        initialBudget={tripPlan?.budget}
+        initialCurrency={tripPlan?.budgetCurrency || 'EUR'}
       />
     </View>
   );
@@ -212,40 +319,26 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 8,
   },
-  summaryCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    color: '#666',
-  },
-  summaryAmount: {
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
-  summaryStats: {
-    alignItems: 'flex-end',
-  },
-  summaryStat: {
-    color: '#666',
-  },
   filterContainer: {
     paddingHorizontal: 12,
     marginBottom: 8,
+  },
+  filterContent: {
+    paddingHorizontal: 4,
+    gap: 8,
   },
   filterChip: {
     marginHorizontal: 4,
   },
   divider: {
     marginHorizontal: 16,
+    marginTop: 8,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   listContent: {
-    paddingBottom: 100,
+    paddingTop: 8,
   },
   emptyContainer: {
     flex: 1,

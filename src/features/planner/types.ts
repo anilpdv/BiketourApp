@@ -85,6 +85,9 @@ export interface EuroVeloTripPlan {
   totalDistanceKm: number;
   estimatedDays: number;
   status: TripPlanStatus;
+  // Budget tracking
+  budget?: number;
+  budgetCurrency?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -164,6 +167,28 @@ export interface ExpenseSummary {
   byDay: Record<string, number>;
   byCountry: Record<string, number>;
   averagePerDay: number;
+}
+
+// Expense grouping and sorting types
+export type ExpenseGroupBy = 'none' | 'day' | 'category' | 'country';
+export type ExpenseSortBy = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
+
+export interface ExpenseGroup {
+  key: string;
+  label: string;
+  expenses: Expense[];
+  subtotal: number;
+}
+
+// Budget tracking types
+export interface BudgetStatus {
+  budget: number;
+  spent: number;
+  remaining: number;
+  percentUsed: number;
+  currency: string;
+  isOverBudget: boolean;
+  isNearBudget: boolean; // > 80%
 }
 
 // ==========================================

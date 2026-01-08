@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Surface, useTheme, ProgressBar, Chip } from 'react-native-paper';
-import { useLocalSearchParams } from 'expo-router';
+import { useTripContext } from './TripContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePlannerStore, selectTripPlanById } from '../../../../src/features/planner/store/plannerStore';
 import { DayPlanCard } from '../../../../src/features/planner/components/DayPlanCard';
@@ -11,7 +11,7 @@ import { colors, spacing, borderRadius } from '../../../../src/shared/design/tok
 
 export default function TripOverviewTab() {
   const theme = useTheme();
-  const { tripId } = useLocalSearchParams<{ tripId: string }>();
+  const { tripId } = useTripContext();
 
   const tripPlan = usePlannerStore((state) => selectTripPlanById(tripId || '')(state));
   const { completeTripDayPlan } = usePlannerStore();

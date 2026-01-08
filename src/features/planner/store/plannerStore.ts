@@ -11,7 +11,9 @@ import {
   Expense,
   ExpenseCategory,
   ExpenseSummary,
+  BudgetStatus,
 } from '../types';
+import { calculateBudgetStatus } from '../utils/expenseUtils';
 import { ParsedRoute } from '../../routes/types';
 import {
   createEuroVeloTripPlan,
@@ -105,6 +107,10 @@ interface PlannerState {
   deleteExpense: (id: string) => Promise<void>;
   getExpenseSummary: (tripPlanId: string) => Promise<ExpenseSummary>;
   getExpensesForDay: (dayPlanId: string) => Expense[];
+
+  // Budget actions
+  updateTripBudget: (tripId: string, budget: number, currency: string) => Promise<void>;
+  getBudgetStatus: (tripId: string) => BudgetStatus | null;
 }
 
 const defaultSettings: PlannerSettings = {
@@ -443,6 +449,39 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
 
   getExpensesForDay: (dayPlanId) => {
     return get().expenses.filter((exp) => exp.dayPlanId === dayPlanId);
+  },
+
+  // Budget actions
+  updateTripBudget: async (tripId, budget, currency) => {
+    await tripPlanRepository.updateTripPlan(tripId, {
+      budget,
+      budgetCurrency: currency,
+    });
+
+    set((state) => ({
+      tripPlans: state.tripPlans.map((plan) =>
+        plan.id === tripId
+          ? { ...plan, budget, budgetCurrency: currency, updatedAt: new Date().toISOString() }
+          : plan
+      ),
+      activeTripPlan:
+        state.activeTripPlan?.id === tripId
+          ? { ...state.activeTripPlan, budget, budgetCurrency: currency, updatedAt: new Date().toISOString() }
+          : state.activeTripPlan,
+    }));
+  },
+
+  getBudgetStatus: (tripId) => {
+    const state = get();
+    const tripPlan = state.tripPlans.find((t) => t.id === tripId);
+    if (!tripPlan || !tripPlan.budget) return null;
+
+    const tripExpenses = state.expenses.filter((e) => e.tripPlanId === tripId);
+    return calculateBudgetStatus(
+      tripPlan.budget,
+      tripExpenses,
+      tripPlan.budgetCurrency || 'EUR'
+    );
   },
 }));
 

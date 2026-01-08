@@ -84,5 +84,19 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    // Migration 4 → 5: Add budget columns to trip_plans for expense tracking
+    // Allows users to set a trip budget and track spending against it
+    {
+      toVersion: 5,
+      steps: [
+        addColumns({
+          table: 'trip_plans',
+          columns: [
+            { name: 'budget', type: 'number', isOptional: true },
+            { name: 'budget_currency', type: 'string', isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 });

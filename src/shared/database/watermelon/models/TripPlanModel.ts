@@ -20,6 +20,8 @@ export default class TripPlanModel extends Model {
   @field('estimated_days') estimatedDays!: number;
   @text('status') status!: string;
   @text('day_plans_json') dayPlansJson!: string;
+  @field('budget') budget!: number | null;
+  @text('budget_currency') budgetCurrency!: string | null;
   @field('created_at') createdAt!: number;
   @field('updated_at') updatedAt!: number;
 

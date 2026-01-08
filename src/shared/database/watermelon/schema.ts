@@ -5,7 +5,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 4,
+  version: 5,
   tables: [
     // POIs table - stores all points of interest
     tableSchema({
@@ -120,6 +120,8 @@ export const schema = appSchema({
         { name: 'estimated_days', type: 'number' },
         { name: 'status', type: 'string', isIndexed: true },
         { name: 'day_plans_json', type: 'string' },
+        { name: 'budget', type: 'number', isOptional: true },
+        { name: 'budget_currency', type: 'string', isOptional: true },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
       ],

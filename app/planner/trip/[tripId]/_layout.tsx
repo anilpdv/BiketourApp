@@ -6,6 +6,7 @@ import { useTheme, IconButton, Menu, Text } from 'react-native-paper';
 import { MaterialTopTabs } from '../../../../src/shared/navigation';
 import { usePlannerStore, selectTripPlanById } from '../../../../src/features/planner/store/plannerStore';
 import { colors, spacing } from '../../../../src/shared/design/tokens';
+import { TripContext } from './TripContext';
 
 export default function TripTabsLayout() {
   const theme = useTheme();
@@ -44,10 +45,6 @@ export default function TripTabsLayout() {
     );
   };
 
-  const handleAddExpense = () => {
-    router.push(`/planner/add-expense?tripPlanId=${tripId}`);
-  };
-
   if (!tripPlan) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -57,78 +54,75 @@ export default function TripTabsLayout() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.primary }} edges={['top']}>
-      <Stack.Screen options={{ headerShown: false }} />
+    <TripContext.Provider value={{ tripId: tripId! }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.primary }} edges={['top']}>
+        <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Custom Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
-        <IconButton
-          icon="arrow-left"
-          iconColor={theme.colors.onPrimary}
-          onPress={() => router.back()}
-        />
-        <Text
-          variant="titleMedium"
-          style={[styles.headerTitle, { color: theme.colors.onPrimary }]}
-          numberOfLines={1}
-        >
-          {tripPlan.name}
-        </Text>
-        <View style={styles.headerRight}>
+        {/* Custom Header */}
+        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
           <IconButton
-            icon="plus"
+            icon="arrow-left"
             iconColor={theme.colors.onPrimary}
-            onPress={handleAddExpense}
+            onPress={() => router.back()}
           />
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="dots-vertical"
-                iconColor={theme.colors.onPrimary}
-                onPress={() => setMenuVisible(true)}
-              />
-            }
+          <Text
+            variant="titleMedium"
+            style={[styles.headerTitle, { color: theme.colors.onPrimary }]}
+            numberOfLines={1}
           >
-            <Menu.Item
-              onPress={handleSetActive}
-              title="Set as Active"
-              leadingIcon="check-circle"
-            />
-            <Menu.Item
-              onPress={handleDeleteTrip}
-              title="Delete Trip"
-              leadingIcon="delete"
-              titleStyle={{ color: colors.status.error }}
-            />
-          </Menu>
+            {tripPlan.name}
+          </Text>
+          <View style={styles.headerRight}>
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  iconColor={theme.colors.onPrimary}
+                  onPress={() => setMenuVisible(true)}
+                />
+              }
+            >
+              <Menu.Item
+                onPress={handleSetActive}
+                title="Set as Active"
+                leadingIcon="check-circle"
+              />
+              <Menu.Item
+                onPress={handleDeleteTrip}
+                title="Delete Trip"
+                leadingIcon="delete"
+                titleStyle={{ color: colors.status.error }}
+              />
+            </Menu>
+          </View>
         </View>
-      </View>
 
-      <MaterialTopTabs
-        screenOptions={{
-          tabBarActiveTintColor: theme.colors.primary,
-          tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-          tabBarIndicatorStyle: { backgroundColor: theme.colors.primary },
-          tabBarStyle: { backgroundColor: theme.colors.surface },
-          tabBarLabelStyle: { fontWeight: '600', textTransform: 'none' },
-        }}
-      >
-        <MaterialTopTabs.Screen
-          name="index"
-          options={{ title: 'Overview' }}
-        />
-        <MaterialTopTabs.Screen
-          name="schedule"
-          options={{ title: 'Schedule' }}
-        />
-        <MaterialTopTabs.Screen
-          name="expenses"
-          options={{ title: 'Expenses' }}
-        />
-      </MaterialTopTabs>
-    </SafeAreaView>
+        <MaterialTopTabs
+          screenOptions={{
+            tabBarActiveTintColor: theme.colors.primary,
+            tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+            tabBarIndicatorStyle: { backgroundColor: theme.colors.primary },
+            tabBarStyle: { backgroundColor: theme.colors.surface },
+            tabBarLabelStyle: { fontWeight: '600', textTransform: 'none' },
+          }}
+        >
+          <MaterialTopTabs.Screen
+            name="index"
+            options={{ title: 'Overview' }}
+          />
+          <MaterialTopTabs.Screen
+            name="schedule"
+            options={{ title: 'Schedule' }}
+          />
+          <MaterialTopTabs.Screen
+            name="expenses"
+            options={{ title: 'Expenses' }}
+          />
+        </MaterialTopTabs>
+      </SafeAreaView>
+    </TripContext.Provider>
   );
 }
 

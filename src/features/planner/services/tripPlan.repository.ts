@@ -26,6 +26,8 @@ function modelToTripPlan(model: TripPlanModel): EuroVeloTripPlan {
     estimatedDays: model.estimatedDays,
     status: model.status as EuroVeloTripPlan['status'],
     dayPlans: model.dayPlans,
+    budget: model.budget || undefined,
+    budgetCurrency: model.budgetCurrency || undefined,
     createdAt: new Date(model.createdAt).toISOString(),
     updatedAt: new Date(model.updatedAt).toISOString(),
   };
@@ -57,6 +59,8 @@ export const tripPlanRepository = {
         record.estimatedDays = tripPlan.estimatedDays;
         record.status = tripPlan.status;
         record.dayPlansJson = JSON.stringify(tripPlan.dayPlans);
+        record.budget = tripPlan.budget || null;
+        record.budgetCurrency = tripPlan.budgetCurrency || null;
         record.createdAt = now;
         record.updatedAt = now;
       });
@@ -98,6 +102,8 @@ export const tripPlanRepository = {
         if (updates.estimatedDays !== undefined) record.estimatedDays = updates.estimatedDays;
         if (updates.status !== undefined) record.status = updates.status;
         if (updates.dayPlans !== undefined) record.dayPlansJson = JSON.stringify(updates.dayPlans);
+        if (updates.budget !== undefined) record.budget = updates.budget || null;
+        if (updates.budgetCurrency !== undefined) record.budgetCurrency = updates.budgetCurrency || null;
         record.updatedAt = now;
       });
     });
