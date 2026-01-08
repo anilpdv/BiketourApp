@@ -14,6 +14,16 @@ import {
   BudgetStatus,
 } from '../types';
 import { calculateBudgetStatus } from '../utils/expenseUtils';
+import {
+  recalculateSubsequentDays,
+  updateDayTargetKm,
+  resortDaysByDate,
+  hasDateConflict,
+  createRestDay,
+  insertRestDayAfter,
+  removeDayAndRecalculate,
+  getDayPlanDates,
+} from '../utils/dayPlanUtils';
 import { ParsedRoute } from '../../routes/types';
 import {
   createEuroVeloTripPlan,
@@ -111,6 +121,16 @@ interface PlannerState {
   // Budget actions
   updateTripBudget: (tripId: string, budget: number, currency: string) => Promise<void>;
   getBudgetStatus: (tripId: string) => BudgetStatus | null;
+
+  // Day plan editing actions
+  updateDayPlan: (
+    tripId: string,
+    dayPlanId: string,
+    updates: Partial<DayPlan>,
+    recalculateSubsequent?: boolean
+  ) => Promise<{ success: boolean; error?: string }>;
+  addRestDay: (tripId: string, afterDayPlanId: string) => Promise<{ success: boolean; error?: string }>;
+  removeDayPlan: (tripId: string, dayPlanId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const defaultSettings: PlannerSettings = {
@@ -482,6 +502,221 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
       tripExpenses,
       tripPlan.budgetCurrency || 'EUR'
     );
+  },
+
+  // Day plan editing actions
+  updateDayPlan: async (tripId, dayPlanId, updates, shouldRecalculate = true) => {
+    const state = get();
+    const tripPlan = state.tripPlans.find((t) => t.id === tripId);
+    if (!tripPlan) {
+      return { success: false, error: 'Trip plan not found' };
+    }
+
+    const dayPlanIndex = tripPlan.dayPlans.findIndex((d) => d.id === dayPlanId);
+    if (dayPlanIndex === -1) {
+      return { success: false, error: 'Day plan not found' };
+    }
+
+    const now = new Date().toISOString();
+    let updatedDayPlans = [...tripPlan.dayPlans];
+
+    // Check for date conflicts if date is being changed
+    if (updates.date !== undefined) {
+      const existingDates = getDayPlanDates(tripPlan.dayPlans);
+      if (hasDateConflict(updates.date, existingDates, dayPlanId, tripPlan.dayPlans)) {
+        return { success: false, error: 'Another day already has this date' };
+      }
+    }
+
+    // Update the specific day plan
+    updatedDayPlans[dayPlanIndex] = {
+      ...updatedDayPlans[dayPlanIndex],
+      ...updates,
+      updatedAt: now,
+    };
+
+    // If targetKm changed, update the euroVeloSegment and recalculate subsequent days
+    if (updates.targetKm !== undefined) {
+      const day = updatedDayPlans[dayPlanIndex];
+      const newEndKm = day.startKm + updates.targetKm;
+
+      updatedDayPlans[dayPlanIndex] = {
+        ...day,
+        euroVeloSegment: day.euroVeloSegment
+          ? {
+              ...day.euroVeloSegment,
+              endKm: newEndKm,
+              distanceKm: updates.targetKm,
+            }
+          : undefined,
+      };
+
+      // Recalculate subsequent days if needed
+      if (shouldRecalculate) {
+        updatedDayPlans = recalculateSubsequentDays(updatedDayPlans, dayPlanIndex);
+      }
+    }
+
+    // If date changed, resort by date
+    if (updates.date !== undefined) {
+      updatedDayPlans = resortDaysByDate(updatedDayPlans);
+    }
+
+    // Calculate new end date from the last day
+    const sortedByDate = [...updatedDayPlans].sort((a, b) => a.date.localeCompare(b.date));
+    const newEndDate = sortedByDate.length > 0 ? sortedByDate[sortedByDate.length - 1].date : undefined;
+
+    // Persist to database
+    try {
+      await tripPlanRepository.updateTripPlan(tripId, {
+        dayPlans: updatedDayPlans,
+        endDate: newEndDate,
+        estimatedDays: updatedDayPlans.length,
+      });
+
+      const updatedTripPlan: EuroVeloTripPlan = {
+        ...tripPlan,
+        dayPlans: updatedDayPlans,
+        endDate: newEndDate,
+        estimatedDays: updatedDayPlans.length,
+        updatedAt: now,
+      };
+
+      set({
+        tripPlans: state.tripPlans.map((t) => (t.id === tripId ? updatedTripPlan : t)),
+        activeTripPlan:
+          state.activeTripPlan?.id === tripId ? updatedTripPlan : state.activeTripPlan,
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  },
+
+  addRestDay: async (tripId, afterDayPlanId) => {
+    const state = get();
+    const tripPlan = state.tripPlans.find((t) => t.id === tripId);
+    if (!tripPlan) {
+      return { success: false, error: 'Trip plan not found' };
+    }
+
+    const afterDayIndex = tripPlan.dayPlans.findIndex((d) => d.id === afterDayPlanId);
+    if (afterDayIndex === -1) {
+      return { success: false, error: 'Day plan not found' };
+    }
+
+    const afterDay = tripPlan.dayPlans[afterDayIndex];
+    const now = new Date().toISOString();
+
+    // Get the rest date and shift subsequent days' dates
+    const { restDate, updatedDayPlans: shiftedDayPlans } = insertRestDayAfter(
+      tripPlan.dayPlans,
+      afterDayIndex
+    );
+
+    // Create the rest day
+    const restDay = createRestDay(afterDay, afterDay.routeId, restDate);
+
+    // Insert the rest day at the correct position
+    const newDayPlans = [
+      ...shiftedDayPlans.slice(0, afterDayIndex + 1),
+      restDay,
+      ...shiftedDayPlans.slice(afterDayIndex + 1),
+    ];
+
+    // Recalculate km ranges to maintain contiguity (rest day has 0 km, so subsequent days keep same startKm)
+    const finalDayPlans = recalculateSubsequentDays(newDayPlans, afterDayIndex + 1);
+
+    // Calculate new end date
+    const sortedByDate = [...finalDayPlans].sort((a, b) => a.date.localeCompare(b.date));
+    const newEndDate = sortedByDate.length > 0 ? sortedByDate[sortedByDate.length - 1].date : undefined;
+
+    // Persist to database
+    try {
+      await tripPlanRepository.updateTripPlan(tripId, {
+        dayPlans: finalDayPlans,
+        endDate: newEndDate,
+        estimatedDays: finalDayPlans.length,
+      });
+
+      const updatedTripPlan: EuroVeloTripPlan = {
+        ...tripPlan,
+        dayPlans: finalDayPlans,
+        endDate: newEndDate,
+        estimatedDays: finalDayPlans.length,
+        updatedAt: now,
+      };
+
+      set({
+        tripPlans: state.tripPlans.map((t) => (t.id === tripId ? updatedTripPlan : t)),
+        activeTripPlan:
+          state.activeTripPlan?.id === tripId ? updatedTripPlan : state.activeTripPlan,
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  },
+
+  removeDayPlan: async (tripId, dayPlanId) => {
+    const state = get();
+    const tripPlan = state.tripPlans.find((t) => t.id === tripId);
+    if (!tripPlan) {
+      return { success: false, error: 'Trip plan not found' };
+    }
+
+    const dayPlanIndex = tripPlan.dayPlans.findIndex((d) => d.id === dayPlanId);
+    if (dayPlanIndex === -1) {
+      return { success: false, error: 'Day plan not found' };
+    }
+
+    // Don't allow removing if there's only one day
+    if (tripPlan.dayPlans.length <= 1) {
+      return { success: false, error: 'Cannot remove the only day in the trip' };
+    }
+
+    const now = new Date().toISOString();
+
+    // Remove the day and recalculate
+    const updatedDayPlans = removeDayAndRecalculate(tripPlan.dayPlans, dayPlanIndex);
+
+    // Calculate new end date
+    const sortedByDate = [...updatedDayPlans].sort((a, b) => a.date.localeCompare(b.date));
+    const newEndDate = sortedByDate.length > 0 ? sortedByDate[sortedByDate.length - 1].date : undefined;
+
+    // Calculate new total distance
+    const newTotalDistance = updatedDayPlans.reduce((sum, day) => sum + day.targetKm, 0);
+
+    // Persist to database
+    try {
+      await tripPlanRepository.updateTripPlan(tripId, {
+        dayPlans: updatedDayPlans,
+        endDate: newEndDate,
+        estimatedDays: updatedDayPlans.length,
+        totalDistanceKm: newTotalDistance,
+      });
+
+      const updatedTripPlan: EuroVeloTripPlan = {
+        ...tripPlan,
+        dayPlans: updatedDayPlans,
+        endDate: newEndDate,
+        estimatedDays: updatedDayPlans.length,
+        totalDistanceKm: newTotalDistance,
+        updatedAt: now,
+      };
+
+      set({
+        tripPlans: state.tripPlans.map((t) => (t.id === tripId ? updatedTripPlan : t)),
+        activeTripPlan:
+          state.activeTripPlan?.id === tripId ? updatedTripPlan : state.activeTripPlan,
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
   },
 }));
 
