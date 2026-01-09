@@ -1,6 +1,9 @@
 export { ExpenseCard } from './ExpenseCard';
 export { CategoryPicker } from './CategoryPicker';
+export { CategorySelector } from './CategorySelector';
 export { ExpenseForm } from './ExpenseForm';
+export { DetailsCard } from './DetailsCard';
+export { SubmitBar } from './SubmitBar';
 export { GroupSortControls } from './GroupSortControls';
 export { ExpenseGroupSection } from './ExpenseGroupSection';
 export { BudgetProgressBar } from './BudgetProgressBar';

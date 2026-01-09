@@ -14,7 +14,7 @@ const CATEGORY_CONFIG: Record<ExpenseCategory, { icon: string; color: string; la
   food: { icon: 'food', color: '#FF9800', label: 'Food' },
   transport: { icon: 'train', color: '#2196F3', label: 'Transport' },
   repairs: { icon: 'wrench', color: '#9C27B0', label: 'Repairs' },
-  other: { icon: 'dots-horizontal', color: '#607D8B', label: 'Other' },
+  other: { icon: 'tag', color: '#607D8B', label: 'Custom' },
 };
 
 export function ExpenseCard({ expense, onPress, onDelete }: ExpenseCardProps) {
